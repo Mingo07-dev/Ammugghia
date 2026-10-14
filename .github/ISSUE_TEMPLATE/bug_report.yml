@@ -1,0 +1,53 @@
+name: Bug report
+description: Something did not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem. Ammugghia deletes files,
+        so every report is taken seriously — please be as precise as you can.
+        Segnalazioni in italiano benvenute.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, what happened instead.
+    validations:
+      required: true
+  - type: dropdown
+    id: data-loss
+    attributes:
+      label: Was anything deleted that should not have been?
+      options:
+        - "No"
+        - "Yes — please describe the path(s) above"
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: "macOS 26.0 (25A354)"
+    validations:
+      required: true
+  - type: dropdown
+    id: arch
+    attributes:
+      label: Mac
+      options:
+        - Apple silicon
+        - Intel
+    validations:
+      required: true
+  - type: textarea
+    id: selftest
+    attributes:
+      label: Output of `Ammugghia --selftest`
+      render: text
+  - type: textarea
+    id: log
+    attributes:
+      label: Relevant log lines
+      description: From `~/Library/Logs/Ammugghia`. Remove anything you consider private.
+      render: text

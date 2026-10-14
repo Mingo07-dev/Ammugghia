@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest a new cleanup target or an improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What takes up space, or what is missing?
+      description: For a new cleanup target, include the exact path and the tool that owns it.
+    validations:
+      required: true
+  - type: textarea
+    id: consequence
+    attributes:
+      label: What happens after it is deleted?
+      description: Every item in Ammugghia must explain its consequence. Is it rebuilt automatically, re-downloaded, or lost?
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Official tool
+      description: Is there an official command that should be preferred over deleting files (e.g. `simctl`, `brew cleanup`)?

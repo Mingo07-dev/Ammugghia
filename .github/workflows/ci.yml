@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-selftest:
+    name: Build and safety self-test
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: swift --version
+
+      - name: Build (release, zero warnings)
+        run: |
+          set -o pipefail
+          swift build -c release 2>&1 | tee build.log
+          if grep -q "warning:" build.log; then
+            echo "::error::The build must stay at zero warnings."
+            exit 1
+          fi
+
+      - name: Safety self-test
+        run: '"$(swift build -c release --show-bin-path)/Ammugghia" --selftest'

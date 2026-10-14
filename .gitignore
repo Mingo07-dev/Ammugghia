@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Build
+.build/
+dist/
+.swiftpm/
+*.xcodeproj/
+Resources/Ammugghia.iconset/
+Resources/icona-anteprima.png
