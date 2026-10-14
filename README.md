@@ -65,7 +65,7 @@ each item is and what happens after it is gone, and then lets you decide.
 | **iOS Simulators** | Devices with and without data, with last boot date. *Delete* and *erase* are offered as mutually exclusive alternatives |
 | **Android** | NDK, system images, emulators, sources, Gradle caches and wrapper distributions |
 | **Package managers** | npm, Yarn, pnpm, pip, Homebrew, node-gyp, pub/Dart, Maven, Cargo, RubyGems, Go |
-| **Project artifacts** | `node_modules`, `Pods`, `.dart_tool`, `build`, `.next`… grouped by project. A folder is only offered if the project has a matching manifest file |
+| **Project artifacts** | `node_modules`, `Pods`, `.dart_tool`, `build`, `.next`… grouped by project. Also `target` (Rust, Maven), `.build` (Swift), Python caches, Unity, Godot, Zig, Terraform and more. Each folder name is tied to its own manifest: `target` is only offered next to `Cargo.toml` or `pom.xml` |
 | **Browsers** | Cache folders only: Chrome, Edge, Brave, Arc, Opera, Firefox, Safari. History, bookmarks, passwords and sessions are never touched |
 | **System** | Leftover macOS installer, app caches, saved window state, logs, Mail attachments, iOS device backups, Trash |
 | **Dynamic wallpapers** | 4K Aerial videos. Ammugghia reads your wallpaper configuration **first**: if rotation is still on, it warns you that macOS will download them again |
@@ -105,6 +105,13 @@ refused. `DeletionEngine` checks again even for operations the UI has already va
 
 **More guarantees.**
 
+- **The path must still be the same object.** The device and inode of each path are
+  recorded at scan time and checked again right before deletion. If a folder was replaced
+  in the meantime, even by one with the same name, it is refused. A folder that contains a
+  mounted volume is refused too.
+- **Apps must be closed first.** Browser caches and Xcode's index are not touched while
+  their app is running. The confirmation sheet lists the open apps and offers to quit
+  them.
 - Symbolic links are validated at their destination too. A link in a cache folder that
   points to `~/Documents` is refused.
 - **Move to Trash** is the default mode. Permanent deletion of user data requires typing
@@ -130,7 +137,7 @@ refused. `DeletionEngine` checks again even for operations the UI has already va
 Ammugghia --selftest
 ```
 
-This runs **53 checks** without opening the UI:
+This runs **68 checks** without opening the UI:
 
 - paths that must be refused: the Photos library, iCloud Drive, SSH keys, `/System`, your
   home folder…
@@ -191,7 +198,7 @@ coordinates.
 
 ## Roadmap
 
-- [ ] Verify each file's identity (device + inode) between scan and deletion
+- [x] Verify each file's identity (device + inode) between scan and deletion
 - [ ] Caches of Electron apps (Slack, Discord, VS Code, Teams…) and more package managers
 - [ ] Leftovers of apps that are already uninstalled, and local AI models (Ollama, Hugging Face, LM Studio)
 - [ ] Disk map (treemap) with an incremental index based on FSEvents

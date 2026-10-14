@@ -67,7 +67,7 @@ che cos'è e che cosa succede dopo averlo eliminato, e lascia a te la decisione.
 | **Simulatori iOS** | Dispositivi con e senza dati, con la data dell'ultimo avvio. Eliminazione e azzeramento sono alternative che si escludono a vicenda |
 | **Android** | NDK, immagini di sistema, emulatori, sorgenti, cache Gradle e distribuzioni del wrapper |
 | **Gestori di pacchetti** | npm, Yarn, pnpm, pip, Homebrew, node-gyp, pub/Dart, Maven, Cargo, RubyGems, Go |
-| **Artefatti dei progetti** | `node_modules`, `Pods`, `.dart_tool`, `build`, `.next`… raggruppati per progetto. Una cartella viene proposta solo se il progetto ha un file manifest corrispondente |
+| **Artefatti dei progetti** | `node_modules`, `Pods`, `.dart_tool`, `build`, `.next`… raggruppati per progetto. Anche `target` (Rust, Maven), `.build` (Swift), cache Python, Unity, Godot, Zig, Terraform e altri. Ogni nome è legato al proprio manifest: `target` viene proposto solo accanto a `Cargo.toml` o `pom.xml` |
 | **Browser** | Solo le cartelle di cache di Chrome, Edge, Brave, Arc, Opera, Firefox e Safari. Cronologia, segnalibri, password e sessioni restano intatti |
 | **Sistema** | Installer di macOS residuo, cache delle app, stato delle finestre, log, allegati di Mail, backup dei dispositivi iOS, Cestino |
 | **Sfondi dinamici** | Video 4K degli sfondi animati. Ammugghia legge **prima** la configurazione: se la rotazione è ancora attiva, avvisa che macOS li riscaricherebbe |
@@ -109,6 +109,13 @@ l'interfaccia ha già validato.
 
 **Altre garanzie.**
 
+- **Il percorso deve essere ancora lo stesso oggetto.** Dispositivo e inode di ogni
+  percorso vengono registrati durante l'analisi e ricontrollati subito prima di
+  eliminare. Una cartella sostituita nel frattempo, anche da una con lo stesso nome,
+  viene rifiutata, come una cartella che contiene un volume montato.
+- **Prima si chiudono le app.** Le cache dei browser e l'indice di Xcode non vengono
+  toccati finché il programma è aperto. Il foglio di conferma elenca le app aperte e
+  offre di chiuderle.
 - I collegamenti simbolici vengono validati anche nella destinazione: un link in una cache
   che punta a `~/Documents` non passa.
 - «Sposta nel Cestino» è la modalità predefinita. Per eliminare definitivamente dati non
@@ -134,7 +141,7 @@ l'interfaccia ha già validato.
 Ammugghia --selftest
 ```
 
-Esegue **53 controlli** senza aprire l'interfaccia:
+Esegue **68 controlli** senza aprire l'interfaccia:
 
 - percorsi che devono essere rifiutati: libreria Foto, iCloud Drive, chiavi SSH,
   `/System`, la cartella utente…
@@ -196,7 +203,7 @@ mantenere e si modifica cambiando qualche coordinata.
 
 ## Prossimi passi
 
-- [ ] Verifica dell'identità di ogni file (dispositivo + inode) fra analisi ed eliminazione
+- [x] Verifica dell'identità di ogni file (dispositivo + inode) fra analisi ed eliminazione
 - [ ] Cache delle app Electron (Slack, Discord, VS Code, Teams…) e altri gestori di pacchetti
 - [ ] Residui di app già disinstallate e modelli AI locali (Ollama, Hugging Face, LM Studio)
 - [ ] Mappa del disco (treemap) con indice incrementale basato su FSEvents
