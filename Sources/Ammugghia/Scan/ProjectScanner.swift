@@ -111,17 +111,25 @@ enum LargeFileScanner {
         guard !roots.isEmpty else { return [] }
 
         var files: [BigFile] = []
-        for root in roots {
-            let r = Shell.run(findTool, [root, "-type", "f", "-size", "+\(megabytes)M", "-print"], timeout: 180)
-            for line in r.stdout.split(separator: "\n") {
-                let path = String(line)
-                guard !path.isEmpty else { continue }
-                // Un file solo su iCloud ha la dimensione dichiarata ma non
-                // occupa spazio qui: mostrarlo fra i «grandi» sarebbe falso.
-                if FileIdentity.isDataless(path) { continue }
-                let attrs = try? FileManager.default.attributesOfItem(atPath: path)
-                let size = (attrs?[.size] as? NSNumber)?.int64Value ?? 0
-                files.append(BigFile(path: path, size: size, lastUsed: nil))
+        // Con un indice aggiornabile in modo parziale bastano pochi secondi;
+        // se servirebbe un'analisi completa si usa `find`, per non allungare
+        // l'analisi generale. In entrambi i casi l'elenco è solo informativo.
+        if DiskIndexStore.shared.refresh(allowFull: false) != nil {
+            files = DiskIndexStore.shared.largeFiles(under: roots, minimum: minimumBytes)
+                .map { BigFile(path: $0.path, size: $0.size, lastUsed: nil) }
+        } else {
+            for root in roots {
+                let r = Shell.run(findTool, [root, "-type", "f", "-size", "+\(megabytes)M", "-print"], timeout: 180)
+                for line in r.stdout.split(separator: "\n") {
+                    let path = String(line)
+                    guard !path.isEmpty else { continue }
+                    // Un file solo su iCloud ha la dimensione dichiarata ma non
+                    // occupa spazio qui: mostrarlo fra i «grandi» sarebbe falso.
+                    if FileIdentity.isDataless(path) { continue }
+                    let attrs = try? FileManager.default.attributesOfItem(atPath: path)
+                    let size = (attrs?[.size] as? NSNumber)?.int64Value ?? 0
+                    files.append(BigFile(path: path, size: size, lastUsed: nil))
+                }
             }
         }
 
