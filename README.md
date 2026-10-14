@@ -189,6 +189,13 @@ refused. `DeletionEngine` checks again even for operations the UI has already va
 - External processes are always launched with separate arguments. No string is ever passed
   to a shell, so a filename with quotes cannot be reinterpreted.
 - Every operation, refusals included, is logged to `~/Library/Logs/Ammugghia`.
+- **History with restore.** Every real operation is recorded with the space it freed. Anything
+  Ammugghia moved to the Trash can be put back from the History view. Restoring only moves
+  items: it never overwrites, never creates folders, and works only from a real Trash.
+- **Your exclusions.** In Settings (⌘,) you can exclude folders, files or name patterns from
+  cleanup, large files, duplicates and the disk map. Exclusions can only remove paths, never
+  add them. The engine refuses an excluded path even if the UI let it through, and refuses
+  any folder that contains something excluded.
 
 > [!NOTE]
 > `docker volume prune` and `--volumes` are **deliberately not implemented**. Volumes hold
@@ -201,7 +208,7 @@ refused. `DeletionEngine` checks again even for operations the UI has already va
 Ammugghia --selftest
 ```
 
-This runs **97 checks** without opening the UI:
+This runs **103 checks** without opening the UI:
 
 - paths that must be refused: the Photos library, iCloud Drive, SSH keys, `/System`, your
   home folder…
@@ -269,7 +276,7 @@ coordinates.
 - [x] Disk map (treemap) with an incremental index based on FSEvents
 - [x] Duplicate files by content (reveal only)
 - [x] Startup items: list, disable and re-enable
-- [ ] Cleanup history with restore from Trash, and user-defined exclusions
+- [x] Cleanup history with restore from Trash, and user-defined exclusions
 
 ## Contributing
 

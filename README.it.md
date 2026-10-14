@@ -195,6 +195,14 @@ l'interfaccia ha già validato.
 - I processi esterni ricevono sempre argomenti separati, mai una stringa passata a una
   shell: un nome di file con apici o spazi non può essere reinterpretato.
 - Ogni operazione, compresi i rifiuti, finisce in `~/Library/Logs/Ammugghia`.
+- **Cronologia con ripristino.** Ogni operazione reale viene registrata con lo spazio
+  liberato. Ciò che Ammugghia ha spostato nel Cestino si può rimettere al suo posto dalla
+  vista Cronologia. Il ripristino si limita a spostare: non sovrascrive, non crea cartelle e
+  parte solo da un Cestino vero.
+- **Le tue esclusioni.** Nelle Impostazioni (⌘,) puoi escludere cartelle, file o schemi sul
+  nome da pulizia, file grandi, duplicati e mappa. Le esclusioni possono solo togliere
+  percorsi, mai aggiungerne. Il motore rifiuta un percorso escluso anche se l'interfaccia lo
+  lasciasse passare, e rifiuta qualsiasi cartella che contiene qualcosa di escluso.
 
 > [!NOTE]
 > `docker volume prune` e l'opzione `--volumes` **non sono implementati di proposito**. I
@@ -207,7 +215,7 @@ l'interfaccia ha già validato.
 Ammugghia --selftest
 ```
 
-Esegue **97 controlli** senza aprire l'interfaccia:
+Esegue **103 controlli** senza aprire l'interfaccia:
 
 - percorsi che devono essere rifiutati: libreria Foto, iCloud Drive, chiavi SSH,
   `/System`, la cartella utente…
@@ -276,7 +284,7 @@ mantenere e si modifica cambiando qualche coordinata.
 - [x] Mappa del disco (treemap) con indice incrementale basato su FSEvents
 - [x] File duplicati per contenuto (solo «Mostra nel Finder»)
 - [x] Elementi d'avvio: elenco, disattivazione e riattivazione
-- [ ] Cronologia delle pulizie con ripristino dal Cestino, ed esclusioni personalizzate
+- [x] Cronologia delle pulizie con ripristino dal Cestino, ed esclusioni personalizzate
 
 ## Contribuire
 
