@@ -68,6 +68,8 @@ each item is and what happens after it is gone, and then lets you decide.
 | **Project artifacts** | `node_modules`, `Pods`, `.dart_tool`, `build`, `.next`… grouped by project. Also `target` (Rust, Maven), `.build` (Swift), Python caches, Unity, Godot, Zig, Terraform and more. Each folder name is tied to its own manifest: `target` is only offered next to `Cargo.toml` or `pom.xml` |
 | **Browsers** | Cache folders only: Chrome, Edge, Brave, Arc, Opera, Firefox, Safari. History, bookmarks, passwords and sessions are never touched |
 | **Apps** | Engine caches of Electron/Chromium apps: Slack, Discord, Teams, VS Code, Cursor, Windsurf, Notion, Obsidian, Figma, Postman, Claude… Offline content is a separate item. Also JetBrains IDEs, Android Studio, Spotify, Microsoft Office, Adobe Media Cache. Messages, documents, logins and settings are never touched, and the app must be closed |
+| **AI models** | Ollama (removed with the official `ollama rm`, with shared layers accounted for), Hugging Face, LM Studio, PyTorch Hub, Whisper, Keras: one item per model, with last activity |
+| **App leftovers** | Containers, preferences, caches and window state of apps that are no longer installed. An app counts as gone only if no installed app or nested bundle, no app registered with LaunchServices and no running process matches it, and if nothing used its container in the last 14 days. Only files named exactly after the bundle id are collected |
 | **System** | Leftover macOS installer, app caches, system service caches, saved window state, logs, Mail attachments, iOS device backups, Trash. Files in your `/var/folders` temp and cache folders that have not been used for 7 days, with each file re-checked before deletion. Interrupted downloads are listed for review only |
 | **Dynamic wallpapers** | 4K Aerial videos. Ammugghia reads your wallpaper configuration **first**: if rotation is still on, it warns you that macOS will download them again |
 | **Docker** | Unused images, stopped containers, build cache. **Volumes are shown read-only and never deleted** |
@@ -138,7 +140,7 @@ refused. `DeletionEngine` checks again even for operations the UI has already va
 Ammugghia --selftest
 ```
 
-This runs **75 checks** without opening the UI:
+This runs **83 checks** without opening the UI:
 
 - paths that must be refused: the Photos library, iCloud Drive, SSH keys, `/System`, your
   home folder…
@@ -201,7 +203,7 @@ coordinates.
 
 - [x] Verify each file's identity (device + inode) between scan and deletion
 - [x] Caches of Electron apps (Slack, Discord, VS Code, Teams…) and more package managers
-- [ ] Leftovers of apps that are already uninstalled, and local AI models (Ollama, Hugging Face, LM Studio)
+- [x] Leftovers of apps that are already uninstalled, and local AI models (Ollama, Hugging Face, LM Studio)
 - [ ] Disk map (treemap) with an incremental index based on FSEvents
 - [ ] Duplicate files by content (reveal only)
 - [ ] Startup items: list, disable and re-enable

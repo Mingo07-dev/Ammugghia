@@ -70,6 +70,8 @@ che cos'è e che cosa succede dopo averlo eliminato, e lascia a te la decisione.
 | **Artefatti dei progetti** | `node_modules`, `Pods`, `.dart_tool`, `build`, `.next`… raggruppati per progetto. Anche `target` (Rust, Maven), `.build` (Swift), cache Python, Unity, Godot, Zig, Terraform e altri. Ogni nome è legato al proprio manifest: `target` viene proposto solo accanto a `Cargo.toml` o `pom.xml` |
 | **Browser** | Solo le cartelle di cache di Chrome, Edge, Brave, Arc, Opera, Firefox e Safari. Cronologia, segnalibri, password e sessioni restano intatti |
 | **App** | Cache del motore web delle app Electron/Chromium: Slack, Discord, Teams, VS Code, Cursor, Windsurf, Notion, Obsidian, Figma, Postman, Claude… I contenuti offline sono una voce a parte. Anche IDE JetBrains, Android Studio, Spotify, Microsoft Office, cache multimediale di Adobe. Messaggi, documenti, accessi e impostazioni non vengono mai toccati, e l'app deve essere chiusa |
+| **Modelli AI** | Ollama (rimossi con il comando ufficiale `ollama rm`, tenendo conto dei livelli condivisi), Hugging Face, LM Studio, PyTorch Hub, Whisper, Keras: una voce per modello, con l'ultima attività |
+| **Residui di app** | Container, preferenze, cache e stato delle finestre di app non più installate. Un'app risulta rimossa solo se nessuna app installata o bundle annidato, nessuna app registrata nel sistema e nessun processo in esecuzione le corrisponde, e se nessuno ha usato il suo container negli ultimi 14 giorni. Si raccolgono solo i file con il nome esatto dell'identificatore |
 | **Sistema** | Installer di macOS residuo, cache delle app, cache dei servizi di sistema, stato delle finestre, log, allegati di Mail, backup dei dispositivi iOS, Cestino. File nelle cartelle temporanee e di cache di `/var/folders` non usati da 7 giorni, ognuno ricontrollato prima di eliminarlo. I download interrotti sono solo elencati |
 | **Sfondi dinamici** | Video 4K degli sfondi animati. Ammugghia legge **prima** la configurazione: se la rotazione è ancora attiva, avvisa che macOS li riscaricherebbe |
 | **Docker** | Immagini non usate, container fermi, cache di build. **I volumi sono mostrati in sola lettura e non vengono mai eliminati** |
@@ -142,7 +144,7 @@ l'interfaccia ha già validato.
 Ammugghia --selftest
 ```
 
-Esegue **75 controlli** senza aprire l'interfaccia:
+Esegue **83 controlli** senza aprire l'interfaccia:
 
 - percorsi che devono essere rifiutati: libreria Foto, iCloud Drive, chiavi SSH,
   `/System`, la cartella utente…
@@ -206,7 +208,7 @@ mantenere e si modifica cambiando qualche coordinata.
 
 - [x] Verifica dell'identità di ogni file (dispositivo + inode) fra analisi ed eliminazione
 - [x] Cache delle app Electron (Slack, Discord, VS Code, Teams…) e altri gestori di pacchetti
-- [ ] Residui di app già disinstallate e modelli AI locali (Ollama, Hugging Face, LM Studio)
+- [x] Residui di app già disinstallate e modelli AI locali (Ollama, Hugging Face, LM Studio)
 - [ ] Mappa del disco (treemap) con indice incrementale basato su FSEvents
 - [ ] File duplicati per contenuto (solo «Mostra nel Finder»)
 - [ ] Elementi d'avvio: elenco, disattivazione e riattivazione
