@@ -99,6 +99,24 @@ Ammugghia --index          # update the index and print a summary
 Ammugghia --verify-index   # compare the incremental index with a fresh full scan
 ```
 
+## Duplicate files
+
+Files with byte-identical content in your personal folders, confirmed by a SHA-256 of the
+whole file.
+- **How they are found.** Ammugghia compares sizes first, then three 16 KiB samples, and
+  reads a whole file only when the samples match. Hashes are remembered, so a second search
+  is almost instant.
+- **What is skipped.** Hard links, symlinks, iCloud placeholders, app packages such as the
+  Photos library, and build folders.
+- **Recoverable space is real.** Copies made by the Finder are APFS clones that share their
+  blocks. Ammugghia asks APFS which copies are clones, so deleting one never promises space
+  it won't free.
+- **Reveal-only, like large files.** You choose which copy to keep, in Finder.
+
+```bash
+Ammugghia --duplicates   # list duplicate groups; reads files, changes nothing
+```
+
 ## Safety model
 
 Every deletion goes through the same path. No scanner can delete on its own:
@@ -164,7 +182,7 @@ refused. `DeletionEngine` checks again even for operations the UI has already va
 Ammugghia --selftest
 ```
 
-This runs **88 checks** without opening the UI:
+This runs **90 checks** without opening the UI:
 
 - paths that must be refused: the Photos library, iCloud Drive, SSH keys, `/System`, your
   home folder…
@@ -230,7 +248,7 @@ coordinates.
 - [x] Caches of Electron apps (Slack, Discord, VS Code, Teams…) and more package managers
 - [x] Leftovers of apps that are already uninstalled, and local AI models (Ollama, Hugging Face, LM Studio)
 - [x] Disk map (treemap) with an incremental index based on FSEvents
-- [ ] Duplicate files by content (reveal only)
+- [x] Duplicate files by content (reveal only)
 - [ ] Startup items: list, disable and re-enable
 - [ ] Cleanup history with restore from Trash, and user-defined exclusions
 

@@ -101,6 +101,25 @@ Ammugghia --index          # aggiorna l'indice e ne stampa un riepilogo
 Ammugghia --verify-index   # confronta l'indice aggiornato con un'analisi completa
 ```
 
+## File duplicati
+
+File con contenuto identico byte per byte nelle cartelle personali, confermato dall'impronta
+SHA-256 dell'intero file.
+- **Come vengono trovati.** Prima si confrontano le dimensioni, poi tre campioni da 16 KiB.
+  Un file viene letto per intero solo se i campioni coincidono. Le impronte restano in
+  memoria, quindi la seconda ricerca è quasi immediata.
+- **Cosa viene escluso.** Collegamenti fisici e simbolici, segnaposto di iCloud, pacchetti
+  delle app come la libreria Foto, e cartelle di build.
+- **Lo spazio recuperabile è reale.** Le copie fatte dal Finder sono cloni APFS e
+  condividono i blocchi. Ammugghia chiede ad APFS quali copie sono cloni, così non promette
+  mai spazio che eliminandole non si libera.
+- **Si possono solo mostrare nel Finder**, come i file grandi: la copia da tenere la scegli
+  tu.
+
+```bash
+Ammugghia --duplicates   # elenca i gruppi di duplicati; legge i file, non modifica nulla
+```
+
 ## Il modello di sicurezza
 
 Ogni eliminazione segue lo stesso percorso, e nessuno scanner può eliminare da solo:
@@ -168,7 +187,7 @@ l'interfaccia ha già validato.
 Ammugghia --selftest
 ```
 
-Esegue **88 controlli** senza aprire l'interfaccia:
+Esegue **90 controlli** senza aprire l'interfaccia:
 
 - percorsi che devono essere rifiutati: libreria Foto, iCloud Drive, chiavi SSH,
   `/System`, la cartella utente…
@@ -235,7 +254,7 @@ mantenere e si modifica cambiando qualche coordinata.
 - [x] Cache delle app Electron (Slack, Discord, VS Code, Teams…) e altri gestori di pacchetti
 - [x] Residui di app già disinstallate e modelli AI locali (Ollama, Hugging Face, LM Studio)
 - [x] Mappa del disco (treemap) con indice incrementale basato su FSEvents
-- [ ] File duplicati per contenuto (solo «Mostra nel Finder»)
+- [x] File duplicati per contenuto (solo «Mostra nel Finder»)
 - [ ] Elementi d'avvio: elenco, disattivazione e riattivazione
 - [ ] Cronologia delle pulizie con ripristino dal Cestino, ed esclusioni personalizzate
 
