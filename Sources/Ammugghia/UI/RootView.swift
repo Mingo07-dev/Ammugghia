@@ -17,6 +17,9 @@ struct AmmugghiaApp: App {
         if CommandLine.arguments.contains("--index") {
             exit(Report.runIndex())
         }
+        if CommandLine.arguments.contains("--duplicates") {
+            exit(Report.runDuplicates())
+        }
         if CommandLine.arguments.contains("--verify-index") {
             exit(Report.runVerifyIndex())
         }
@@ -134,6 +137,9 @@ struct Sidebar: View {
                 NavigationLink(value: SidebarSection.diskMap) {
                     Label("Mappa del disco", systemImage: "square.grid.3x3.square")
                 }
+                NavigationLink(value: SidebarSection.duplicates) {
+                    Label("File duplicati", systemImage: "doc.on.doc")
+                }
                 NavigationLink(value: SidebarSection.versions) {
                     Label {
                         HStack {
@@ -216,6 +222,8 @@ struct Detail: View {
                 VersionsView()
             case .diskMap:
                 DiskMapView()
+            case .duplicates:
+                DuplicatesView()
             case .uninstall:
                 UninstallView()
             case .log:

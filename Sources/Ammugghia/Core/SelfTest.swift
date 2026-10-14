@@ -420,6 +420,30 @@ enum SelfTest {
         check(afterCorruption.map { if case .full = $0.mode { return true } else { return false } } == true,
               "indice: un file corrotto viene ignorato e rifatto da zero")
 
+        // Duplicati: stessa dimensione e stessi campioni non bastano, serve
+        // lo stesso contenuto. Link fisici e simbolici non sono duplicati, e
+        // un clone APFS non spreca spazio.
+        let dupArea = tmp + "/duplicati"
+        try? fm.createDirectory(atPath: dupArea + "/sotto", withIntermediateDirectories: true)
+        var content = Data((0..<1_200_000).map { UInt8(truncatingIfNeeded: $0 &* 31 &+ 7) })
+        fm.createFile(atPath: dupArea + "/originale.dat", contents: content)
+        fm.createFile(atPath: dupArea + "/sotto/copia.dat", contents: content)
+        try? fm.linkItem(atPath: dupArea + "/originale.dat", toPath: dupArea + "/sotto/link-fisico.dat")
+        try? fm.createSymbolicLink(atPath: dupArea + "/link-simbolico.dat",
+                                   withDestinationPath: dupArea + "/originale.dat")
+        _ = clonefile(dupArea + "/originale.dat", dupArea + "/clone.dat", 0)
+        // Diverso solo in un punto che i campioni non leggono: lo scarta
+        // soltanto l'impronta completa.
+        content[100_000] ^= 0xFF
+        fm.createFile(atPath: dupArea + "/quasi-uguale.dat", contents: content)
+        let groups = ContentDuplicateScanner.find(roots: [dupArea], minimumSize: 1_000_000)
+        let names = Set(groups.first?.files.map { ($0.path as NSString).lastPathComponent } ?? [])
+        check(groups.count == 1 && names == ["originale.dat", "copia.dat", "clone.dat"]
+              || names == ["link-fisico.dat", "copia.dat", "clone.dat"],
+              "duplicati: un gruppo con originale, copia e clone; esclusi link e file quasi uguale")
+        check(groups.first?.recoverable == 1_200_000,
+              "duplicati: il clone APFS non conta come spazio sprecato (\(groups.first?.recoverable ?? -1) byte recuperabili)")
+
         failures += engineFailures
 
         print(String(repeating: "─", count: 72))

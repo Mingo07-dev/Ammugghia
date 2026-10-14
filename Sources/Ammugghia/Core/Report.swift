@@ -24,6 +24,27 @@ enum Report {
         return 0
     }
 
+    /// `Ammugghia --duplicates`: cerca i file duplicati e li elenca. Legge i
+    /// file, non ne modifica nessuno.
+    static func runDuplicates() -> Int32 {
+        let roots = ContentDuplicateScanner.defaultRoots
+        print("Ammugghia — file duplicati in \(roots.map { ($0 as NSString).lastPathComponent }.joined(separator: ", "))")
+        let start = Date()
+        let groups = ContentDuplicateScanner.find(roots: roots, minimumSize: 1_000_000, cache: HashCache.shared) { p in
+            FileHandle.standardError.write("\r\(p.stage) \(p.done)/\(p.total)        ".data(using: .utf8)!)
+        }
+        FileHandle.standardError.write("\n".data(using: .utf8)!)
+        let total = groups.reduce(0) { $0 + $1.recoverable }
+        print("\(Plural.of(groups.count, "gruppo", "gruppi")), \(ByteFormat.string(total)) recuperabili, "
+              + String(format: "%.1f s", Date().timeIntervalSince(start)))
+        for group in groups.prefix(15) {
+            print("  \(ByteFormat.string(group.recoverable).padding(toLength: 10, withPad: " ", startingAt: 0)) "
+                  + "\(group.files.count) × \(ByteFormat.string(group.size))\(group.hasClones ? " (cloni APFS)" : "")")
+            for file in group.files { print("      \(file.path)") }
+        }
+        return 0
+    }
+
     /// `Ammugghia --verify-index`: aggiorna l'indice e lo confronta con
     /// un'analisi completa fatta adesso. Serve a provare l'aggiornamento parziale.
     static func runVerifyIndex() -> Int32 {

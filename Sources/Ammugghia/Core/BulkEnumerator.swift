@@ -11,6 +11,9 @@ struct BulkEntry {
     let modified: Int64
     let flags: UInt32
     let linkCount: UInt32
+    /// Dimensione logica (i byte del contenuto), diversa dallo spazio
+    /// allocato: serve a confrontare il contenuto di due file.
+    let logicalSize: Int64
     let allocated: Int64
 
     /// Segnaposto di iCloud o di un File Provider: il contenuto non è qui.
@@ -45,6 +48,7 @@ enum BulkEnumerator {
     private static let cmnError: UInt32 = 0x2000_0000
     private static let cmnReturnedAttrs: UInt32 = 0x8000_0000
     private static let fileLinkCount: UInt32 = 0x0000_0001
+    private static let fileTotalSize: UInt32 = 0x0000_0002
     private static let fileAllocSize: UInt32 = 0x0000_0004
 
     private static let typeRegular: UInt32 = 1   // VREG
@@ -62,7 +66,7 @@ enum BulkEnumerator {
         request.bitmapcount = UInt16(ATTR_BIT_MAP_COUNT)
         request.commonattr = cmnReturnedAttrs | cmnError | cmnName | cmnDevID | cmnObjType
             | cmnModTime | cmnFlags | cmnFileID
-        request.fileattr = fileLinkCount | fileAllocSize
+        request.fileattr = fileLinkCount | fileTotalSize | fileAllocSize
 
         let capacity = 256 * 1024
         let buffer = UnsafeMutableRawPointer.allocate(byteCount: capacity, alignment: 16)
@@ -139,6 +143,11 @@ enum BulkEnumerator {
             links = field.loadUnaligned(as: UInt32.self)
             field += 4
         }
+        var logical: Int64 = 0
+        if file & fileTotalSize != 0 {
+            logical = field.loadUnaligned(as: Int64.self)
+            field += 8
+        }
         var allocated: Int64 = 0
         if file & fileAllocSize != 0 {
             allocated = field.loadUnaligned(as: Int64.self)
@@ -148,7 +157,7 @@ enum BulkEnumerator {
         return BulkEntry(name: name, isDirectory: type == typeDirectory,
                          isRegularFile: type == typeRegular, device: device, inode: inode,
                          modified: modified, flags: flags, linkCount: max(1, links),
-                         allocated: allocated)
+                         logicalSize: logical, allocated: allocated)
     }
 
     /// Dispositivo di un percorso, senza seguire collegamenti.

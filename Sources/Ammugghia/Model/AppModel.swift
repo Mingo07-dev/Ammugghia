@@ -2,11 +2,20 @@ import Foundation
 import SwiftUI
 import AppKit
 
+/// Segnale di annullamento condiviso fra l'interfaccia e un lavoro in background.
+final class CancellationFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+    var isSet: Bool { lock.lock(); defer { lock.unlock() }; return value }
+    func set() { lock.lock(); value = true; lock.unlock() }
+}
+
 enum SidebarSection: Hashable {
     case overview
     case category(CategoryID)
     case versions
     case diskMap
+    case duplicates
     case uninstall
     case log
 }
@@ -38,6 +47,60 @@ final class AppModel: ObservableObject {
     @Published var confirmIsDryRun = false
 
     @Published var notes: [String] = []
+
+    // MARK: Duplicati
+
+    @Published var duplicateGroups: [DuplicateGroup] = []
+    @Published var isFindingDuplicates = false
+    @Published var duplicateProgress = ""
+    @Published var duplicatesDidRun = false
+    @Published var duplicateMinimumSize: Int64 = 1_000_000
+    /// Cartelle aggiunte dall'utente oltre a quelle predefinite.
+    @Published var duplicateExtraRoots: [String] =
+        UserDefaults.standard.stringArray(forKey: "duplicateExtraRoots") ?? [] {
+        didSet { UserDefaults.standard.set(duplicateExtraRoots, forKey: "duplicateExtraRoots") }
+    }
+    private var duplicateCancellation = CancellationFlag()
+
+    var duplicateRoots: [String] {
+        ContentDuplicateScanner.defaultRoots + duplicateExtraRoots.filter(ScanSupport.isDirectory)
+    }
+
+    func findDuplicates() {
+        guard !isFindingDuplicates else { return }
+        isFindingDuplicates = true
+        duplicateProgress = "Elenco dei file…"
+        let flag = CancellationFlag()
+        duplicateCancellation = flag
+        let roots = duplicateRoots
+        let minimum = duplicateMinimumSize
+        Task.detached(priority: .utility) {
+            let groups = ContentDuplicateScanner.find(
+                roots: roots, minimumSize: minimum, cache: HashCache.shared,
+                progress: { p in
+                    Task { @MainActor in
+                        self.duplicateProgress = p.total > 0
+                            ? "\(p.stage): \(p.done.formatted()) di \(p.total.formatted())"
+                            : "\(p.stage)…"
+                    }
+                },
+                isCancelled: { flag.isSet })
+            await MainActor.run {
+                self.isFindingDuplicates = false
+                self.duplicateProgress = ""
+                if !flag.isSet {
+                    self.duplicateGroups = groups
+                    self.duplicatesDidRun = true
+                }
+            }
+        }
+    }
+
+    func cancelDuplicates() { duplicateCancellation.set() }
+
+    func revealAll(_ paths: [String]) {
+        NSWorkspace.shared.activateFileViewerSelecting(paths.map { URL(fileURLWithPath: $0) })
+    }
 
     // MARK: Mappa del disco
 
