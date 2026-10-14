@@ -120,6 +120,26 @@ SHA-256 dell'intero file.
 Ammugghia --duplicates   # elenca i gruppi di duplicati; legge i file, non modifica nulla
 ```
 
+## Elementi d'avvio
+
+Tutto ciò che launchd avvia da solo, da `~/Library/LaunchAgents`, `/Library/LaunchAgents` e
+`/Library/LaunchDaemons`. Per ogni elemento vedi:
+- l'app a cui appartiene e chi l'ha firmato;
+- se parte all'accesso, resta sempre attivo o si ripete a intervalli, e se è in esecuzione
+  adesso;
+- se è orfano: il programma che dovrebbe avviare non esiste più, perché l'app è stata
+  rimossa.
+
+Ogni elemento si può disattivare e riattivare. Disattivare è reversibile: il file resta dov'è,
+e `launchctl disable` più `bootout` lo fermano finché non lo riaccendi. Ogni modifica mostra
+prima i comandi letterali, chiede la password di amministratore solo per i servizi di sistema,
+e viene verificata rileggendo lo stato da launchd. I servizi di macOS (`com.apple.*`) sono
+solo contati e non vengono mai toccati.
+
+```bash
+Ammugghia --startup   # elenca gli elementi d'avvio, non modifica nulla
+```
+
 ## Il modello di sicurezza
 
 Ogni eliminazione segue lo stesso percorso, e nessuno scanner può eliminare da solo:
@@ -187,7 +207,7 @@ l'interfaccia ha già validato.
 Ammugghia --selftest
 ```
 
-Esegue **90 controlli** senza aprire l'interfaccia:
+Esegue **97 controlli** senza aprire l'interfaccia:
 
 - percorsi che devono essere rifiutati: libreria Foto, iCloud Drive, chiavi SSH,
   `/System`, la cartella utente…
@@ -255,7 +275,7 @@ mantenere e si modifica cambiando qualche coordinata.
 - [x] Residui di app già disinstallate e modelli AI locali (Ollama, Hugging Face, LM Studio)
 - [x] Mappa del disco (treemap) con indice incrementale basato su FSEvents
 - [x] File duplicati per contenuto (solo «Mostra nel Finder»)
-- [ ] Elementi d'avvio: elenco, disattivazione e riattivazione
+- [x] Elementi d'avvio: elenco, disattivazione e riattivazione
 - [ ] Cronologia delle pulizie con ripristino dal Cestino, ed esclusioni personalizzate
 
 ## Contribuire

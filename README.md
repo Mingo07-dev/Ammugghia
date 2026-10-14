@@ -117,6 +117,25 @@ whole file.
 Ammugghia --duplicates   # list duplicate groups; reads files, changes nothing
 ```
 
+## Startup items
+
+Everything launchd starts on its own, from `~/Library/LaunchAgents`, `/Library/LaunchAgents`
+and `/Library/LaunchDaemons`. For each item you see:
+- the app it belongs to and who signed it;
+- whether it runs at login, stays alive or repeats on a timer, and whether it is running now;
+- whether it is an orphan: the program it should start no longer exists, because its app was
+  removed.
+
+You can disable and re-enable any item. Disabling is reversible: the file stays where it is,
+and `launchctl disable` plus `bootout` stop it until you turn it back on. Each change shows
+the literal commands first, asks for the admin password only for system daemons, and is
+verified by reading the state back from launchd. macOS services (`com.apple.*`) are listed
+by count only and are never touched.
+
+```bash
+Ammugghia --startup   # list startup items; changes nothing
+```
+
 ## Safety model
 
 Every deletion goes through the same path. No scanner can delete on its own:
@@ -182,7 +201,7 @@ refused. `DeletionEngine` checks again even for operations the UI has already va
 Ammugghia --selftest
 ```
 
-This runs **90 checks** without opening the UI:
+This runs **97 checks** without opening the UI:
 
 - paths that must be refused: the Photos library, iCloud Drive, SSH keys, `/System`, your
   home folder…
@@ -249,7 +268,7 @@ coordinates.
 - [x] Leftovers of apps that are already uninstalled, and local AI models (Ollama, Hugging Face, LM Studio)
 - [x] Disk map (treemap) with an incremental index based on FSEvents
 - [x] Duplicate files by content (reveal only)
-- [ ] Startup items: list, disable and re-enable
+- [x] Startup items: list, disable and re-enable
 - [ ] Cleanup history with restore from Trash, and user-defined exclusions
 
 ## Contributing
