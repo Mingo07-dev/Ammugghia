@@ -64,10 +64,11 @@ each item is and what happens after it is gone, and then lets you decide.
 | **Xcode** | DerivedData per project, device symbols per OS version, archives, module and index caches, SwiftUI previews, SwiftPM and CocoaPods caches, simulator dyld cache, duplicate Command Line Tools |
 | **iOS Simulators** | Devices with and without data, with last boot date. *Delete* and *erase* are offered as mutually exclusive alternatives |
 | **Android** | NDK, system images, emulators, sources, Gradle caches and wrapper distributions |
-| **Package managers** | npm, Yarn, pnpm, pip, Homebrew, node-gyp, pub/Dart, Maven, Cargo, RubyGems, Go |
+| **Package managers** | npm, npx, Yarn, pnpm, Bun, Deno, Corepack, pip, uv, Poetry, pyenv, ruff/mypy, Homebrew, node-gyp, pub/Dart, Maven, Gradle, sbt/Ivy, Cargo, RubyGems, Go, Composer, NuGet, Hex, mise, ccache/sccache, Playwright/Cypress browsers, Electron downloads |
 | **Project artifacts** | `node_modules`, `Pods`, `.dart_tool`, `build`, `.next`… grouped by project. Also `target` (Rust, Maven), `.build` (Swift), Python caches, Unity, Godot, Zig, Terraform and more. Each folder name is tied to its own manifest: `target` is only offered next to `Cargo.toml` or `pom.xml` |
 | **Browsers** | Cache folders only: Chrome, Edge, Brave, Arc, Opera, Firefox, Safari. History, bookmarks, passwords and sessions are never touched |
-| **System** | Leftover macOS installer, app caches, saved window state, logs, Mail attachments, iOS device backups, Trash |
+| **Apps** | Engine caches of Electron/Chromium apps: Slack, Discord, Teams, VS Code, Cursor, Windsurf, Notion, Obsidian, Figma, Postman, Claude… Offline content is a separate item. Also JetBrains IDEs, Android Studio, Spotify, Microsoft Office, Adobe Media Cache. Messages, documents, logins and settings are never touched, and the app must be closed |
+| **System** | Leftover macOS installer, app caches, system service caches, saved window state, logs, Mail attachments, iOS device backups, Trash. Files in your `/var/folders` temp and cache folders that have not been used for 7 days, with each file re-checked before deletion. Interrupted downloads are listed for review only |
 | **Dynamic wallpapers** | 4K Aerial videos. Ammugghia reads your wallpaper configuration **first**: if rotation is still on, it warns you that macOS will download them again |
 | **Docker** | Unused images, stopped containers, build cache. **Volumes are shown read-only and never deleted** |
 | **Large files** | List of the largest files in your personal folders. You can only reveal them in Finder; Ammugghia never deletes them |
@@ -137,7 +138,7 @@ refused. `DeletionEngine` checks again even for operations the UI has already va
 Ammugghia --selftest
 ```
 
-This runs **68 checks** without opening the UI:
+This runs **75 checks** without opening the UI:
 
 - paths that must be refused: the Photos library, iCloud Drive, SSH keys, `/System`, your
   home folder…
@@ -199,7 +200,7 @@ coordinates.
 ## Roadmap
 
 - [x] Verify each file's identity (device + inode) between scan and deletion
-- [ ] Caches of Electron apps (Slack, Discord, VS Code, Teams…) and more package managers
+- [x] Caches of Electron apps (Slack, Discord, VS Code, Teams…) and more package managers
 - [ ] Leftovers of apps that are already uninstalled, and local AI models (Ollama, Hugging Face, LM Studio)
 - [ ] Disk map (treemap) with an incremental index based on FSEvents
 - [ ] Duplicate files by content (reveal only)

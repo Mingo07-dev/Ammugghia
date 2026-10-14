@@ -66,10 +66,11 @@ che cos'è e che cosa succede dopo averlo eliminato, e lascia a te la decisione.
 | **Xcode** | DerivedData per progetto, simboli dei dispositivi per versione di OS, archivi, cache dei moduli e dell'indice, anteprime SwiftUI, cache SwiftPM e CocoaPods, cache dyld dei simulatori, Command Line Tools duplicati |
 | **Simulatori iOS** | Dispositivi con e senza dati, con la data dell'ultimo avvio. Eliminazione e azzeramento sono alternative che si escludono a vicenda |
 | **Android** | NDK, immagini di sistema, emulatori, sorgenti, cache Gradle e distribuzioni del wrapper |
-| **Gestori di pacchetti** | npm, Yarn, pnpm, pip, Homebrew, node-gyp, pub/Dart, Maven, Cargo, RubyGems, Go |
+| **Gestori di pacchetti** | npm, npx, Yarn, pnpm, Bun, Deno, Corepack, pip, uv, Poetry, pyenv, ruff/mypy, Homebrew, node-gyp, pub/Dart, Maven, Gradle, sbt/Ivy, Cargo, RubyGems, Go, Composer, NuGet, Hex, mise, ccache/sccache, browser di Playwright/Cypress, download di Electron |
 | **Artefatti dei progetti** | `node_modules`, `Pods`, `.dart_tool`, `build`, `.next`… raggruppati per progetto. Anche `target` (Rust, Maven), `.build` (Swift), cache Python, Unity, Godot, Zig, Terraform e altri. Ogni nome è legato al proprio manifest: `target` viene proposto solo accanto a `Cargo.toml` o `pom.xml` |
 | **Browser** | Solo le cartelle di cache di Chrome, Edge, Brave, Arc, Opera, Firefox e Safari. Cronologia, segnalibri, password e sessioni restano intatti |
-| **Sistema** | Installer di macOS residuo, cache delle app, stato delle finestre, log, allegati di Mail, backup dei dispositivi iOS, Cestino |
+| **App** | Cache del motore web delle app Electron/Chromium: Slack, Discord, Teams, VS Code, Cursor, Windsurf, Notion, Obsidian, Figma, Postman, Claude… I contenuti offline sono una voce a parte. Anche IDE JetBrains, Android Studio, Spotify, Microsoft Office, cache multimediale di Adobe. Messaggi, documenti, accessi e impostazioni non vengono mai toccati, e l'app deve essere chiusa |
+| **Sistema** | Installer di macOS residuo, cache delle app, cache dei servizi di sistema, stato delle finestre, log, allegati di Mail, backup dei dispositivi iOS, Cestino. File nelle cartelle temporanee e di cache di `/var/folders` non usati da 7 giorni, ognuno ricontrollato prima di eliminarlo. I download interrotti sono solo elencati |
 | **Sfondi dinamici** | Video 4K degli sfondi animati. Ammugghia legge **prima** la configurazione: se la rotazione è ancora attiva, avvisa che macOS li riscaricherebbe |
 | **Docker** | Immagini non usate, container fermi, cache di build. **I volumi sono mostrati in sola lettura e non vengono mai eliminati** |
 | **File grandi** | Elenco dei file più grandi nelle cartelle personali. Si possono solo mostrare nel Finder: Ammugghia non li elimina mai |
@@ -141,7 +142,7 @@ l'interfaccia ha già validato.
 Ammugghia --selftest
 ```
 
-Esegue **68 controlli** senza aprire l'interfaccia:
+Esegue **75 controlli** senza aprire l'interfaccia:
 
 - percorsi che devono essere rifiutati: libreria Foto, iCloud Drive, chiavi SSH,
   `/System`, la cartella utente…
@@ -204,7 +205,7 @@ mantenere e si modifica cambiando qualche coordinata.
 ## Prossimi passi
 
 - [x] Verifica dell'identità di ogni file (dispositivo + inode) fra analisi ed eliminazione
-- [ ] Cache delle app Electron (Slack, Discord, VS Code, Teams…) e altri gestori di pacchetti
+- [x] Cache delle app Electron (Slack, Discord, VS Code, Teams…) e altri gestori di pacchetti
 - [ ] Residui di app già disinstallate e modelli AI locali (Ollama, Hugging Face, LM Studio)
 - [ ] Mappa del disco (treemap) con indice incrementale basato su FSEvents
 - [ ] File duplicati per contenuto (solo «Mostra nel Finder»)
