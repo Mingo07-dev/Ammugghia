@@ -380,6 +380,46 @@ enum SelfTest {
                                            model: "modello", tag: "Q4") == "hf.co/org/modello:Q4",
               "modelli: nomi Ollama per libreria, utente e registri esterni")
 
+        // Indice del disco: misura identica a `du`, aggiornamento parziale
+        // identico a un'analisi completa, indice corrotto rifatto da zero.
+        let indexArea = tmp + "/indice"
+        try? fm.createDirectory(atPath: indexArea + "/a/b", withIntermediateDirectories: true)
+        fm.createFile(atPath: indexArea + "/a/uno.dat", contents: Data(repeating: 1, count: 300_000))
+        fm.createFile(atPath: indexArea + "/a/b/due.dat", contents: Data(repeating: 2, count: 120_000))
+        try? fm.linkItem(atPath: indexArea + "/a/uno.dat", toPath: indexArea + "/a/b/uno-link.dat")
+        try? fm.createSymbolicLink(atPath: indexArea + "/link", withDestinationPath: sandbox)
+        let duOutput = Shell.run("/usr/bin/du", ["-sk", indexArea], timeout: 30).stdout
+        let duKB = Int64(duOutput.split(separator: "\t").first ?? "") ?? -1
+        let storeFile = URL(fileURLWithPath: tmp + "/indice-test.bin")
+        let store = DiskIndexStore(roots: [indexArea], storage: storeFile, sampleSize: 1_000)
+        let first = store.refresh()
+        let indexedKB = (store.level(at: nil)?.first?.size ?? -2) / 1024
+        check(first.map { if case .full = $0.mode { return true } else { return false } } == true,
+              "indice: la prima volta è un'analisi completa")
+        check(indexedKB == duKB, "indice: misura uguale a du (\(indexedKB) KB, du \(duKB) KB) con link fisici e simbolici")
+
+        fm.createFile(atPath: indexArea + "/a/b/nuovo.dat", contents: Data(repeating: 3, count: 200_000))
+        try? fm.removeItem(atPath: indexArea + "/a/uno.dat")
+        try? fm.createDirectory(atPath: indexArea + "/c/d", withIntermediateDirectories: true)
+        fm.createFile(atPath: indexArea + "/c/d/tre.dat", contents: Data(repeating: 4, count: 50_000))
+        // FSEvents consegna gli eventi al proprio database in modo asincrono.
+        Thread.sleep(forTimeInterval: 2)
+        let second = DiskIndexStore(roots: [indexArea], storage: storeFile, sampleSize: 0).refresh()
+        let incremental = DiskIndexStore(roots: [indexArea], storage: storeFile, sampleSize: 0)
+        _ = incremental.level(at: nil)
+        let reference = DiskIndexStore(roots: [indexArea],
+                                       storage: URL(fileURLWithPath: tmp + "/indice-rif.bin"))
+        _ = reference.refresh(forceFull: true)
+        check(second.map { if case .incremental = $0.mode { return true } else { return false } } == true,
+              "indice: la seconda volta è un aggiornamento parziale via FSEvents")
+        check(!incremental.fingerprint().isEmpty && incremental.fingerprint() == reference.fingerprint(),
+              "indice: l'aggiornamento parziale coincide nodo per nodo con un'analisi completa")
+
+        try? Data("non è un indice".utf8).write(to: storeFile)
+        let afterCorruption = DiskIndexStore(roots: [indexArea], storage: storeFile).refresh()
+        check(afterCorruption.map { if case .full = $0.mode { return true } else { return false } } == true,
+              "indice: un file corrotto viene ignorato e rifatto da zero")
+
         failures += engineFailures
 
         print(String(repeating: "─", count: 72))
