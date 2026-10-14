@@ -54,7 +54,12 @@ final class DiskIndexStore {
     private var loaded = false
     private(set) var lastReport: Report?
 
-    init(roots: [String], storage: URL, sampleSize: Int = 20) {
+    /// Le esclusioni vengono lette a ogni aggiornamento; iniettabili per l'autotest.
+    let exclusions: () -> ExclusionSet
+
+    init(roots: [String], storage: URL, sampleSize: Int = 20,
+         exclusions: @escaping () -> ExclusionSet = { ExclusionSet.current() }) {
+        self.exclusions = exclusions
         // Percorsi canonici: FSEvents riporta quelli reali (`/private/var/…`),
         // e un evento che non corrisponde a nessuna radice andrebbe perso.
         self.roots = roots.map { PathGuard.realPath($0) ?? PathGuard.normalize($0) }
@@ -95,6 +100,8 @@ final class DiskIndexStore {
         }
 
         guard var current = header else { return nil }
+        let exclusionSet = exclusions()
+        let excluded: (String) -> Bool = { exclusionSet.excludes($0, scope: .map) }
         let now = ChangeTracker.currentEventID()
         switch ChangeTracker.changes(since: current.eventID, in: roots) {
         case .mustRescan(let why):
@@ -113,7 +120,7 @@ final class DiskIndexStore {
             }
             for path in recursive.sorted(by: { $0.count < $1.count }) {
                 guard let (index, node, nodePath, _) = locate(path), !covered(nodePath) else { continue }
-                IndexScanner(device: current.roots[index].device).scanTree(node, path: nodePath)
+                IndexScanner(device: current.roots[index].device, isExcluded: excluded).scanTree(node, path: nodePath)
                 rescannedTrees.insert(nodePath)
             }
             // Dalle cartelle più vicine alla radice: una cartella nuova viene
@@ -121,7 +128,7 @@ final class DiskIndexStore {
             for path in directories.sorted(by: { $0.count < $1.count }) {
                 guard let (index, node, nodePath, _) = locate(path),
                       !covered(nodePath), !rescannedDirs.contains(nodePath) else { continue }
-                let scanner = IndexScanner(device: current.roots[index].device)
+                let scanner = IndexScanner(device: current.roots[index].device, isExcluded: excluded)
                 let before = Set(node.children.map(\.name))
                 scanner.refreshDirect(node, path: nodePath)
                 rescannedDirs.insert(nodePath)
@@ -142,7 +149,7 @@ final class DiskIndexStore {
                 }
             }
             for (index, node, path) in grown {
-                IndexScanner(device: current.roots[index].device).refreshDirect(node, path: path)
+                IndexScanner(device: current.roots[index].device, isExcluded: excluded).refreshDirect(node, path: path)
                 rescannedDirs.insert(path)
             }
             for tree in trees { tree.aggregate() }
@@ -179,6 +186,9 @@ final class DiskIndexStore {
         if header.osVersion != ProcessInfo.processInfo.operatingSystemVersionString {
             return "macOS è stato aggiornato"
         }
+        if header.exclusions != exclusions().mapFingerprint {
+            return "le esclusioni della mappa sono cambiate"
+        }
         if header.fullDiskAccess != DiskIndexStore.hasFullDiskAccess() {
             return "i permessi di accesso al disco sono cambiati"
         }
@@ -200,13 +210,16 @@ final class DiskIndexStore {
         // Il numero di evento si prende *prima* di leggere: ciò che cambia
         // durante la lettura verrà riletto al prossimo aggiornamento.
         let eventID = ChangeTracker.currentEventID()
+        let exclusionSet = exclusions()
         var rootHeaders: [IndexCodec.RootHeader] = []
         var newTrees: [IndexNode] = []
         var total = 0
         for root in roots {
             let device = BulkEnumerator.device(of: root) ?? 0
             let node = IndexNode(name: root)
-            let scanner = IndexScanner(device: device) { count in progress?(total + count) }
+            let scanner = IndexScanner(device: device, isExcluded: { exclusionSet.excludes($0, scope: .map) }) {
+                count in progress?(total + count)
+            }
             scanner.scanTree(node, path: root)
             total += scanner.directoriesScanned
             node.aggregate()
@@ -220,7 +233,8 @@ final class DiskIndexStore {
         header = IndexCodec.Header(
             complete: true, eventID: eventID, createdAt: Date().timeIntervalSince1970,
             osVersion: ProcessInfo.processInfo.operatingSystemVersionString,
-            fullDiskAccess: DiskIndexStore.hasFullDiskAccess(), roots: rootHeaders)
+            fullDiskAccess: DiskIndexStore.hasFullDiskAccess(),
+            exclusions: exclusionSet.mapFingerprint, roots: rootHeaders)
         save()
         let report = Report(mode: .full(reason: reason), duration: Date().timeIntervalSince(start),
                             finishedAt: Date())
@@ -243,7 +257,8 @@ final class DiskIndexStore {
         }
         for (node, path, device) in candidates.shuffled().prefix(sampleSize) {
             let probe = IndexNode(name: node.name)
-            let scanner = IndexScanner(device: device)
+            let set = exclusions()
+            let scanner = IndexScanner(device: device, isExcluded: { set.excludes($0, scope: .map) })
             scanner.readDirect(probe, path: path, keepingChildren: false)
             let same = probe.unreadable == node.unreadable
                 && DiskIndexStore.withinSettlingTolerance(probe.ownBytes, node.ownBytes)

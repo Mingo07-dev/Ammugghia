@@ -84,6 +84,7 @@ enum ContentDuplicateScanner {
 
     static func find(roots: [String], minimumSize: Int64,
                      cache: HashCache? = nil,
+                     exclusions: ExclusionSet = .empty,
                      progress: ((Progress) -> Void)? = nil,
                      isCancelled: @escaping () -> Bool = { false }) -> [DuplicateGroup] {
         // 1. Elenco dei file, un inode una volta sola: i collegamenti fisici
@@ -93,7 +94,7 @@ enum ContentDuplicateScanner {
         var seen = Set<String>()
         for root in roots where !isCancelled() {
             collect(root, device: BulkEnumerator.device(of: root) ?? 0, minimumSize: minimumSize,
-                    into: &candidates, seen: &seen, isCancelled: isCancelled)
+                    exclusions: exclusions, into: &candidates, seen: &seen, isCancelled: isCancelled)
         }
 
         // 2. Stessa dimensione.
@@ -152,11 +153,13 @@ enum ContentDuplicateScanner {
     // MARK: Elenco
 
     private static func collect(_ path: String, device: UInt64, minimumSize: Int64,
+                                exclusions: ExclusionSet,
                                 into result: inout [Candidate], seen: inout Set<String>,
                                 isCancelled: () -> Bool) {
         guard !isCancelled(), let entries = BulkEnumerator.entries(of: path) else { return }
         for entry in entries {
             let child = path + "/" + entry.name
+            if exclusions.excludes(child, scope: .duplicates) { continue }
             if entry.isDirectory {
                 guard entry.device == device, !entry.isDataless,
                       !skippedDirectories.contains(entry.name),
@@ -166,8 +169,8 @@ enum ContentDuplicateScanner {
                 // artefatti di progetto.
                 if let markers = PathGuard.projectArtifactRules[entry.name],
                    PathGuard.hasMarker(in: path, markers) { continue }
-                collect(child, device: device, minimumSize: minimumSize, into: &result, seen: &seen,
-                        isCancelled: isCancelled)
+                collect(child, device: device, minimumSize: minimumSize, exclusions: exclusions,
+                        into: &result, seen: &seen, isCancelled: isCancelled)
             } else if entry.isRegularFile, !entry.isDataless, entry.logicalSize >= minimumSize {
                 guard seen.insert("\(entry.device):\(entry.inode)").inserted else { continue }
                 result.append(Candidate(path: child, size: entry.logicalSize, modified: entry.modified,

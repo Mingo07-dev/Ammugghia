@@ -17,6 +17,7 @@ enum SidebarSection: Hashable {
     case diskMap
     case duplicates
     case startup
+    case history
     case uninstall
     case log
 }
@@ -48,6 +49,54 @@ final class AppModel: ObservableObject {
     @Published var confirmIsDryRun = false
 
     @Published var notes: [String] = []
+
+    // MARK: Cronologia ed esclusioni
+
+    @Published var history: [HistoryEntry] = []
+    @Published var historyMessage: String?
+    @Published var exclusionRules: [ExclusionRule] = ExclusionSet.current().rules {
+        didSet { ExclusionSet.save(exclusionRules) }
+    }
+
+    func loadHistory() {
+        Task.detached(priority: .userInitiated) {
+            let entries = HistoryStore.shared.all
+            await MainActor.run { self.history = entries }
+        }
+    }
+
+    /// Rimette al suo posto un elemento spostato nel Cestino da Ammugghia.
+    func restore(_ entry: HistoryEntry, paths: [String]) {
+        Task.detached(priority: .userInitiated) {
+            var restored = 0
+            var errors: [String] = []
+            for path in paths {
+                do {
+                    try HistoryStore.shared.restore(entryID: entry.id, path: path)
+                    restored += 1
+                } catch {
+                    errors.append(error.localizedDescription)
+                }
+            }
+            let entries = HistoryStore.shared.all
+            let restoredCount = restored
+            let failures = errors
+            await MainActor.run {
+                let restored = restoredCount
+                let errors = failures
+                let engine = self.engine
+                engine.record("RIPRISTINO \(entry.title): \(restored) di \(paths.count) rimessi al loro posto"
+                              + (errors.isEmpty ? "" : " — " + errors.joined(separator: "; ")))
+                self.logLines = engine.log
+                self.history = entries
+                self.historyMessage = errors.isEmpty
+                    ? "\(Plural.of(restored, "elemento ripristinato", "elementi ripristinati")) al loro posto."
+                    : errors.joined(separator: "\n")
+                // Le dimensioni misurate non valgono più.
+                self.didScan = false
+            }
+        }
+    }
 
     // MARK: Elementi d'avvio
 
@@ -82,6 +131,12 @@ final class AppModel: ObservableObject {
                 let engine = self.engine
                 for command in outcome.commands { engine.record("AVVIO  \(command)") }
                 engine.record("\(outcome.succeeded ? "OK" : "ERRORE") avvio — \(outcome.message)")
+                HistoryStore.shared.append([HistoryEntry(
+                    date: Date(), kind: .startup, origin: "Elementi d'avvio",
+                    title: "\(enabled ? "Riattivato" : "Disattivato"): \(item.displayName)",
+                    paths: [item.plistPath], freed: 0, succeeded: outcome.succeeded, skipped: false,
+                    message: outcome.message, mode: outcome.commands.joined(separator: "; "), trashed: [:])])
+                self.loadHistory()
                 self.logLines = engine.log
                 self.startupMessage = outcome.message
                 self.startupItems = items
@@ -119,6 +174,7 @@ final class AppModel: ObservableObject {
         Task.detached(priority: .utility) {
             let groups = ContentDuplicateScanner.find(
                 roots: roots, minimumSize: minimum, cache: HashCache.shared,
+                exclusions: ExclusionSet.current(),
                 progress: { p in
                     Task { @MainActor in
                         self.duplicateProgress = p.total > 0
@@ -242,7 +298,19 @@ final class AppModel: ObservableObject {
     ///
     /// `nonisolated` perché va invocato dai task in background: l'analisi non
     /// deve girare sul thread principale o l'interfaccia si blocca.
+    /// Lo scanner con le esclusioni dell'utente già applicate: un unico punto,
+    /// usato dall'interfaccia e da `--report`.
     nonisolated static func scanner(for id: CategoryID) -> () -> [CleanupItem] {
+        let base = baseScanner(for: id)
+        // «File grandi» ha un ambito proprio, applicato dallo scanner stesso.
+        guard id != .largeFiles else { return base }
+        return {
+            let exclusions = ExclusionSet.current()
+            return base().compactMap { $0.applying(exclusions) }
+        }
+    }
+
+    nonisolated static func baseScanner(for id: CategoryID) -> () -> [CleanupItem] {
         switch id {
         case .xcode:            return XcodeScanner.scan
         case .simulators:       return SimulatorScanner.scan
@@ -515,6 +583,16 @@ final class AppModel: ObservableObject {
                     self.reloadApplications()
                 }
                 if !dryRun {
+                    let modeLabel = mode.shortLabel
+                    HistoryStore.shared.append(zip(items, results).map { item, outcome in
+                        HistoryEntry(date: Date(), kind: .cleanup, origin: item.origin, title: item.title,
+                                     paths: item.action.displayPaths, freed: outcome.freed,
+                                     succeeded: outcome.succeeded, skipped: outcome.skipped,
+                                     message: outcome.message,
+                                     mode: item.action.displayPaths.isEmpty ? item.action.commandDescription : modeLabel,
+                                     trashed: outcome.trashed)
+                    })
+                    self.loadHistory()
                     OrphanScanner.invalidate()
                     // Le dimensioni non sono più attendibili dopo
                     // l'eliminazione: meglio invitare a rianalizzare che

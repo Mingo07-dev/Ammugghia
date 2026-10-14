@@ -218,6 +218,8 @@ enum SelfTest {
         check(fm.fileExists(atPath: probe), "file di prova creato in \(sandbox)")
 
         let engine = DeletionEngine()
+        // Le esclusioni dell'utente non devono cambiare l'esito dell'autotest.
+        engine.exclusions = .empty
         let item = CleanupItem(
             title: "File di prova dell'autotest",
             detail: "Creato dall'autotest.",
@@ -286,6 +288,7 @@ enum SelfTest {
             action: .removePaths([guarded]), risk: .safe, size: 1_000,
             requiredStoppedApps: ["it.ammugghia.selftest.app-finta"])
         let runningEngine = DeletionEngine()
+        runningEngine.exclusions = .empty
         runningEngine.isAppRunning = { $0 == "it.ammugghia.selftest.app-finta" }
         let blockedRun = runningEngine.execute(items: [appItem], mode: .permanent, dryRun: false)
         check(blockedRun.first?.skipped == true, "l'elemento viene saltato se l'app richiesta è aperta")
@@ -391,7 +394,7 @@ enum SelfTest {
         let duOutput = Shell.run("/usr/bin/du", ["-sk", indexArea], timeout: 30).stdout
         let duKB = Int64(duOutput.split(separator: "\t").first ?? "") ?? -1
         let storeFile = URL(fileURLWithPath: tmp + "/indice-test.bin")
-        let store = DiskIndexStore(roots: [indexArea], storage: storeFile, sampleSize: 1_000)
+        let store = DiskIndexStore(roots: [indexArea], storage: storeFile, sampleSize: 1_000, exclusions: { .empty })
         let first = store.refresh()
         let indexedKB = (store.level(at: nil)?.first?.size ?? -2) / 1024
         check(first.map { if case .full = $0.mode { return true } else { return false } } == true,
@@ -404,11 +407,12 @@ enum SelfTest {
         fm.createFile(atPath: indexArea + "/c/d/tre.dat", contents: Data(repeating: 4, count: 50_000))
         // FSEvents consegna gli eventi al proprio database in modo asincrono.
         Thread.sleep(forTimeInterval: 2)
-        let second = DiskIndexStore(roots: [indexArea], storage: storeFile, sampleSize: 0).refresh()
-        let incremental = DiskIndexStore(roots: [indexArea], storage: storeFile, sampleSize: 0)
+        let second = DiskIndexStore(roots: [indexArea], storage: storeFile, sampleSize: 0, exclusions: { .empty }).refresh()
+        let incremental = DiskIndexStore(roots: [indexArea], storage: storeFile, sampleSize: 0, exclusions: { .empty })
         _ = incremental.level(at: nil)
         let reference = DiskIndexStore(roots: [indexArea],
-                                       storage: URL(fileURLWithPath: tmp + "/indice-rif.bin"))
+                                       storage: URL(fileURLWithPath: tmp + "/indice-rif.bin"),
+                                       exclusions: { .empty })
         _ = reference.refresh(forceFull: true)
         check(second.map { if case .incremental = $0.mode { return true } else { return false } } == true,
               "indice: la seconda volta è un aggiornamento parziale via FSEvents")
@@ -416,7 +420,7 @@ enum SelfTest {
               "indice: l'aggiornamento parziale coincide nodo per nodo con un'analisi completa")
 
         try? Data("non è un indice".utf8).write(to: storeFile)
-        let afterCorruption = DiskIndexStore(roots: [indexArea], storage: storeFile).refresh()
+        let afterCorruption = DiskIndexStore(roots: [indexArea], storage: storeFile, exclusions: { .empty }).refresh()
         check(afterCorruption.map { if case .full = $0.mode { return true } else { return false } } == true,
               "indice: un file corrotto viene ignorato e rifatto da zero")
 
@@ -493,6 +497,61 @@ enum SelfTest {
             """)
         check(overrides == ["com.tizio.uno": true, "com.tizio.due": false],
               "avvio: lettura dello stato da launchctl print-disabled")
+
+        // Esclusioni: possono solo togliere. Il motore rifiuta un percorso
+        // escluso anche se PathGuard lo consentirebbe, e rifiuta la cartella
+        // che contiene qualcosa di escluso.
+        let keep = sandbox + "/da-tenere"
+        try? fm.createDirectory(atPath: keep + "/dentro", withIntermediateDirectories: true)
+        fm.createFile(atPath: keep + "/dentro/importante.dat", contents: Data(repeating: 5, count: 1_000))
+        fm.createFile(atPath: sandbox + "/nota.importante", contents: Data(repeating: 6, count: 1_000))
+        let rules = ExclusionSet(rules: [ExclusionRule(pattern: keep + "/dentro"),
+                                         ExclusionRule(pattern: "*.importante")])
+        let excludingEngine = DeletionEngine()
+        excludingEngine.exclusions = rules
+        let parentItem = CleanupItem(title: "Cartella che contiene un'esclusione", detail: "Autotest.",
+                                     consequence: "Deve essere rifiutata.", action: .removePaths([keep]),
+                                     risk: .safe, size: 0)
+        let globItem = CleanupItem(title: "File escluso per nome", detail: "Autotest.",
+                                   consequence: "Deve essere rifiutato.",
+                                   action: .removePaths([sandbox + "/nota.importante"]), risk: .safe, size: 0)
+        let excludedRun = excludingEngine.execute(items: [parentItem, globItem], mode: .permanent, dryRun: false)
+        check(excludedRun.allSatisfy { !$0.succeeded } && fm.fileExists(atPath: keep + "/dentro/importante.dat")
+              && fm.fileExists(atPath: sandbox + "/nota.importante"),
+              "esclusioni: il motore rifiuta la cartella che contiene un'esclusione e il file escluso per nome")
+        let mixed = CleanupItem(title: "Voce mista", detail: "Autotest.", consequence: "Autotest.",
+                                action: .removePaths([sandbox + "/nota.importante", probe]), risk: .safe, size: 2,
+                                perPathSize: [sandbox + "/nota.importante": 1, probe: 1])
+        check(mixed.applying(rules)?.action.displayPaths == [probe],
+              "esclusioni: da una voce si tolgono solo i percorsi esclusi")
+
+        // Cronologia: scritta, riletta, e un file corrotto messo da parte
+        // invece che sovrascritto. Ripristino dal Cestino verificato davvero.
+        let historyFile = URL(fileURLWithPath: tmp + "/cronologia.json")
+        let restoreProbe = sandbox + "/da-ripristinare.dat"
+        fm.createFile(atPath: restoreProbe, contents: Data(repeating: 7, count: 2_000))
+        let trashItem = CleanupItem(title: "File da ripristinare", detail: "Autotest.",
+                                    consequence: "Torna al suo posto.", action: .removePaths([restoreProbe]),
+                                    risk: .safe, size: 2_000)
+        let trashRun = engine.execute(items: [trashItem], mode: .trash, dryRun: false)
+        let recorded = trashRun.first?.trashed[restoreProbe]
+        check(recorded != nil && !fm.fileExists(atPath: restoreProbe),
+              "cronologia: lo spostamento nel Cestino registra dove è finito il file")
+        let history = HistoryStore(storage: historyFile)
+        let entry = HistoryEntry(date: Date(), kind: .cleanup, origin: "Autotest", title: "Prova",
+                                 paths: [restoreProbe], freed: 2_000, succeeded: true, skipped: false,
+                                 message: "ok", mode: "Cestino", trashed: trashRun.first?.trashed ?? [:])
+        history.append([entry])
+        check(HistoryStore(storage: historyFile).all.count == 1, "cronologia: la voce viene salvata e riletta")
+        try? HistoryStore(storage: historyFile).restore(entryID: entry.id, path: restoreProbe)
+        check(fm.fileExists(atPath: restoreProbe) && recorded.map { !fm.fileExists(atPath: $0) } == true,
+              "cronologia: il ripristino rimette il file al suo posto")
+        try? Data("{ non è json".utf8).write(to: historyFile)
+        // La lettura avviene al primo accesso: prima si legge, poi si guarda.
+        let damagedIsEmpty = HistoryStore(storage: historyFile).all.isEmpty
+        let aside = (try? fm.contentsOfDirectory(atPath: tmp))?.contains { $0.hasPrefix("history-v1.invalid-") } ?? false
+        check(damagedIsEmpty && aside,
+              "cronologia: un file illeggibile viene messo da parte, non sovrascritto")
 
         failures += engineFailures
 

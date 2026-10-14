@@ -47,6 +47,12 @@ final class DeletionEngine {
     /// Dice se un'app (per bundle id) è in esecuzione. Iniettabile perché
     /// l'autotest deve poter simulare un'app aperta senza aprirne una.
     var isAppRunning: (String) -> Bool = { AppRuntime.isRunning(bundleID: $0) }
+    /// Esclusioni dell'utente: terza barriera, dopo l'interfaccia e
+    /// `PathGuard`. Fotografate a ogni esecuzione.
+    var exclusions: ExclusionSet?
+    private var activeExclusions = ExclusionSet.empty
+    /// Ciò che l'operazione corrente ha spostato nel Cestino.
+    private var trashedNow: [String: String] = [:]
 
     init() {
         let dir = URL(fileURLWithPath: NSHomeDirectory())
@@ -92,10 +98,14 @@ final class DeletionEngine {
              ? "=== SIMULAZIONE: nessun file verrà modificato (\(items.count) operazioni) ==="
              : "=== ESECUZIONE: \(items.count) operazioni, modalità \(mode.label) ===")
 
+        activeExclusions = exclusions ?? ExclusionSet.current()
         var outcomes: [DeletionOutcome] = []
         for (index, item) in items.enumerated() {
             progress?(index, items.count, item.title)
-            outcomes.append(perform(item, mode: mode, dryRun: dryRun))
+            trashedNow = [:]
+            var outcome = perform(item, mode: mode, dryRun: dryRun)
+            outcome.trashed = trashedNow
+            outcomes.append(outcome)
         }
         progress?(items.count, items.count, "Completato")
 
@@ -166,6 +176,9 @@ final class DeletionEngine {
             // Anche le operazioni amministrative passano da PathGuard: la
             // password non è un lasciapassare.
             for p in paths {
+                if activeExclusions.blocksDeletion(of: p) {
+                    return fail(item, "il percorso rientra nelle tue esclusioni: \(p)")
+                }
                 do { try PathGuard.validate(p, expected: item.identities[p]) }
                 catch { return fail(item, "controllo di sicurezza non superato — \(error.localizedDescription)") }
             }
@@ -213,6 +226,11 @@ final class DeletionEngine {
         var alreadyGone = 0
 
         for path in paths {
+            if activeExclusions.blocksDeletion(of: path) {
+                errors.append("escluso dalle tue esclusioni: \(path)")
+                note("RIFIUTATO \(path) — rientra nelle esclusioni impostate dall'utente")
+                continue
+            }
             do {
                 try validator(path)
             } catch PathGuard.Violation.doesNotExist {
@@ -238,6 +256,7 @@ final class DeletionEngine {
                 case .trash:
                     var resulting: NSURL?
                     try fileManager.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: &resulting)
+                    if let resulting, let moved = resulting.path { trashedNow[path] = moved }
                 case .permanent:
                     try fileManager.removeItem(atPath: path)
                 }
@@ -277,6 +296,10 @@ final class DeletionEngine {
         var errors: [String] = []
 
         for (path, file) in files.sorted(by: { $0.key < $1.key }) {
+            if activeExclusions.blocksDeletion(of: path) {
+                skipped += 1
+                continue
+            }
             do {
                 try PathGuard.validateAgedFile(path, root: root, olderThanDays: days,
                                                expected: file.identity)
@@ -296,6 +319,7 @@ final class DeletionEngine {
                 case .trash:
                     var resulting: NSURL?
                     try fileManager.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: &resulting)
+                    if let resulting, let moved = resulting.path { trashedNow[path] = moved }
                 case .permanent:
                     try fileManager.removeItem(atPath: path)
                 }
@@ -329,6 +353,9 @@ final class DeletionEngine {
         if AppRuntime.isRunning(bundlePath: appPath) {
             return skip(item, "l'applicazione è in esecuzione: chiudila e riprova")
         }
+        if activeExclusions.blocksDeletion(of: appPath) {
+            return fail(item, "l'applicazione rientra nelle tue esclusioni")
+        }
         do {
             try PathGuard.validateApp(appPath, expected: item.identities[appPath])
         } catch {
@@ -341,6 +368,10 @@ final class DeletionEngine {
         // Prima i dati collegati, poi il bundle: se qualcosa va storto a metà
         // l'app resta al suo posto e la situazione è più facile da capire.
         for path in related {
+            if activeExclusions.blocksDeletion(of: path) {
+                note("SALTATO dati collegati \(path) — rientra nelle esclusioni impostate dall'utente")
+                continue
+            }
             do {
                 try PathGuard.validate(path, expected: item.identities[path])
                 let size = item.perPathSize[path] ?? Shell.diskSize(path)
@@ -353,6 +384,7 @@ final class DeletionEngine {
                 case .trash:
                     var out: NSURL?
                     try fileManager.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: &out)
+                    if let out, let moved = out.path { trashedNow[path] = moved }
                 case .permanent:
                     try fileManager.removeItem(atPath: path)
                 }
@@ -377,6 +409,7 @@ final class DeletionEngine {
                 case .trash:
                     var out: NSURL?
                     try fileManager.trashItem(at: URL(fileURLWithPath: appPath), resultingItemURL: &out)
+                    if let out, let moved = out.path { trashedNow[appPath] = moved }
                 case .permanent:
                     try fileManager.removeItem(atPath: appPath)
                 }

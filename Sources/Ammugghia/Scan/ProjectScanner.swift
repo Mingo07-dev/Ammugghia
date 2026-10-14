@@ -133,6 +133,8 @@ enum LargeFileScanner {
             }
         }
 
+        let exclusions = ExclusionSet.current()
+        files.removeAll { exclusions.excludes($0.path, scope: .largeFiles) }
         files.sort { $0.size > $1.size }
         files = Array(files.prefix(limit))
 

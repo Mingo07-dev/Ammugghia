@@ -35,6 +35,11 @@ struct AmmugghiaApp: App {
                 .frame(minWidth: 1080, minHeight: 720)
         }
         .windowToolbarStyle(.unified)
+
+        Settings {
+            SettingsView()
+                .environmentObject(model)
+        }
         .commands {
             CommandGroup(after: .newItem) {
                 Button("Rianalizza il disco") { model.scanAll() }
@@ -164,6 +169,9 @@ struct Sidebar: View {
                 NavigationLink(value: SidebarSection.uninstall) {
                     Label("Disinstalla app", systemImage: "trash.square.fill")
                 }
+                NavigationLink(value: SidebarSection.history) {
+                    Label("Cronologia", systemImage: "clock.arrow.circlepath")
+                }
                 NavigationLink(value: SidebarSection.log) {
                     Label("Registro", systemImage: "list.bullet.rectangle")
                 }
@@ -232,6 +240,8 @@ struct Detail: View {
                 DuplicatesView()
             case .startup:
                 StartupView()
+            case .history:
+                HistoryView()
             case .uninstall:
                 UninstallView()
             case .log:

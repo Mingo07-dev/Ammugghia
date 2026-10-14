@@ -30,7 +30,8 @@ enum Report {
         let roots = ContentDuplicateScanner.defaultRoots
         print("Ammugghia — file duplicati in \(roots.map { ($0 as NSString).lastPathComponent }.joined(separator: ", "))")
         let start = Date()
-        let groups = ContentDuplicateScanner.find(roots: roots, minimumSize: 1_000_000, cache: HashCache.shared) { p in
+        let groups = ContentDuplicateScanner.find(roots: roots, minimumSize: 1_000_000, cache: HashCache.shared,
+                                                  exclusions: ExclusionSet.current()) { p in
             FileHandle.standardError.write("\r\(p.stage) \(p.done)/\(p.total)        ".data(using: .utf8)!)
         }
         FileHandle.standardError.write("\n".data(using: .utf8)!)

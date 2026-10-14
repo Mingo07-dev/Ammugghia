@@ -60,13 +60,17 @@ final class IndexScanner {
     static let largeFileThreshold: Int64 = 50_000_000
 
     let device: UInt64
+    /// Percorsi da non leggere (esclusioni dell'utente per la mappa).
+    let isExcluded: (String) -> Bool
     private let queue: OperationQueue
     private let counterLock = NSLock()
     private var scanned = 0
     private let progress: ((Int) -> Void)?
 
-    init(device: UInt64, progress: ((Int) -> Void)? = nil) {
+    init(device: UInt64, isExcluded: @escaping (String) -> Bool = { _ in false },
+         progress: ((Int) -> Void)? = nil) {
         self.device = device
+        self.isExcluded = isExcluded
         self.progress = progress
         queue = OperationQueue()
         queue.maxConcurrentOperationCount = min(8, max(2, ProcessInfo.processInfo.activeProcessorCount))
@@ -93,6 +97,7 @@ final class IndexScanner {
         var large: [IndexedFile] = []
         var directories: [BulkEntry] = []
         for entry in entries {
+            if isExcluded(path + "/" + entry.name) { continue }
             if entry.isDirectory {
                 if entry.device == device && !entry.isDataless { directories.append(entry) }
             } else if entry.isRegularFile {
@@ -171,7 +176,8 @@ final class IndexScanner {
 /// restituisce `nil`: un indice dubbio si butta, non si ripara.
 enum IndexCodec {
     static let magic: UInt32 = 0x414D_4958   // "AMIX"
-    static let version: UInt32 = 1
+    // 2: aggiunte le esclusioni della mappa nell'intestazione.
+    static let version: UInt32 = 2
 
     struct Header {
         var complete: Bool
@@ -179,6 +185,7 @@ enum IndexCodec {
         var createdAt: Double
         var osVersion: String
         var fullDiskAccess: Bool
+        var exclusions: String
         var roots: [RootHeader]
     }
 
@@ -199,6 +206,7 @@ enum IndexCodec {
         w.f64(header.createdAt)
         w.string(header.osVersion)
         w.u8(header.fullDiskAccess ? 1 : 0)
+        w.string(header.exclusions)
         w.u32(UInt32(header.roots.count))
         for (root, tree) in zip(header.roots, trees) {
             w.string(root.path); w.u64(root.device)
@@ -225,7 +233,8 @@ enum IndexCodec {
         var r = Reader(data: data)
         guard r.u32() == magic, r.u32() == version,
               let complete = r.u8(), let eventID = r.u64(), let createdAt = r.f64(),
-              let os = r.string(), let fda = r.u8(), let count = r.u32(), count < 64 else { return nil }
+              let os = r.string(), let fda = r.u8(), let exclusions = r.string(),
+              let count = r.u32(), count < 64 else { return nil }
         var roots: [RootHeader] = []
         var trees: [IndexNode] = []
         for _ in 0..<count {
@@ -236,7 +245,8 @@ enum IndexCodec {
         }
         guard r.u32() == magic, r.isAtEnd else { return nil }
         return (Header(complete: complete == 1, eventID: eventID, createdAt: createdAt,
-                       osVersion: os, fullDiskAccess: fda == 1, roots: roots), trees)
+                       osVersion: os, fullDiskAccess: fda == 1, exclusions: exclusions,
+                       roots: roots), trees)
     }
 
     private static func read(_ r: inout Reader, depth: Int) -> IndexNode? {

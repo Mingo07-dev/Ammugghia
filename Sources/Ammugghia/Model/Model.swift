@@ -478,6 +478,8 @@ struct DeletionOutcome: Identifiable {
     let skipped: Bool
     let message: String
     let freed: Int64
+    /// Percorso originale → posizione nel Cestino, per poterlo ripristinare.
+    var trashed: [String: String] = [:]
 }
 
 // MARK: - Formattazione
