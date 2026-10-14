@@ -7,7 +7,8 @@
 **Pulizia del disco per macOS, nativa, pensata per chi sviluppa — e che nel dubbio rifiuta.**
 
 <sub><i>Ammugghia</i> viene dal siciliano <i>ammugghiari</i>: avvolgere, accartocciare — il gesto
-che si fa con un foglio di carta prima di buttarlo.</sub>
+che si fa con un foglio di carta prima di buttarlo. Vuol dire anche raccattare, sistemare,
+come in <i>ammugghiari a tovagghia</i>: raccogliere la tovaglia a fine pasto.</sub>
 
 [![CI](https://github.com/Mingo07-dev/Ammugghia/actions/workflows/ci.yml/badge.svg)](https://github.com/Mingo07-dev/Ammugghia/actions/workflows/ci.yml)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white)

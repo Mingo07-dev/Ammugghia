@@ -7,7 +7,8 @@
 **A native macOS disk cleaner for developers — one that refuses rather than guesses.**
 
 <sub><i>Ammugghia</i> comes from the Sicilian verb <i>ammugghiari</i>: to wrap up, to crumple —
-what you do to a sheet of paper right before throwing it away.</sub>
+what you do to a sheet of paper right before throwing it away. It also means to gather up
+and tidy, as in <i>ammugghiari a tovagghia</i>: folding up the tablecloth after a meal.</sub>
 
 [![CI](https://github.com/Mingo07-dev/Ammugghia/actions/workflows/ci.yml/badge.svg)](https://github.com/Mingo07-dev/Ammugghia/actions/workflows/ci.yml)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white)
