@@ -14,6 +14,12 @@ struct AmmugghiaApp: App {
         if CommandLine.arguments.contains("--report") {
             exit(Report.run())
         }
+        if CommandLine.arguments.contains("--index") {
+            exit(Report.runIndex())
+        }
+        if CommandLine.arguments.contains("--verify-index") {
+            exit(Report.runVerifyIndex())
+        }
     }
 
     var body: some Scene {
@@ -27,6 +33,11 @@ struct AmmugghiaApp: App {
             CommandGroup(after: .newItem) {
                 Button("Rianalizza il disco") { model.scanAll() }
                     .keyboardShortcut("r")
+                Button("Rifai la mappa del disco da zero") {
+                    model.selection = .diskMap
+                    model.refreshIndex(forceFull: true)
+                }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
             }
         }
     }
@@ -120,6 +131,9 @@ struct Sidebar: View {
             }
 
             Section("Analisi") {
+                NavigationLink(value: SidebarSection.diskMap) {
+                    Label("Mappa del disco", systemImage: "square.grid.3x3.square")
+                }
                 NavigationLink(value: SidebarSection.versions) {
                     Label {
                         HStack {
@@ -200,6 +214,8 @@ struct Detail: View {
                 CategoryView(category: model.category(id))
             case .versions:
                 VersionsView()
+            case .diskMap:
+                DiskMapView()
             case .uninstall:
                 UninstallView()
             case .log:

@@ -6,6 +6,7 @@ enum SidebarSection: Hashable {
     case overview
     case category(CategoryID)
     case versions
+    case diskMap
     case uninstall
     case log
 }
@@ -37,6 +38,45 @@ final class AppModel: ObservableObject {
     @Published var confirmIsDryRun = false
 
     @Published var notes: [String] = []
+
+    // MARK: Mappa del disco
+
+    @Published var isIndexing = false
+    @Published var indexProgress = ""
+    /// Cambia a ogni aggiornamento dell'indice: la mappa ricarica il livello.
+    @Published var indexGeneration = 0
+    @Published var indexStatus: String?
+
+    /// Aggiorna l'indice del disco in background.
+    func refreshIndex(forceFull: Bool = false) {
+        guard !isIndexing else { return }
+        isIndexing = true
+        indexProgress = "Preparazione…"
+        Task.detached(priority: .userInitiated) {
+            let report = DiskIndexStore.shared.refresh(forceFull: forceFull) { count in
+                Task { @MainActor in
+                    self.indexProgress = "\(count.formatted()) cartelle lette…"
+                }
+            }
+            await MainActor.run {
+                self.isIndexing = false
+                self.indexProgress = ""
+                self.indexStatus = report.map(AppModel.describe)
+                self.indexGeneration += 1
+            }
+        }
+    }
+
+    nonisolated static func describe(_ report: DiskIndexStore.Report) -> String {
+        let time = report.finishedAt.formatted(date: .omitted, time: .shortened)
+        let seconds = String(format: "%.1f", report.duration)
+        switch report.mode {
+        case .full(let reason):
+            return "Analisi completa alle \(time) in \(seconds) s (\(reason))."
+        case .incremental(let changed):
+            return "Aggiornata alle \(time) in \(seconds) s: \(Plural.of(changed, "cartella riletta", "cartelle rilette")) grazie alla storia delle modifiche di macOS."
+        }
+    }
 
     private let engine = DeletionEngine()
     var logFilePath: String? { engine.logFilePath }
