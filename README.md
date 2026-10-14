@@ -75,6 +75,30 @@ each item is and what happens after it is gone, and then lets you decide.
 | **Docker** | Unused images, stopped containers, build cache. **Volumes are shown read-only and never deleted** |
 | **Large files** | List of the largest files in your personal folders. You can only reveal them in Finder; Ammugghia never deletes them |
 
+## Disk map
+
+A treemap of your whole Mac (home folder, Applications, Library, Homebrew), with each
+area proportional to the space it takes. Double-click to drill down. The side panel shows
+size, file count and last activity, and jumps to the cleanup item for that folder. The map
+is **view-only**: deletion always goes through the categories, where every item explains
+its consequence.
+
+The first read takes about 30 seconds. After that, Ammugghia saves an index and uses the
+FSEvents history from macOS to re-read **only the folders that changed**, usually in about a
+second. The index is display-only, so it never decides a deletion. It is rebuilt from
+scratch whenever the history can't be trusted:
+- events were dropped;
+- the volume or the event database changed;
+- macOS was updated;
+- permissions changed;
+- it is more than a day old;
+- a random sample of folders no longer matches the disk.
+
+```bash
+Ammugghia --index          # update the index and print a summary
+Ammugghia --verify-index   # compare the incremental index with a fresh full scan
+```
+
 ## Safety model
 
 Every deletion goes through the same path. No scanner can delete on its own:
@@ -140,7 +164,7 @@ refused. `DeletionEngine` checks again even for operations the UI has already va
 Ammugghia --selftest
 ```
 
-This runs **83 checks** without opening the UI:
+This runs **88 checks** without opening the UI:
 
 - paths that must be refused: the Photos library, iCloud Drive, SSH keys, `/System`, your
   home folder…
@@ -174,6 +198,7 @@ fails with "permission denied", grant **Full Disk Access** to Ammugghia in *Syst
 ```bash
 Ammugghia --report     # full analysis printed to the terminal; changes nothing
 Ammugghia --selftest   # verifies that the protections refuse dangerous paths
+Ammugghia --index      # updates the disk-map index and prints a summary
 ```
 
 The binary lives at `$(swift build -c release --show-bin-path)/Ammugghia`, or at
@@ -204,7 +229,7 @@ coordinates.
 - [x] Verify each file's identity (device + inode) between scan and deletion
 - [x] Caches of Electron apps (Slack, Discord, VS Code, Teams…) and more package managers
 - [x] Leftovers of apps that are already uninstalled, and local AI models (Ollama, Hugging Face, LM Studio)
-- [ ] Disk map (treemap) with an incremental index based on FSEvents
+- [x] Disk map (treemap) with an incremental index based on FSEvents
 - [ ] Duplicate files by content (reveal only)
 - [ ] Startup items: list, disable and re-enable
 - [ ] Cleanup history with restore from Trash, and user-defined exclusions

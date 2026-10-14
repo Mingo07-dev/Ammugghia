@@ -77,6 +77,30 @@ che cos'è e che cosa succede dopo averlo eliminato, e lascia a te la decisione.
 | **Docker** | Immagini non usate, container fermi, cache di build. **I volumi sono mostrati in sola lettura e non vengono mai eliminati** |
 | **File grandi** | Elenco dei file più grandi nelle cartelle personali. Si possono solo mostrare nel Finder: Ammugghia non li elimina mai |
 
+## Mappa del disco
+
+Una treemap di tutto il Mac (cartella utente, Applicazioni, Libreria, Homebrew), con ogni
+area proporzionale allo spazio che occupa. Doppio clic per entrare in una cartella. Il
+pannello laterale mostra dimensione, numero di file e ultima attività, e porta alla voce di
+pulizia di quella cartella. La mappa **serve solo a vedere**: si elimina sempre dalle
+categorie, dove ogni voce spiega che cosa succede dopo.
+
+La prima lettura richiede circa 30 secondi. Poi Ammugghia salva un indice e, grazie alla
+storia delle modifiche di macOS (FSEvents), rilegge **solo le cartelle cambiate**: di solito
+circa un secondo. L'indice serve solo a mostrare, quindi non decide mai un'eliminazione. Si
+rifà da zero ogni volta che la storia non è affidabile:
+- eventi persi;
+- volume o database degli eventi cambiati;
+- macOS aggiornato;
+- permessi cambiati;
+- indice più vecchio di un giorno;
+- un campione di cartelle a caso che non corrisponde più al disco.
+
+```bash
+Ammugghia --index          # aggiorna l'indice e ne stampa un riepilogo
+Ammugghia --verify-index   # confronta l'indice aggiornato con un'analisi completa
+```
+
 ## Il modello di sicurezza
 
 Ogni eliminazione segue lo stesso percorso, e nessuno scanner può eliminare da solo:
@@ -144,7 +168,7 @@ l'interfaccia ha già validato.
 Ammugghia --selftest
 ```
 
-Esegue **83 controlli** senza aprire l'interfaccia:
+Esegue **88 controlli** senza aprire l'interfaccia:
 
 - percorsi che devono essere rifiutati: libreria Foto, iCloud Drive, chiavi SSH,
   `/System`, la cartella utente…
@@ -179,6 +203,7 @@ esplicitamente, invece di fallire in silenzio.
 ```bash
 Ammugghia --report     # analisi completa stampata nel terminale, non modifica nulla
 Ammugghia --selftest   # verifica che le protezioni rifiutino i percorsi pericolosi
+Ammugghia --index      # aggiorna l'indice della mappa del disco e ne stampa un riepilogo
 ```
 
 L'eseguibile si trova in `$(swift build -c release --show-bin-path)/Ammugghia`, oppure in
@@ -209,7 +234,7 @@ mantenere e si modifica cambiando qualche coordinata.
 - [x] Verifica dell'identità di ogni file (dispositivo + inode) fra analisi ed eliminazione
 - [x] Cache delle app Electron (Slack, Discord, VS Code, Teams…) e altri gestori di pacchetti
 - [x] Residui di app già disinstallate e modelli AI locali (Ollama, Hugging Face, LM Studio)
-- [ ] Mappa del disco (treemap) con indice incrementale basato su FSEvents
+- [x] Mappa del disco (treemap) con indice incrementale basato su FSEvents
 - [ ] File duplicati per contenuto (solo «Mostra nel Finder»)
 - [ ] Elementi d'avvio: elenco, disattivazione e riattivazione
 - [ ] Cronologia delle pulizie con ripristino dal Cestino, ed esclusioni personalizzate
