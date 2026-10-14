@@ -291,6 +291,8 @@ enum CategoryID: String, CaseIterable, Identifiable {
     case projectArtifacts
     case browsers
     case appCaches
+    case aiModels
+    case orphans
     case system
     case wallpapers
     case docker

@@ -347,6 +347,39 @@ enum SelfTest {
                   "restano intatti: file recente, database, cartella di sistema, collegamento, file fuori area")
         }
 
+        // Residui di app: la decisione «orfano» è pura e si verifica con un
+        // contesto finto, senza toccare i container veri.
+        let orphanContext = OrphanScanner.Context(
+            installed: ["com.tizio.editor"],
+            isRegistered: { $0 == "com.altrove.app" },
+            isRunning: { $0 == "com.attivo.app" })
+        check(OrphanScanner.isOrphan("com.rimossa.app", in: orphanContext),
+              "residui: un'app assente ovunque è orfana")
+        check(!OrphanScanner.isOrphan("com.tizio.editor", in: orphanContext)
+              && !OrphanScanner.isOrphan("com.tizio.editor.ShareExtension", in: orphanContext),
+              "residui: app installata e sue estensioni non sono orfane")
+        check(!OrphanScanner.isOrphan("com.altrove.app.Widget", in: orphanContext),
+              "residui: estensione di un'app registrata fuori da /Applications non è orfana")
+        check(!OrphanScanner.isOrphan("com.attivo.app", in: orphanContext),
+              "residui: un'app in esecuzione non è orfana")
+        check(!OrphanScanner.isOrphan("com.apple.Notes", in: orphanContext)
+              && !OrphanScanner.isOrphan("group.com.apple.notes", in: orphanContext),
+              "residui: i container Apple non sono mai orfani")
+        check(!OrphanScanner.isOrphan("3F2504E0-4F89-11D3-9A0C-0305E82C3301", in: orphanContext),
+              "residui: un container con nome UUID illeggibile non viene proposto")
+        check(OrphanScanner.isTeamPrefixed("ABCDE12345.com.rimossa.app", "com.rimossa.app")
+              && !OrphanScanner.isTeamPrefixed("group.altro.com.rimossa.app", "com.rimossa.app"),
+              "residui: gruppo condiviso riconosciuto solo nella forma TEAMID.<id>")
+
+        // Modelli Ollama: il nome passato a `ollama rm` deve essere esatto.
+        check(AIModelScanner.ollamaName(registry: "/m/registry.ollama.ai", namespace: "/m/library",
+                                        model: "/m/llama3", tag: "/m/8b") == "llama3:8b"
+              && AIModelScanner.ollamaName(registry: "registry.ollama.ai", namespace: "utente",
+                                           model: "mio", tag: "latest") == "utente/mio:latest"
+              && AIModelScanner.ollamaName(registry: "hf.co", namespace: "org",
+                                           model: "modello", tag: "Q4") == "hf.co/org/modello:Q4",
+              "modelli: nomi Ollama per libreria, utente e registri esterni")
+
         failures += engineFailures
 
         print(String(repeating: "─", count: 72))

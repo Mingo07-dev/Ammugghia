@@ -20,6 +20,8 @@ enum Report {
             ("Gestori di pacchetti", .packageManagers),
             ("Browser", .browsers),
             ("App", .appCaches),
+            ("Modelli AI", .aiModels),
+            ("Residui di app", .orphans),
             ("Sistema", .system),
             ("Sfondi dinamici", .wallpapers),
             ("Docker", .docker),
@@ -55,6 +57,9 @@ enum Report {
             safeTotal += unique.filter { $0.risk == .safe }.reduce(0) { $0 + $1.size }
 
             print("── \(name) — \(ByteFormat.string(total)) in \(Plural.of(items.count, "voce", "voci"))")
+            if let note = AppModel.note(for: categoryID) {
+                print("   ℹ︎ \(note)")
+            }
             for item in items.prefix(12) {
                 let flag: String
                 switch item.risk {

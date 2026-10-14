@@ -44,6 +44,12 @@ enum Relevance {
         case .wallpapers:       return wallpapers()
         case .packageManagers:  return packageManagers()
         case .projectArtifacts: return projectArtifacts()
+        case .aiModels:         return AIModelScanner.presence()
+        case .orphans:
+            let found = OrphanScanner.find()
+            return found.orphans.isEmpty && found.unreadable.isEmpty
+                ? .absent(detail: "Nessun residuo di app disinstallate.")
+                : .installed
         case .browsers, .appCaches, .system, .largeFiles:
             // Sempre pertinenti: sono aree del sistema, non programmi.
             return .installed

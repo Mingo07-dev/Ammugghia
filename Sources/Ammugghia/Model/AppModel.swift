@@ -59,6 +59,10 @@ final class AppModel: ObservableObject {
                 explanation: "Solo le cartelle di cache dei browser. Cronologia, segnalibri, password, cookie di sessione ed estensioni non vengono mai toccati: restano fuori dall'elenco per costruzione."),
             CleanupCategory(id: .appCaches, name: "App", symbol: "app.badge",
                 explanation: "Cache di Slack, Discord, Teams, VS Code, Notion, Figma, degli IDE JetBrains e di altre app comuni.\n\nLe app costruite su Electron tengono la cache dentro «Application Support», accanto ai dati veri, dove le pulizie generiche non guardano. Qui si elencano solo le cartelle che l'app ricostruisce da sola: messaggi, documenti, accessi e impostazioni non vengono toccati. Ogni voce richiede che l'app sia chiusa."),
+            CleanupCategory(id: .aiModels, name: "Modelli AI", symbol: "brain",
+                explanation: "Modelli scaricati da Ollama, Hugging Face, LM Studio, PyTorch, Whisper e Keras, uno per voce con la data dell'ultima attività. Spesso sono la voce più pesante di un Mac da sviluppo, in cartelle nascoste.\n\nPer Ollama si usa il comando ufficiale `ollama rm`. Un modello eliminato va riscaricato se ti serve di nuovo."),
+            CleanupCategory(id: .orphans, name: "Residui di app", symbol: "app.dashed",
+                explanation: "File lasciati da applicazioni che non risultano più installate: container sandbox, preferenze, cache, stato delle finestre.\n\nUn'app è considerata rimossa solo se nessuna app con quell'identificatore è presente, registrata nel sistema o in esecuzione, nemmeno come estensione di un'altra. Si raccolgono solo i file il cui nome è esattamente l'identificatore. Nessuna voce è preselezionata."),
             CleanupCategory(id: .system, name: "Sistema", symbol: "gearshape.fill",
                 explanation: "Residui e cache che macOS contabilizza come «dati di sistema» senza mostrarli da nessuna parte: l'installer rimasto dopo un aggiornamento, i log, lo stato delle finestre, i backup dei dispositivi iOS."),
             CleanupCategory(id: .wallpapers, name: "Sfondi dinamici", symbol: "photo.fill",
@@ -101,6 +105,8 @@ final class AppModel: ObservableObject {
         case .packageManagers:  return PackageManagerScanner.scan
         case .browsers:         return BrowserScanner.scan
         case .appCaches:        return AppCacheScanner.scan
+        case .aiModels:         return AIModelScanner.scan
+        case .orphans:          return OrphanScanner.scan
         case .system:           return SystemScanner.scan
         case .wallpapers:       return WallpaperScanner.scan
         case .docker:           return DockerScanner.scan
@@ -115,6 +121,7 @@ final class AppModel: ObservableObject {
         case .wallpapers: return WallpaperScanner.statusSummary()
         case .docker:     return DockerScanner.summary()
         case .system:     return SystemScanner.localSnapshotsNote()
+        case .orphans:    return OrphanScanner.summary()
         default:          return nil
         }
     }
@@ -363,6 +370,7 @@ final class AppModel: ObservableObject {
                     self.reloadApplications()
                 }
                 if !dryRun {
+                    OrphanScanner.invalidate()
                     // Le dimensioni non sono più attendibili dopo
                     // l'eliminazione: meglio invitare a rianalizzare che
                     // mostrare numeri sbagliati.

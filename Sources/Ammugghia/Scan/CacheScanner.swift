@@ -148,7 +148,8 @@ enum PackageManagerScanner {
     }
 
     /// Sottocartelle di `~/.cache` con una voce dedicata.
-    static let dotCacheHandled: Set<String> = ["uv", "ruff", "mypy", "electron", "node"]
+    static let dotCacheHandled: Set<String> = ["uv", "ruff", "mypy", "electron", "node",
+                                                  "huggingface", "torch", "whisper"]
 
     /// Nomi in `~/Library/Caches` gestiti qui: lo scanner di sistema li esclude.
     static let libraryCacheNames = [

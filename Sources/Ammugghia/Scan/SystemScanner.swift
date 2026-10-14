@@ -50,6 +50,7 @@ enum SystemScanner {
                            "Firefox", "com.apple.Safari", "Microsoft Edge", "BraveSoftware"]
                 + PackageManagerScanner.libraryCacheNames
                 + AppCacheScanner.libraryCacheNames
+                + OrphanScanner.orphanBundleIDs()
                 + systemServiceCaches + ["com.apple.e5rt.e5bundlecache",
                                          "com.apple.QuickLook.thumbnailcache", "com.apple.iTunes"]
             for kid in kids {
