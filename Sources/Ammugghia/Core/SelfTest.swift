@@ -444,6 +444,56 @@ enum SelfTest {
         check(groups.first?.recoverable == 1_200_000,
               "duplicati: il clone APFS non conta come spazio sprecato (\(groups.first?.recoverable ?? -1) byte recuperabili)")
 
+        // Elementi d'avvio: il guardiano rifiuta servizi Apple, etichette
+        // che potrebbero alterare il comando, file fuori posto o che dichiarano
+        // un servizio diverso.
+        let startupRoots = StartupScanner.Roots(userAgents: tmp + "/avvio/utente",
+                                                globalAgents: tmp + "/avvio/globali",
+                                                daemons: tmp + "/avvio/sistema")
+        for dir in [startupRoots.userAgents, startupRoots.globalAgents, startupRoots.daemons] {
+            try? fm.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        }
+        func agent(_ label: String, in dir: String, file: String? = nil) -> String {
+            let path = dir + "/" + (file ?? label) + ".plist"
+            let plist: [String: Any] = ["Label": label, "ProgramArguments": ["/usr/bin/true"]]
+            try? PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+                .write(to: URL(fileURLWithPath: path))
+            return path
+        }
+        func startupItem(_ path: String, _ label: String, _ domain: StartupItem.Domain) -> StartupItem {
+            StartupItem(plistPath: path, label: label, domain: domain, program: "/usr/bin/true",
+                        programExists: true, ownerName: nil, signer: nil, runAtLoad: false,
+                        keepAlive: false, interval: nil, isDisabled: false, isLoaded: false)
+        }
+        func accepted(_ item: StartupItem) -> Bool {
+            (try? StartupGuard.validate(item, roots: startupRoots)) != nil
+        }
+        let valid = agent("it.ammugghia.prova", in: startupRoots.userAgents)
+        check(accepted(startupItem(valid, "it.ammugghia.prova", .userAgent)),
+              "avvio: un agente valido nella sua cartella è modificabile")
+        check(!accepted(startupItem(agent("com.apple.finto", in: startupRoots.userAgents), "com.apple.finto", .userAgent)),
+              "avvio: i servizi di macOS non sono modificabili")
+        let injected = agent("it.prova; rm -rf ~", in: startupRoots.userAgents, file: "iniettato")
+        check(!accepted(startupItem(injected, "it.prova; rm -rf ~", .userAgent)),
+              "avvio: un'etichetta con spazi o punto e virgola viene rifiutata")
+        check(!accepted(startupItem(valid, "it.ammugghia.prova", .daemon)),
+              "avvio: un agente utente non può essere trattato come servizio di sistema")
+        let other = agent("it.ammugghia.altro", in: startupRoots.globalAgents, file: "it.ammugghia.prova")
+        check(!accepted(startupItem(other, "it.ammugghia.prova", .globalAgent)),
+              "avvio: il file deve dichiarare lo stesso servizio richiesto")
+        let linked = startupRoots.globalAgents + "/collegato.plist"
+        try? fm.createSymbolicLink(atPath: linked, withDestinationPath: valid)
+        check(!accepted(startupItem(linked, "it.ammugghia.prova", .globalAgent)),
+              "avvio: un file che è un collegamento viene rifiutato")
+        let overrides = StartupScanner.parseOverrides("""
+            disabled services = {
+                "com.tizio.uno" => disabled
+                "com.tizio.due" => enabled
+            }
+            """)
+        check(overrides == ["com.tizio.uno": true, "com.tizio.due": false],
+              "avvio: lettura dello stato da launchctl print-disabled")
+
         failures += engineFailures
 
         print(String(repeating: "─", count: 72))

@@ -16,6 +16,7 @@ enum SidebarSection: Hashable {
     case versions
     case diskMap
     case duplicates
+    case startup
     case uninstall
     case log
 }
@@ -47,6 +48,47 @@ final class AppModel: ObservableObject {
     @Published var confirmIsDryRun = false
 
     @Published var notes: [String] = []
+
+    // MARK: Elementi d'avvio
+
+    @Published var startupItems: [StartupItem] = []
+    @Published var appleServiceCount = 0
+    @Published var isLoadingStartup = false
+    @Published var startupMessage: String?
+
+    func loadStartupItems() {
+        guard !isLoadingStartup else { return }
+        isLoadingStartup = true
+        Task.detached(priority: .userInitiated) {
+            let items = StartupScanner.scan()
+            let apple = StartupScanner.appleServiceCount()
+            await MainActor.run {
+                self.startupItems = items
+                self.appleServiceCount = apple
+                self.isLoadingStartup = false
+            }
+        }
+    }
+
+    /// Attiva o disattiva dopo la conferma dell'interfaccia. Il risultato
+    /// viene verificato rileggendo launchd e finisce nel registro.
+    func setStartup(_ item: StartupItem, enabled: Bool) {
+        isLoadingStartup = true
+        startupMessage = nil
+        Task.detached(priority: .userInitiated) {
+            let outcome = StartupController.setEnabled(item, enabled)
+            let items = StartupScanner.scan()
+            await MainActor.run {
+                let engine = self.engine
+                for command in outcome.commands { engine.record("AVVIO  \(command)") }
+                engine.record("\(outcome.succeeded ? "OK" : "ERRORE") avvio — \(outcome.message)")
+                self.logLines = engine.log
+                self.startupMessage = outcome.message
+                self.startupItems = items
+                self.isLoadingStartup = false
+            }
+        }
+    }
 
     // MARK: Duplicati
 

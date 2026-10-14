@@ -73,6 +73,11 @@ final class DeletionEngine {
 
     var logFilePath: String? { logURL?.path }
 
+    /// Scrive nel registro operazioni che non sono eliminazioni (es. la
+    /// disattivazione di un elemento d'avvio): tutto ciò che il software
+    /// modifica deve lasciare traccia nello stesso posto.
+    func record(_ line: String) { note(line) }
+
     // MARK: - Esecuzione
 
     /// - Parameters:

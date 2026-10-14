@@ -45,6 +45,25 @@ enum Report {
         return 0
     }
 
+    /// `Ammugghia --startup`: elenca gli elementi d'avvio senza modificarli.
+    static func runStartup() -> Int32 {
+        let items = StartupScanner.scan()
+        print("Ammugghia — elementi d'avvio (\(StartupScanner.appleServiceCount()) servizi di macOS esclusi)")
+        for item in items {
+            var flags: [String] = []
+            if item.isDisabled { flags.append("disattivato") }
+            if item.isLoaded { flags.append("caricato") }
+            if item.isOrphan { flags.append("ORFANO") }
+            if item.runAtLoad { flags.append("all'avvio") }
+            if item.keepAlive { flags.append("sempre attivo") }
+            if let i = item.interval { flags.append("ogni \(i / 60) min") }
+            print("  [\(item.domain.label)] \(item.displayName) — \(item.label)")
+            print("      \(flags.joined(separator: ", "))  ·  firma: \(item.signer ?? "sconosciuta")")
+            if let p = item.program { print("      \(p)") }
+        }
+        return 0
+    }
+
     /// `Ammugghia --verify-index`: aggiorna l'indice e lo confronta con
     /// un'analisi completa fatta adesso. Serve a provare l'aggiornamento parziale.
     static func runVerifyIndex() -> Int32 {

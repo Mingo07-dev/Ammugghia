@@ -17,6 +17,9 @@ struct AmmugghiaApp: App {
         if CommandLine.arguments.contains("--index") {
             exit(Report.runIndex())
         }
+        if CommandLine.arguments.contains("--startup") {
+            exit(Report.runStartup())
+        }
         if CommandLine.arguments.contains("--duplicates") {
             exit(Report.runDuplicates())
         }
@@ -155,6 +158,9 @@ struct Sidebar: View {
                         Image(systemName: "square.stack.3d.down.right.fill")
                     }
                 }
+                NavigationLink(value: SidebarSection.startup) {
+                    Label("Elementi d'avvio", systemImage: "power.circle")
+                }
                 NavigationLink(value: SidebarSection.uninstall) {
                     Label("Disinstalla app", systemImage: "trash.square.fill")
                 }
@@ -224,6 +230,8 @@ struct Detail: View {
                 DiskMapView()
             case .duplicates:
                 DuplicatesView()
+            case .startup:
+                StartupView()
             case .uninstall:
                 UninstallView()
             case .log:
