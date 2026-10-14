@@ -74,6 +74,10 @@ enum SelfTest {
                   shouldPass: false, why: "preferenze di sistema: fuori allowlist di proposito"),
             .init(path: "/System/Volumes/Data/macOS Install Data",
                   shouldPass: true, why: "installer residuo (eccezione esplicita)"),
+            .init(path: (PathGuard.ageGatedRoots.first ?? "/private/var/folders/xx/T") + "/qualcosa",
+                  shouldPass: false, why: "cartelle temporanee: solo tramite la regola dei 7 giorni"),
+            .init(path: "/private/var/folders", shouldPass: false,
+                  why: "radice delle cartelle temporanee di tutti gli utenti"),
         ]
 
         print("Ammugghia — verifica delle protezioni")
@@ -290,6 +294,58 @@ enum SelfTest {
         let freeRun = runningEngine.execute(items: [appItem], mode: .permanent, dryRun: false)
         check(freeRun.first?.succeeded == true && !fm.fileExists(atPath: guarded),
               "ad app chiusa la stessa eliminazione riesce")
+
+        // Cartelle temporanee: solo file vecchi, singoli, non esclusi, dentro
+        // la cartella dell'utente. Il motore riceve un elenco preparato qui,
+        // così l'autotest tocca soltanto i propri file.
+        check(PathGuard.ageGatedRoots.count == 2, "cartelle temporanee dell'utente ricavate dal sistema")
+        if let tempRoot = PathGuard.ageGatedRoots.first {
+            let area = tempRoot + "/ammugghia-selftest-eta-\(UUID().uuidString)"
+            try? fm.createDirectory(atPath: area + "/com.apple.prova.Sandbox", withIntermediateDirectories: true)
+            defer { try? fm.removeItem(atPath: area) }
+            func make(_ name: String, daysAgo: Int) -> String {
+                let path = area + "/" + name
+                fm.createFile(atPath: path, contents: Data(repeating: 1, count: 4_096))
+                let t = time(nil) - time_t(daysAgo * 86_400)
+                var times = [timeval(tv_sec: t, tv_usec: 0), timeval(tv_sec: t, tv_usec: 0)]
+                utimes(path, &times)
+                return path
+            }
+            let old = make("vecchio.tmp", daysAgo: 30)
+            let recent = make("recente.tmp", daysAgo: 1)
+            let database = make("archivio.sqlite", daysAgo: 30)
+            let sandboxed = make("com.apple.prova.Sandbox/profilo.bin", daysAgo: 30)
+            let link = area + "/collegamento.tmp"
+            try? fm.createSymbolicLink(atPath: link, withDestinationPath: old)
+            let outside = sandbox + "/fuori-area.tmp"
+            fm.createFile(atPath: outside, contents: Data(repeating: 1, count: 4_096))
+
+            let listed = SystemScanner.agedFiles(in: tempRoot, olderThanDays: 7)
+            check(listed[old] != nil || listed[PathGuard.realPath(old) ?? old] != nil,
+                  "lo scanner propone il file temporaneo vecchio")
+            check(!listed.keys.contains { $0.hasSuffix("/recente.tmp") || $0.hasSuffix("/archivio.sqlite")
+                                         || $0.hasSuffix("/profilo.bin") || $0.hasSuffix("/collegamento.tmp") },
+                  "lo scanner esclude file recenti, database, cartelle di sistema e collegamenti")
+
+            var files: [String: AgedFile] = [:]
+            for path in [old, recent, database, sandboxed, link, outside] {
+                if let identity = FileIdentity.of(path) {
+                    files[path] = AgedFile(identity: identity, size: 4_096)
+                }
+            }
+            let agedItem = CleanupItem(
+                title: "File temporanei dell'autotest",
+                detail: "Creati dall'autotest.", consequence: "Solo il file vecchio deve sparire.",
+                action: .removeAgedFiles(root: tempRoot, olderThanDays: 7, files: files),
+                risk: .safe, size: 0)
+            let agedRun = engine.execute(items: [agedItem], mode: .permanent, dryRun: false)
+            check(agedRun.first?.succeeded == true && !fm.fileExists(atPath: old),
+                  "il file temporaneo vecchio viene eliminato")
+            check(fm.fileExists(atPath: recent) && fm.fileExists(atPath: database)
+                  && fm.fileExists(atPath: sandboxed) && fm.fileExists(atPath: outside)
+                  && (try? fm.destinationOfSymbolicLink(atPath: link)) != nil,
+                  "restano intatti: file recente, database, cartella di sistema, collegamento, file fuori area")
+        }
 
         failures += engineFailures
 

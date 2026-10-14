@@ -21,6 +21,7 @@ enum PathGuard {
         case rootOrHome(String)
         case identityChanged(String)
         case containsMountPoint(String, String)
+        case notEligibleTemporary(String, String)
 
         var errorDescription: String? {
             switch self {
@@ -44,6 +45,8 @@ enum PathGuard {
                 return "Rifiuto di eliminare una cartella radice o la cartella utente: \(p)"
             case .identityChanged(let p):
                 return "Il percorso è cambiato dopo l'analisi (non è più lo stesso file o cartella): \(p). Rianalizza prima di eliminare."
+            case .notEligibleTemporary(let p, let why):
+                return "File temporaneo non eliminabile: \(p) — \(why)"
             case .containsMountPoint(let p, let mount):
                 return "Il percorso contiene un volume montato, rifiutato: \(p) → \(mount)"
             }
@@ -209,6 +212,91 @@ enum PathGuard {
     /// Tutti i manifest noti, usati per riconoscere un progetto annidato.
     static var allProjectMarkers: Set<String> {
         Set(projectArtifactRules.values.joined().filter { !$0.hasPrefix("*.") && !$0.contains("/") })
+    }
+
+    // MARK: - Cartelle temporanee dell'utente
+
+    /// Le cartelle temporanee e di cache dell'utente corrente in
+    /// `/var/folders`, chieste al sistema con `confstr` invece di indovinarle.
+    /// Non sono in `allowedPrefixes`: `validate` le rifiuta, e l'unico modo di
+    /// eliminarci qualcosa è `validateAgedFile`, un file alla volta.
+    static let ageGatedRoots: [String] = [_CS_DARWIN_USER_TEMP_DIR, _CS_DARWIN_USER_CACHE_DIR]
+        .compactMap(systemDirectory)
+
+    private static func systemDirectory(_ name: Int32) -> String? {
+        let length = confstr(name, nil, 0)
+        guard length > 0 else { return nil }
+        var buffer = [CChar](repeating: 0, count: length)
+        guard confstr(name, &buffer, length) > 0 else { return nil }
+        return realPath(String(cString: buffer))
+    }
+
+    /// Percorso canonico (`/var` → `/private/var`), senza risolvere l'ultimo
+    /// componente: un collegamento va giudicato per quello che è.
+    static func realPath(_ path: String) -> String? {
+        var buffer = [CChar](repeating: 0, count: Int(PATH_MAX))
+        guard realpath(path, &buffer) != nil else { return nil }
+        return String(cString: buffer)
+    }
+
+    private static func realPathKeepingLast(_ path: String) -> String? {
+        let parent = (path as NSString).deletingLastPathComponent
+        guard let realParent = realPath(parent) else { return nil }
+        return realParent + "/" + (path as NSString).lastPathComponent
+    }
+
+    /// Database e preferenze restano esclusi anche se vecchi: possono essere
+    /// in uso da un processo che li apre di rado.
+    static let ageGatedExcludedExtensions: Set<String> = [
+        "db", "sqlite", "sqlite3", "plist", "db-wal", "db-shm",
+        "sqlite-wal", "sqlite-shm", "sqlite3-wal", "sqlite3-shm", "lock",
+    ]
+
+    /// Cartelle di sistema dentro `/var/folders` da non attraversare.
+    static func isExcludedTemporaryComponent(_ name: String) -> Bool {
+        (name.hasPrefix("com.apple.") && name.hasSuffix(".Sandbox"))
+            || name == "ShortcutsSandboxCache"
+            || name == "com.apple.QuickLook.thumbnailcache"
+    }
+
+    /// Un file temporaneo è eliminabile solo se: sta dentro una delle due
+    /// cartelle dell'utente, non è un collegamento né una cartella, è sullo
+    /// stesso volume, non ha un'estensione esclusa, non sta in una cartella
+    /// esclusa, e non è stato né modificato né letto negli ultimi giorni.
+    static func validateAgedFile(_ rawPath: String, root rawRoot: String, olderThanDays days: Int,
+                                 expected: FileIdentity? = nil, now: Date = Date()) throws {
+        guard let root = realPath(rawRoot), ageGatedRoots.contains(root) else {
+            throw Violation.outsideAllowlist(rawRoot)
+        }
+        guard let path = realPathKeepingLast(rawPath) else { throw Violation.doesNotExist(rawPath) }
+        guard path.hasPrefix(root + "/"), !path.contains("/../") else {
+            throw Violation.outsideAllowlist(rawPath)
+        }
+        let relative = path.dropFirst(root.count + 1).split(separator: "/").map(String.init)
+        if relative.dropLast().contains(where: isExcludedTemporaryComponent) {
+            throw Violation.notEligibleTemporary(path, "cartella di sistema esclusa")
+        }
+        if ageGatedExcludedExtensions.contains((path as NSString).pathExtension.lowercased()) {
+            throw Violation.notEligibleTemporary(path, "database, preferenze o file di blocco: esclusi")
+        }
+        if let hit = absoluteHit(path) { throw Violation.isProtected(path, hit.reason) }
+
+        var info = stat()
+        guard lstat(path, &info) == 0 else { throw Violation.doesNotExist(path) }
+        guard info.st_mode & S_IFMT == S_IFREG else {
+            throw Violation.notEligibleTemporary(path, "non è un file normale")
+        }
+        var rootInfo = stat()
+        guard lstat(root, &rootInfo) == 0, rootInfo.st_dev == info.st_dev else {
+            throw Violation.notEligibleTemporary(path, "su un volume diverso")
+        }
+        let limit = now.timeIntervalSince1970 - Double(days) * 86_400
+        let modified = Double(info.st_mtimespec.tv_sec)
+        let accessed = Double(info.st_atimespec.tv_sec)
+        guard modified < limit, accessed < limit else {
+            throw Violation.notEligibleTemporary(path, "usato negli ultimi \(days) giorni")
+        }
+        try validateIdentity(path, expected: expected)
     }
 
     // MARK: - Validazione
@@ -464,6 +552,10 @@ enum PathGuard {
         case .privileged(_, let paths):
             for p in paths {
                 do { try validate(p, expected: item.identities[p]) } catch { problems.append(error.localizedDescription) }
+            }
+        case .removeAgedFiles(let root, _, _):
+            if !ageGatedRoots.contains(realPath(root) ?? root) {
+                problems.append(Violation.outsideAllowlist(root).localizedDescription)
             }
         case .revealOnly, .simctlDeleteDevice, .simctlEraseDevice,
              .simctlDeleteRuntime, .shell, .dockerPrune:

@@ -125,6 +125,9 @@ final class DeletionEngine {
             return removeValidated(item, paths: paths, mode: mode, dryRun: dryRun,
                                    validator: { try PathGuard.validateProjectArtifact($0, expected: item.identities[$0]) })
 
+        case .removeAgedFiles(let root, let days, let files):
+            return removeAgedFiles(item, root: root, days: days, files: files, mode: mode, dryRun: dryRun)
+
         case .removeApp(let appPath, let related):
             return removeApp(item, appPath: appPath, related: related, mode: mode, dryRun: dryRun)
 
@@ -254,6 +257,60 @@ final class DeletionEngine {
             message += ", \(alreadyGone) già assent\(alreadyGone == 1 ? "e" : "i")"
         }
         return DeletionOutcome(title: item.title, succeeded: succeeded, skipped: false,
+                               message: message, freed: freed)
+    }
+
+    /// File temporanei: ognuno viene rivalidato adesso, non solo durante
+    /// l'analisi. Quelli usati nel frattempo vengono saltati senza errore:
+    /// è il comportamento atteso, non un guasto.
+    private func removeAgedFiles(_ item: CleanupItem, root: String, days: Int,
+                                 files: [String: AgedFile], mode: RemovalMode,
+                                 dryRun: Bool) -> DeletionOutcome {
+        var freed: Int64 = 0
+        var removed = 0
+        var skipped = 0
+        var errors: [String] = []
+
+        for (path, file) in files.sorted(by: { $0.key < $1.key }) {
+            do {
+                try PathGuard.validateAgedFile(path, root: root, olderThanDays: days,
+                                               expected: file.identity)
+            } catch {
+                skipped += 1
+                note("SALTATO \(error.localizedDescription)")
+                continue
+            }
+            if dryRun {
+                note("SIMULAZIONE  \(mode == .trash ? "cestino" : "elimina") \(path) (\(ByteFormat.string(file.size)))")
+                freed += file.size
+                removed += 1
+                continue
+            }
+            do {
+                switch mode {
+                case .trash:
+                    var resulting: NSURL?
+                    try fileManager.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: &resulting)
+                case .permanent:
+                    try fileManager.removeItem(atPath: path)
+                }
+                freed += file.size
+                removed += 1
+                note("OK  \(mode == .trash ? "nel cestino" : "eliminato") \(path) (\(ByteFormat.string(file.size)))")
+            } catch {
+                let msg = friendlyFileError(error, path: path)
+                errors.append(msg)
+                note("ERRORE \(path) — \(msg)")
+            }
+        }
+
+        if removed == 0 && errors.isEmpty {
+            return skip(item, "nessun file è più eliminabile: sono stati usati o rimossi dopo l'analisi")
+        }
+        var message = "\(Plural.of(removed, "file", "file")) \(dryRun ? "da rimuovere" : (mode == .trash ? "nel Cestino" : "eliminati"))"
+        if skipped > 0 { message += ", \(skipped) saltati perché usati di recente o esclusi" }
+        if !errors.isEmpty { message += ", \(Plural.of(errors.count, "errore", "errori")): " + (errors.first ?? "") }
+        return DeletionOutcome(title: item.title, succeeded: errors.isEmpty, skipped: false,
                                message: message, freed: freed)
     }
 

@@ -19,6 +19,7 @@ enum Report {
             ("Android", .android),
             ("Gestori di pacchetti", .packageManagers),
             ("Browser", .browsers),
+            ("App", .appCaches),
             ("Sistema", .system),
             ("Sfondi dinamici", .wallpapers),
             ("Docker", .docker),

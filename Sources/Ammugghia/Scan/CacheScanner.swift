@@ -42,15 +42,66 @@ enum PackageManagerScanner {
             ("Server di analisi Dart", [home + "/.dartServer", home + "/.dart-tool"],
              "Indice e cache dell'analizzatore Dart.",
              "L'analizzatore ricostruisce l'indice all'apertura del progetto.", .safe),
-            ("Cache generiche degli strumenti", [home + "/.cache"],
-             "Cartella usata da vari strumenti a riga di comando per le proprie cache.",
-             "Ogni strumento ricrea la propria cache al primo utilizzo.", .safe),
             ("Cache Go", [home + "/Library/Caches/go-build", home + "/go/pkg/mod/cache"],
              "Cache di compilazione e moduli Go.",
              "La prossima compilazione Go è più lenta e riscarica i moduli.", .redownload),
             ("Cache Swift Package Manager (progetti)", [home + "/Library/org.swift.swiftpm"],
              "Copie di lavoro dei pacchetti Swift.",
              "Vengono ririsolte al prossimo build.", .redownload),
+            ("Cache Bun", [home + "/.bun/install/cache"],
+             "Pacchetti scaricati da Bun, condivisi tra i progetti.",
+             "Il prossimo `bun install` riscarica i pacchetti.", .redownload),
+            ("Cache Deno", [home + "/Library/Caches/deno"],
+             "Moduli remoti e codice compilato da Deno.",
+             "Deno riscarica e ricompila i moduli al prossimo avvio di uno script.", .redownload),
+            ("Pacchetti eseguiti con npx", [home + "/.npm/_npx"],
+             "Copie temporanee dei pacchetti avviati con `npx` senza installarli.",
+             "Il prossimo `npx` dello stesso pacchetto lo riscarica.", .safe),
+            ("Cache uv", [home + "/.cache/uv", home + "/Library/Caches/uv"],
+             "Pacchetti Python e interpreti scaricati da uv.",
+             "Il prossimo `uv sync` o `uv pip install` riscarica i pacchetti.", .redownload),
+            ("Cache Poetry", [home + "/Library/Caches/pypoetry/artifacts", home + "/Library/Caches/pypoetry/cache"],
+             "Archivi dei pacchetti Python scaricati da Poetry.",
+             "Il prossimo `poetry install` riscarica i pacchetti.", .redownload),
+            ("Download di pyenv", [home + "/.pyenv/cache"],
+             "Sorgenti di Python scaricati da pyenv per compilare le versioni installate.",
+             "Una nuova installazione della stessa versione li riscarica.", .redownload),
+            ("Cache ruff e mypy", [home + "/.cache/ruff", home + "/.cache/mypy"],
+             "Risultati delle analisi del codice Python.",
+             "La prossima analisi riparte da zero ed è più lenta una volta.", .safe),
+            ("Browser per i test (Playwright, Cypress)",
+             [home + "/Library/Caches/ms-playwright", home + "/Library/Caches/ms-playwright-go",
+              home + "/Library/Caches/Cypress"],
+             "Copie di Chromium, Firefox e WebKit scaricate per i test automatici, una per versione della libreria.",
+             "Il prossimo `npx playwright install` o `cypress install` li riscarica (centinaia di MB).", .redownload),
+            ("Download di Electron", [home + "/Library/Caches/electron", home + "/.cache/electron"],
+             "Pacchetti di Electron scaricati per compilare app desktop.",
+             "Il prossimo build di un progetto Electron li riscarica.", .redownload),
+            ("Corepack", [home + "/.cache/node/corepack"],
+             "Versioni di Yarn e pnpm scaricate da Corepack.",
+             "Corepack le riscarica al primo utilizzo.", .redownload),
+            ("Cache di compilazione C/C++ (ccache, sccache)",
+             [home + "/Library/Caches/ccache", home + "/Library/Caches/Mozilla.sccache"],
+             "Oggetti compilati riutilizzati fra una build e l'altra.",
+             "La prossima compilazione completa è più lenta.", .safe),
+            ("Cache Composer", [home + "/Library/Caches/composer", home + "/.composer/cache"],
+             "Pacchetti PHP scaricati da Composer.",
+             "Il prossimo `composer install` riscarica i pacchetti.", .redownload),
+            ("Pacchetti NuGet", [home + "/.nuget/packages"],
+             "Pacchetti .NET scaricati, condivisi tra i progetti.",
+             "Il prossimo `dotnet restore` riscarica i pacchetti.", .redownload),
+            ("Cache Hex (Elixir)", [home + "/.hex/cache"],
+             "Pacchetti Elixir ed Erlang scaricati.",
+             "Il prossimo `mix deps.get` riscarica i pacchetti.", .redownload),
+            ("Cache sbt e Ivy (Scala)", [home + "/.sbt/boot", home + "/.ivy2/cache"],
+             "Dipendenze e versioni di sbt scaricate.",
+             "Il prossimo build Scala riscarica le dipendenze.", .redownload),
+            ("Cache mise", [home + "/Library/Caches/mise"],
+             "Archivi scaricati da mise per installare le versioni degli strumenti.",
+             "Una nuova installazione li riscarica.", .redownload),
+            ("Repository git di Cargo", [home + "/.cargo/git/db"],
+             "Copie dei repository git usati come dipendenze dai progetti Rust.",
+             "Il prossimo `cargo build` li riclona.", .redownload),
         ]
 
         for (title, paths, detail, consequence, risk) in entries {
@@ -58,6 +109,22 @@ enum PackageManagerScanner {
                                            consequence: consequence, paths: paths, risk: risk) {
                 items.append(item)
             }
+        }
+
+        // `~/.cache` è condivisa da molti strumenti: quelli riconosciuti hanno
+        // una voce propria qui sopra, il resto finisce in una voce unica.
+        // Elencare i figli uno per uno, invece della cartella intera, evita di
+        // contare due volte gli stessi byte.
+        let dotCache = home + "/.cache"
+        let others = ScanSupport.children(of: dotCache, includeHidden: true).filter {
+            !dotCacheHandled.contains(($0 as NSString).lastPathComponent)
+        }
+        if let item = ScanSupport.item(
+            title: "Altre cache degli strumenti",
+            detail: "Cartelle in ~/.cache usate da strumenti a riga di comando non riconosciuti singolarmente.",
+            consequence: "Ogni strumento ricrea la propria cache al primo utilizzo.",
+            paths: others, risk: .safe) {
+            items.append(item)
         }
 
         // Homebrew: usa il comando ufficiale invece di cancellare a mano,
@@ -79,6 +146,15 @@ enum PackageManagerScanner {
 
         return items.sorted { $0.size > $1.size }
     }
+
+    /// Sottocartelle di `~/.cache` con una voce dedicata.
+    static let dotCacheHandled: Set<String> = ["uv", "ruff", "mypy", "electron", "node"]
+
+    /// Nomi in `~/Library/Caches` gestiti qui: lo scanner di sistema li esclude.
+    static let libraryCacheNames = [
+        "pip", "Homebrew", "node-gyp", "Yarn", "go-build", "deno", "uv", "pypoetry",
+        "ms-playwright", "ms-playwright-go", "Cypress", "electron", "ccache", "Mozilla.sccache", "composer", "mise",
+    ]
 
     /// Estrae il totale dalla riga «This operation would free approximately
     /// 1.2GB of disk space».

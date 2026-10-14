@@ -44,7 +44,7 @@ enum Relevance {
         case .wallpapers:       return wallpapers()
         case .packageManagers:  return packageManagers()
         case .projectArtifacts: return projectArtifacts()
-        case .browsers, .system, .largeFiles:
+        case .browsers, .appCaches, .system, .largeFiles:
             // Sempre pertinenti: sono aree del sistema, non programmi.
             return .installed
         }

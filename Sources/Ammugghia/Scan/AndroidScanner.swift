@@ -117,6 +117,15 @@ enum AndroidScanner {
             items.append(item)
         }
 
+        if let item = ScanSupport.item(
+            title: "File temporanei di Gradle",
+            detail: "Processi di lavoro, notifiche e file temporanei lasciati da Gradle e dal compilatore Kotlin.",
+            consequence: "Nessuna: vengono ricreati al prossimo build.",
+            paths: ["workers", "notifications", ".tmp", "kotlin-profile"].map { gradle + "/" + $0 },
+            risk: .safe) {
+            items.append(item)
+        }
+
         // Le distribuzioni Gradle sono trattate anche come versioni multiple:
         // qui l'elemento cumulativo, nella scheda Versioni il confronto.
         let dists = gradle + "/wrapper/dists"

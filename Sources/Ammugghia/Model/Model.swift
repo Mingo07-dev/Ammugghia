@@ -64,6 +64,10 @@ enum CleanupAction {
     /// Finder», ma non lo elimina in nessun caso. Usato per le aree in cui la
     /// decisione deve restare all'utente, nel Finder, file per file.
     case revealOnly([String])
+    /// File singoli più vecchi di N giorni dentro una cartella temporanea
+    /// dell'utente (`/var/folders/…`). Ogni file viene ricontrollato al
+    /// momento dell'esecuzione: se nel frattempo è stato usato, si salta.
+    case removeAgedFiles(root: String, olderThanDays: Int, files: [String: AgedFile])
 
     /// I percorsi che l'utente vedrà nel riepilogo. È la fonte di verità
     /// dell'interfaccia: se un percorso non compare qui, non viene toccato.
@@ -74,6 +78,9 @@ enum CleanupAction {
         case .removeApp(let app, let related): return [app] + related
         case .privileged(_, let p): return p
         case .revealOnly(let p): return p
+        // La cartella, non i singoli file: possono essere migliaia, e il
+        // riepilogo li riassume nel comando.
+        case .removeAgedFiles(let root, _, _): return [root]
         case .simctlDeleteDevice, .simctlEraseDevice, .simctlDeleteRuntime,
              .shell, .dockerPrune: return []
         }
@@ -109,8 +116,17 @@ enum CleanupAction {
             return kind.command
         case .revealOnly:
             return "solo visualizzazione — nessuna eliminazione"
+        case .removeAgedFiles(_, let days, let files):
+            return "eliminazione di \(Plural.of(files.count, "file", "file")) non usati da più di \(days) giorni"
         }
     }
+}
+
+/// Un file temporaneo candidato all'eliminazione, con l'identità e lo spazio
+/// occupato registrati durante l'analisi.
+struct AgedFile: Hashable {
+    let identity: FileIdentity
+    let size: Int64
 }
 
 enum DockerPruneKind: String {
@@ -274,6 +290,7 @@ enum CategoryID: String, CaseIterable, Identifiable {
     case packageManagers
     case projectArtifacts
     case browsers
+    case appCaches
     case system
     case wallpapers
     case docker

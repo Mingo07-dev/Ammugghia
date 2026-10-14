@@ -46,13 +46,15 @@ enum SystemScanner {
             let kids = ScanSupport.children(of: cachesRoot)
             let sizes = Shell.diskSizes(kids)
             // Le cache già gestite da scanner dedicati non vanno duplicate qui.
-            let handled = ["Google", "pip", "Homebrew", "node-gyp", "CocoaPods", "Yarn",
-                           "com.apple.dt.Xcode", "org.swift.swiftpm", "Firefox",
-                           "com.apple.Safari", "Microsoft Edge", "BraveSoftware",
-                           "go-build"]
+            let handled = ["Google", "CocoaPods", "com.apple.dt.Xcode", "org.swift.swiftpm",
+                           "Firefox", "com.apple.Safari", "Microsoft Edge", "BraveSoftware"]
+                + PackageManagerScanner.libraryCacheNames
+                + AppCacheScanner.libraryCacheNames
+                + systemServiceCaches + ["com.apple.e5rt.e5bundlecache",
+                                         "com.apple.QuickLook.thumbnailcache", "com.apple.iTunes"]
             for kid in kids {
                 let name = (kid as NSString).lastPathComponent
-                guard !handled.contains(where: { name == $0 || name.hasPrefix($0) }) else { continue }
+                guard !handled.contains(name) else { continue }
                 let size = sizes[kid] ?? 0
                 guard size >= 200_000_000 else { continue }
                 items.append(CleanupItem(
@@ -78,7 +80,15 @@ enum SystemScanner {
             ("Allegati Mail scaricati", [home + "/Library/Containers/com.apple.mail/Data/Library/Mail Downloads"],
              "Allegati aperti da Mail e salvati in una cartella temporanea.",
              "Gli allegati restano sul server e si riscaricano aprendo di nuovo il messaggio.", .safe),
-            ("Cache di iOS/iPadOS in Finder", [home + "/Library/Caches/com.apple.iTunes", home + "/Library/iTunes/iPhone Software Updates"],
+            ("Cache dei servizi di sistema",
+             systemServiceCaches.map { home + "/Library/Caches/" + $0 }
+                + [home + "/Library/Containers/com.apple.mediaanalysisd/Data/Library/Caches"],
+             "Cache di Mappe e posizione (GeoServices), App Store e Apple Music (AppleMediaServices), Aiuto di macOS, suggerimenti di Spotlight e analisi delle foto.",
+             "macOS le ricostruisce in background: Mappe e Spotlight possono essere un po' più lenti per qualche minuto.", .safe),
+            ("Modelli di Apple Intelligence (cache)", [home + "/Library/Caches/com.apple.e5rt.e5bundlecache"],
+             "Versioni compilate dei modelli di Apple Intelligence per questo Mac.",
+             "macOS le ricompila al prossimo utilizzo delle funzioni di Apple Intelligence: la prima richiesta è più lenta.", .redownload),
+            ("Cache di iOS/iPadOS in Finder", [home + "/Library/Caches/com.apple.iTunes", home + "/Library/iTunes/iPhone Software Updates", home + "/Library/iTunes/iPad Software Updates"],
              "File .ipsw degli aggiornamenti iOS scaricati per il ripristino dei dispositivi.",
              "Vengono riscaricati al prossimo ripristino di un dispositivo (diversi GB).", .redownload),
         ]
@@ -127,8 +137,89 @@ enum SystemScanner {
             }
         }
 
+        items += stalePartialDownloads()
+        items += agedTemporaryFiles()
+
         // Solo informativo: snapshot locali di Time Machine.
         return items.sorted { $0.size > $1.size }
+    }
+
+    /// Cache di servizi Apple in `~/Library/Caches` raccolte in una voce.
+    static let systemServiceCaches = [
+        "GeoServices", "com.apple.AppleMediaServices", "com.apple.helpd", "com.apple.parsecd",
+    ]
+
+    /// Download interrotti in `~/Downloads`. È un'area documenti: l'elenco
+    /// serve solo a mostrarli, l'eliminazione resta all'utente nel Finder.
+    static func stalePartialDownloads(olderThanDays days: Int = 7) -> [CleanupItem] {
+        let downloads = ScanSupport.home + "/Downloads"
+        guard let findTool = Shell.which("find"), ScanSupport.isDirectory(downloads) else { return [] }
+        let r = Shell.run(findTool, [downloads, "-maxdepth", "3",
+                                     "(", "-name", "*.crdownload", "-o", "-name", "*.download",
+                                     "-o", "-name", "*.part", "-o", "-name", "*.partial", ")",
+                                     "-mtime", "+\(days)", "-prune", "-print"], timeout: 60)
+        let paths = r.stdout.split(separator: "\n").map(String.init).filter { !$0.isEmpty }
+        guard !paths.isEmpty else { return [] }
+        let sizes = Shell.diskSizes(paths)
+        return paths.prefix(30).map { path in
+            CleanupItem(
+                title: "Download interrotto: \((path as NSString).lastPathComponent)",
+                detail: "File lasciato da un download mai completato in \((path as NSString).deletingLastPathComponent).",
+                consequence: "Questo software non elimina file nella cartella Download: usa «Mostra nel Finder» e decidi tu.",
+                action: .revealOnly([path]), risk: .userData, size: sizes[path] ?? 0,
+                perPathSize: [path: sizes[path] ?? 0],
+                lastUsed: ScanSupport.modificationDate(path), preselect: false)
+        }
+    }
+
+    /// File temporanei dell'utente in `/var/folders` non usati da più di una
+    /// settimana. Si raccolgono qui i candidati con la stessa funzione che il
+    /// motore userà per ricontrollarli: un solo criterio, in un solo punto.
+    static func agedTemporaryFiles(olderThanDays days: Int = 7) -> [CleanupItem] {
+        var items: [CleanupItem] = []
+        for (index, root) in PathGuard.ageGatedRoots.enumerated() {
+            let files = agedFiles(in: root, olderThanDays: days)
+            let total = files.values.reduce(0) { $0 + $1.size }
+            guard total >= 10_000_000 else { continue }
+            let isTemp = index == 0
+            items.append(CleanupItem(
+                title: isTemp ? "File temporanei vecchi" : "Cache temporanee vecchie",
+                detail: (isTemp
+                    ? "File temporanei che le app lasciano nella cartella riservata al tuo utente in /var/folders, e che macOS non sempre rimuove."
+                    : "Cache per utente che macOS e le app tengono in /var/folders.")
+                    + "\n\nSolo file singoli non modificati né letti da più di \(days) giorni. Database, preferenze, file di blocco e cartelle di sistema restano esclusi. Ogni file viene ricontrollato al momento dell'eliminazione.",
+                consequence: "Nessuna per le app chiuse. Un'app che tiene aperto un file da più di una settimana continua a usarlo finché non lo chiude. Lo spazio si libera subito solo con «Elimina definitivamente».",
+                action: .removeAgedFiles(root: root, olderThanDays: days, files: files),
+                risk: .safe, size: total, perPathSize: [root: total],
+                // Area nuova e poco visibile: l'utente la sceglie leggendo la nota.
+                preselect: false))
+        }
+        return items
+    }
+
+    static func agedFiles(in root: String, olderThanDays days: Int) -> [String: AgedFile] {
+        guard let enumerator = FileManager.default.enumerator(
+            at: URL(fileURLWithPath: root),
+            includingPropertiesForKeys: [.isDirectoryKey, .totalFileAllocatedSizeKey],
+            options: [],
+            errorHandler: { _, _ in true }) else { return [:] }
+        var files: [String: AgedFile] = [:]
+        let now = Date()
+        for case let url as URL in enumerator {
+            let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .totalFileAllocatedSizeKey])
+            if values?.isDirectory == true {
+                if PathGuard.isExcludedTemporaryComponent(url.lastPathComponent) {
+                    enumerator.skipDescendants()
+                }
+                continue
+            }
+            let path = url.path
+            guard (try? PathGuard.validateAgedFile(path, root: root, olderThanDays: days, now: now)) != nil,
+                  let identity = FileIdentity.of(path) else { continue }
+            files[path] = AgedFile(identity: identity,
+                                   size: Int64(values?.totalFileAllocatedSize ?? 0))
+        }
+        return files
     }
 
     /// Snapshot APFS locali. Non li elimina: mostra solo quanto occupano,

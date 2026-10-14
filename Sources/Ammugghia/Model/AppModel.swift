@@ -57,6 +57,8 @@ final class AppModel: ObservableObject {
                 explanation: "Cartelle `node_modules`, `Pods`, `.dart_tool` e `build` nei tuoi progetti. Sono la ragione per cui le Impostazioni di macOS dichiarano decine di GB di «Documenti» che non riesci a trovare.\n\nIl codice sorgente non viene mai toccato: una cartella viene proposta solo se il suo nome è in un elenco chiuso E la cartella padre contiene un file di progetto riconoscibile (package.json, pubspec.yaml, Podfile…)."),
             CleanupCategory(id: .browsers, name: "Browser", symbol: "globe",
                 explanation: "Solo le cartelle di cache dei browser. Cronologia, segnalibri, password, cookie di sessione ed estensioni non vengono mai toccati: restano fuori dall'elenco per costruzione."),
+            CleanupCategory(id: .appCaches, name: "App", symbol: "app.badge",
+                explanation: "Cache di Slack, Discord, Teams, VS Code, Notion, Figma, degli IDE JetBrains e di altre app comuni.\n\nLe app costruite su Electron tengono la cache dentro «Application Support», accanto ai dati veri, dove le pulizie generiche non guardano. Qui si elencano solo le cartelle che l'app ricostruisce da sola: messaggi, documenti, accessi e impostazioni non vengono toccati. Ogni voce richiede che l'app sia chiusa."),
             CleanupCategory(id: .system, name: "Sistema", symbol: "gearshape.fill",
                 explanation: "Residui e cache che macOS contabilizza come «dati di sistema» senza mostrarli da nessuna parte: l'installer rimasto dopo un aggiornamento, i log, lo stato delle finestre, i backup dei dispositivi iOS."),
             CleanupCategory(id: .wallpapers, name: "Sfondi dinamici", symbol: "photo.fill",
@@ -98,6 +100,7 @@ final class AppModel: ObservableObject {
         case .android:          return AndroidScanner.scan
         case .packageManagers:  return PackageManagerScanner.scan
         case .browsers:         return BrowserScanner.scan
+        case .appCaches:        return AppCacheScanner.scan
         case .system:           return SystemScanner.scan
         case .wallpapers:       return WallpaperScanner.scan
         case .docker:           return DockerScanner.scan
