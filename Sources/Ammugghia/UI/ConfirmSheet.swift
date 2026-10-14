@@ -11,6 +11,8 @@ struct ConfirmSheet: View {
 
     @State private var didRead = false
     @State private var typedConfirmation = ""
+    /// Bundle id delle app richieste chiuse che risultano aperte adesso.
+    @State private var runningApps: [String] = []
 
     private var total: Int64 { items.reduce(0) { $0 + $1.size } }
     private var userDataItems: [CleanupItem] { items.filter { $0.risk == .userData } }
@@ -27,6 +29,15 @@ struct ConfirmSheet: View {
             buckets[item.origin, default: []].append(item)
         }
         return order.map { ($0, buckets[$0] ?? []) }
+    }
+
+    private var requiredStoppedApps: [String] {
+        var seen = Set<String>()
+        return items.flatMap(\.requiredStoppedApps).filter { seen.insert($0).inserted }
+    }
+
+    private func refreshRunningApps() {
+        runningApps = requiredStoppedApps.filter { AppRuntime.isRunning(bundleID: $0) }
     }
 
     /// La parola da digitare quando in gioco ci sono dati non recuperabili.
@@ -91,6 +102,13 @@ struct ConfirmSheet: View {
                             body: adminItems.map { "• \($0.title)\n  \($0.action.commandDescription)" }.joined(separator: "\n")
                                 + "\n\nIl comando esatto è riportato qui sopra: macOS chiederà la password una volta per ciascuno."
                         )
+                    }
+
+                    if !runningApps.isEmpty {
+                        RunningAppsPanel(bundleIDs: runningApps,
+                                         blockedItems: items.filter { item in
+                                             item.requiredStoppedApps.contains(where: runningApps.contains)
+                                         })
                     }
 
                     ForEach(groups, id: \.origin) { group in
@@ -162,6 +180,50 @@ struct ConfirmSheet: View {
             .padding(20)
         }
         .frame(width: 780)
+        .onAppear(perform: refreshRunningApps)
+        // L'elenco si aggiorna da solo quando l'utente chiude o riapre un'app,
+        // dal pannello o altrove.
+        .onReceive(NSWorkspace.shared.notificationCenter.publisher(
+            for: NSWorkspace.didTerminateApplicationNotification)) { _ in refreshRunningApps() }
+        .onReceive(NSWorkspace.shared.notificationCenter.publisher(
+            for: NSWorkspace.didLaunchApplicationNotification)) { _ in refreshRunningApps() }
+    }
+}
+
+/// App da chiudere prima di procedere. Non blocca l'intero piano: gli altri
+/// elementi possono andare avanti, quelli legati alle app aperte vengono
+/// saltati dal motore e lo dice il registro.
+struct RunningAppsPanel: View {
+    let bundleIDs: [String]
+    let blockedItems: [CleanupItem]
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 9) {
+            Image(systemName: "app.badge.checkmark").foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(bundleIDs.count == 1
+                     ? "\(names) è aperta"
+                     : "\(Plural.of(bundleIDs.count, "app aperta", "app aperte")): \(names)")
+                    .font(.callout.bold())
+                Text("Le app aperte riscrivono la propria cache mentre la si elimina. "
+                     + "Finché restano aperte, \(Plural.of(blockedItems.count, "questa voce verrà saltata", "queste voci verranno saltate")):\n"
+                     + blockedItems.map { "• \($0.title)" }.joined(separator: "\n"))
+                    .font(.caption)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button(Plural.word(bundleIDs.count, "Chiudi l'app", "Chiudi le app")) {
+                    AppRuntime.requestQuit(bundleIDs: bundleIDs)
+                }
+                .help("Chiede la chiusura come dal menu dell'app: se ci sono documenti non salvati, l'app te lo chiederà.")
+                .padding(.top, 3)
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var names: String {
+        bundleIDs.map { AppRuntime.displayName(bundleID: $0) }.joined(separator: ", ")
     }
 }
 

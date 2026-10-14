@@ -39,13 +39,15 @@ enum ScanSupport {
                      risk: RiskLevel,
                      lastUsed: Date? = nil,
                      warning: String? = nil,
+                     requiredStoppedApps: [String] = [],
                      minBytes: Int64 = 1_000_000) -> CleanupItem? {
         guard exists(path) else { return nil }
         let size = Shell.diskSize(path)
         guard size >= minBytes else { return nil }
         return CleanupItem(title: title, detail: detail, consequence: consequence,
                            action: .removePaths([path]), risk: risk, size: size,
-                           perPathSize: [path: size], lastUsed: lastUsed, warning: warning)
+                           perPathSize: [path: size], lastUsed: lastUsed, warning: warning,
+                           requiredStoppedApps: requiredStoppedApps)
     }
 
     /// Elemento che raggruppa più percorsi (es. tutte le cache di un tool).
@@ -56,6 +58,7 @@ enum ScanSupport {
                      risk: RiskLevel,
                      lastUsed: Date? = nil,
                      warning: String? = nil,
+                     requiredStoppedApps: [String] = [],
                      minBytes: Int64 = 1_000_000) -> CleanupItem? {
         let present = paths.filter(exists)
         guard !present.isEmpty else { return nil }
@@ -64,7 +67,8 @@ enum ScanSupport {
         guard total >= minBytes else { return nil }
         return CleanupItem(title: title, detail: detail, consequence: consequence,
                            action: .removePaths(present), risk: risk, size: total,
-                           perPathSize: sizes, lastUsed: lastUsed, warning: warning)
+                           perPathSize: sizes, lastUsed: lastUsed, warning: warning,
+                           requiredStoppedApps: requiredStoppedApps)
     }
 
     /// Svuota il *contenuto* di una cartella conservando la cartella stessa.

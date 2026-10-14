@@ -4,6 +4,8 @@ import Foundation
 /// la categoria più pesante del disco.
 enum XcodeScanner {
 
+    static let xcodeBundleID = "com.apple.dt.Xcode"
+
     static func scan() -> [CleanupItem] {
         let home = ScanSupport.home
         let dev = home + "/Library/Developer"
@@ -28,7 +30,8 @@ enum XcodeScanner {
                     consequence: "La prossima compilazione del progetto sarà completa invece che incrementale: qualche minuto in più una volta sola.",
                     action: .removePaths([kid]), risk: .safe, size: size,
                     perPathSize: [kid: size],
-                    lastUsed: ScanSupport.modificationDate(kid)))
+                    lastUsed: ScanSupport.modificationDate(kid),
+                    requiredStoppedApps: [xcodeBundleID]))
             }
         }
 
@@ -89,9 +92,16 @@ enum XcodeScanner {
              "Cache e modelli locali dell'assistente al codice di Xcode.",
              "Xcode li riscarica quando serve.", .redownload),
         ]
+        // Indice e anteprime vengono riscritti continuamente mentre Xcode è
+        // aperto: eliminarli sotto i suoi piedi lo lascia in uno stato confuso.
+        let needsXcodeClosed: Set<String> = [
+            home + "/Library/Caches/com.apple.dt.Xcode",
+            dev + "/Xcode/UserData/Previews",
+        ]
         for (title, path, detail, consequence, risk) in caches {
             if let item = ScanSupport.item(title: title, detail: detail,
-                                           consequence: consequence, path: path, risk: risk) {
+                                           consequence: consequence, path: path, risk: risk,
+                                           requiredStoppedApps: needsXcodeClosed.contains(path) ? [xcodeBundleID] : []) {
                 items.append(item)
             }
         }

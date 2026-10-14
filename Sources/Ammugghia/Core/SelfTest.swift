@@ -117,6 +117,35 @@ enum SelfTest {
         try? fm.createDirectory(atPath: tmp + "/con-manifest/src", withIntermediateDirectories: true)
         defer { try? fm.removeItem(atPath: tmp) }
 
+        // Ogni nome è legato al proprio manifest: `target` vale per Rust e
+        // Maven, non per un progetto Node.
+        func makeProject(_ name: String, manifests: [String], artifact: String) {
+            let base = tmp + "/" + name
+            try? fm.createDirectory(atPath: base + "/" + artifact, withIntermediateDirectories: true)
+            for m in manifests {
+                let file = base + "/" + m
+                try? fm.createDirectory(atPath: (file as NSString).deletingLastPathComponent,
+                                        withIntermediateDirectories: true)
+                if m.hasSuffix(".xcodeproj") {
+                    try? fm.createDirectory(atPath: file, withIntermediateDirectories: true)
+                } else {
+                    fm.createFile(atPath: file, contents: Data())
+                }
+            }
+        }
+        makeProject("rust", manifests: ["Cargo.toml"], artifact: "target")
+        makeProject("node-target", manifests: ["package.json"], artifact: "target")
+        makeProject("repo-build", manifests: ["package.json"], artifact: "build/.git")
+        makeProject("progetto-build", manifests: ["package.json"], artifact: "build")
+        fm.createFile(atPath: tmp + "/progetto-build/build/package.json", contents: Data())
+        makeProject("unity", manifests: ["ProjectSettings/ProjectVersion.txt"], artifact: "Library")
+        makeProject("non-unity", manifests: ["package.json"], artifact: "Library")
+        makeProject("xcode", manifests: ["App.xcodeproj"], artifact: "DerivedData")
+        makeProject("swift", manifests: ["Package.swift"], artifact: ".build")
+        makeProject("collegamento", manifests: ["package.json"], artifact: "vero")
+        try? fm.createSymbolicLink(atPath: tmp + "/collegamento/node_modules",
+                                   withDestinationPath: tmp + "/collegamento/vero")
+
         let artifactCases: [Case] = [
             .init(path: tmp + "/con-manifest/node_modules", shouldPass: true,
                   why: "node_modules accanto a package.json"),
@@ -126,6 +155,24 @@ enum SelfTest {
                   why: "cartella «src»: nome non in elenco, potrebbe essere sorgente"),
             .init(path: home + "/Pictures/finto/node_modules", shouldPass: false,
                   why: "protezione assoluta: mai nella libreria Foto"),
+            .init(path: tmp + "/rust/target", shouldPass: true,
+                  why: "target accanto a Cargo.toml"),
+            .init(path: tmp + "/node-target/target", shouldPass: false,
+                  why: "target accanto al solo package.json: manifest non corrispondente"),
+            .init(path: tmp + "/repo-build/build", shouldPass: false,
+                  why: "build che contiene un .git: è un repository, non un output"),
+            .init(path: tmp + "/progetto-build/build", shouldPass: false,
+                  why: "build che contiene un proprio package.json: è un progetto"),
+            .init(path: tmp + "/unity/Library", shouldPass: true,
+                  why: "Library di Unity con ProjectSettings/ProjectVersion.txt"),
+            .init(path: tmp + "/non-unity/Library", shouldPass: false,
+                  why: "Library senza progetto Unity"),
+            .init(path: tmp + "/xcode/DerivedData", shouldPass: true,
+                  why: "DerivedData accanto a un .xcodeproj"),
+            .init(path: tmp + "/swift/.build", shouldPass: true,
+                  why: ".build accanto a Package.swift"),
+            .init(path: tmp + "/collegamento/node_modules", shouldPass: false,
+                  why: "node_modules che è un collegamento simbolico"),
         ]
 
         for testCase in artifactCases {
@@ -157,7 +204,9 @@ enum SelfTest {
         defer { try? fm.removeItem(atPath: sandbox) }
 
         var engineFailures = 0
+        var engineChecks = 0
         func check(_ condition: Bool, _ description: String) {
+            engineChecks += 1
             if !condition { engineFailures += 1 }
             print("\(condition ? "✓" : "✗ ERRORE")  \(description)")
         }
@@ -196,10 +245,56 @@ enum SelfTest {
         check(fm.fileExists(atPath: home + "/Documents"),
               "la cartella Documenti è intatta")
 
+        // Identità: l'oggetto analizzato viene sostituito da un altro con lo
+        // stesso nome prima dell'esecuzione. Il motore deve rifiutarlo e il
+        // sostituto deve restare intatto.
+        let swapped = sandbox + "/sostituita"
+        try? fm.createDirectory(atPath: swapped, withIntermediateDirectories: true)
+        let analysed = CleanupItem(
+            title: "Cartella analizzata e poi sostituita",
+            detail: "Creata dall'autotest.", consequence: "Deve essere rifiutata.",
+            action: .removePaths([swapped]), risk: .safe, size: 0)
+        check(analysed.identities[swapped] != nil, "l'identità viene registrata alla creazione dell'elemento")
+        try? fm.removeItem(atPath: swapped)
+        try? fm.createDirectory(atPath: swapped, withIntermediateDirectories: true)
+        // Un file dentro tiene occupato l'inode della prima cartella anche se
+        // il file system riusasse i numeri: qui serve un inode diverso.
+        fm.createFile(atPath: swapped + "/segnale", contents: Data("x".utf8))
+        if FileIdentity.of(swapped) == analysed.identities[swapped] {
+            // Su alcuni file system l'inode può essere riusato subito: si
+            // sostituisce con un collegamento, che ha comunque tipo diverso.
+            try? fm.removeItem(atPath: swapped)
+            try? fm.createSymbolicLink(atPath: swapped, withDestinationPath: sandbox)
+        }
+        let swappedResult = engine.execute(items: [analysed], mode: .permanent, dryRun: false)
+        check(swappedResult.first?.succeeded == false,
+              "il motore rifiuta un percorso sostituito dopo l'analisi")
+        check(fm.fileExists(atPath: swapped) || (try? fm.destinationOfSymbolicLink(atPath: swapped)) != nil,
+              "il sostituto è ancora al suo posto")
+
+        // App in esecuzione: un elemento che richiede un'app chiusa viene
+        // saltato, anche in simulazione, e il file non viene toccato.
+        let guarded = sandbox + "/cache-app-aperta.dat"
+        fm.createFile(atPath: guarded, contents: Data(repeating: 0, count: 1_000))
+        let appItem = CleanupItem(
+            title: "Cache di un'app aperta",
+            detail: "Creata dall'autotest.", consequence: "Deve essere saltata.",
+            action: .removePaths([guarded]), risk: .safe, size: 1_000,
+            requiredStoppedApps: ["it.ammugghia.selftest.app-finta"])
+        let runningEngine = DeletionEngine()
+        runningEngine.isAppRunning = { $0 == "it.ammugghia.selftest.app-finta" }
+        let blockedRun = runningEngine.execute(items: [appItem], mode: .permanent, dryRun: false)
+        check(blockedRun.first?.skipped == true, "l'elemento viene saltato se l'app richiesta è aperta")
+        check(fm.fileExists(atPath: guarded), "il file dell'app aperta è intatto")
+        runningEngine.isAppRunning = { _ in false }
+        let freeRun = runningEngine.execute(items: [appItem], mode: .permanent, dryRun: false)
+        check(freeRun.first?.succeeded == true && !fm.fileExists(atPath: guarded),
+              "ad app chiusa la stessa eliminazione riesce")
+
         failures += engineFailures
 
         print(String(repeating: "─", count: 72))
-        let total = cases.count + artifactCases.count + 7
+        let total = cases.count + artifactCases.count + engineChecks
         if failures == 0 {
             print("✓ Tutti i \(total) controlli superati.")
             return 0

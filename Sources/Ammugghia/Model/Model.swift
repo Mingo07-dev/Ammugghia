@@ -160,6 +160,13 @@ final class CleanupItem: Identifiable, ObservableObject, Hashable {
     /// «elimina il simulatore» e «azzeralo» agiscono sullo stesso spazio, e
     /// selezionarli entrambi conterebbe due volte gli stessi GB.
     let exclusiveGroup: String?
+    /// Identità fisica di ogni percorso al momento dell'analisi. Il motore la
+    /// ricontrolla prima di eliminare: un percorso sostituito nel frattempo
+    /// viene rifiutato anche se ha lo stesso nome.
+    let identities: [String: FileIdentity]
+    /// Bundle id delle app che devono essere chiuse prima di eseguire: la
+    /// cache di un programma aperto può essere riscritta a metà eliminazione.
+    let requiredStoppedApps: [String]
 
     @Published var isSelected: Bool
     @Published var isExpanded: Bool = false
@@ -178,8 +185,17 @@ final class CleanupItem: Identifiable, ObservableObject, Hashable {
          lastUsed: Date? = nil,
          warning: String? = nil,
          exclusiveGroup: String? = nil,
+         requiredStoppedApps: [String] = [],
          preselect: Bool? = nil) {
         self.exclusiveGroup = exclusiveGroup
+        self.requiredStoppedApps = requiredStoppedApps
+        // Gli elementi nascono durante l'analisi: catturare qui l'identità
+        // vale per tutti gli scanner senza che ciascuno debba ricordarsene.
+        var identities: [String: FileIdentity] = [:]
+        for path in action.displayPaths {
+            if let identity = FileIdentity.of(path) { identities[path] = identity }
+        }
+        self.identities = identities
         self.title = title
         self.detail = detail
         self.consequence = consequence

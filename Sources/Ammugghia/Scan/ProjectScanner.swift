@@ -32,15 +32,11 @@ enum ProjectArtifactScanner {
         for root in roots {
             // `-prune` impedisce di scendere dentro un artefatto già trovato:
             // senza, i node_modules annidati moltiplicherebbero i risultati.
-            let args = [root, "-maxdepth", "6", "-type", "d",
-                        "(", "-name", "node_modules",
-                        "-o", "-name", "Pods",
-                        "-o", "-name", ".dart_tool",
-                        "-o", "-name", ".cxx",
-                        "-o", "-name", "build",
-                        "-o", "-name", ".next",
-                        "-o", "-name", ".turbo",
-                        ")", "-prune", "-print"]
+            var args = [root, "-maxdepth", "6", "-type", "d", "("]
+            for (i, name) in PathGuard.projectArtifactNames.sorted().enumerated() {
+                args += (i == 0 ? [] : ["-o"]) + ["-name", name]
+            }
+            args += [")", "-prune", "-print"]
             let r = Shell.run(findTool, args, timeout: 180)
             for line in r.stdout.split(separator: "\n") {
                 let path = String(line)
@@ -83,7 +79,7 @@ enum ProjectArtifactScanner {
             return CleanupItem(
                 title: "Progetto «\(name)»: \(kinds)",
                 detail: "Dipendenze e prodotti di compilazione del progetto in \(projectPath). Il codice sorgente NON viene toccato: solo le cartelle rigenerabili.",
-                consequence: "Per lavorare di nuovo sul progetto serve reinstallare le dipendenze (`npm install`, `pod install`, `flutter pub get`) e ricompilare.",
+                consequence: "Per lavorare di nuovo sul progetto serve reinstallare le dipendenze (`npm install`, `pod install`, `flutter pub get`…) e ricompilare (`cargo build`, `swift build`…).",
                 action: .removeProjectArtifacts(list.map(\.path)),
                 risk: .redownload, size: total, perPathSize: sizes,
                 lastUsed: newest, preselect: false)
@@ -120,6 +116,9 @@ enum LargeFileScanner {
             for line in r.stdout.split(separator: "\n") {
                 let path = String(line)
                 guard !path.isEmpty else { continue }
+                // Un file solo su iCloud ha la dimensione dichiarata ma non
+                // occupa spazio qui: mostrarlo fra i «grandi» sarebbe falso.
+                if FileIdentity.isDataless(path) { continue }
                 let attrs = try? FileManager.default.attributesOfItem(atPath: path)
                 let size = (attrs?[.size] as? NSNumber)?.int64Value ?? 0
                 files.append(BigFile(path: path, size: size, lastUsed: nil))

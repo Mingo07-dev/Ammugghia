@@ -19,6 +19,8 @@ enum PathGuard {
         case notAnApp(String)
         case notAProjectArtifact(String)
         case rootOrHome(String)
+        case identityChanged(String)
+        case containsMountPoint(String, String)
 
         var errorDescription: String? {
             switch self {
@@ -40,6 +42,10 @@ enum PathGuard {
                 return "Non è una cartella di artefatti di build riconosciuta: \(p)"
             case .rootOrHome(let p):
                 return "Rifiuto di eliminare una cartella radice o la cartella utente: \(p)"
+            case .identityChanged(let p):
+                return "Il percorso è cambiato dopo l'analisi (non è più lo stesso file o cartella): \(p). Rianalizza prima di eliminare."
+            case .containsMountPoint(let p, let mount):
+                return "Il percorso contiene un volume montato, rifiutato: \(p) → \(mount)"
             }
         }
     }
@@ -155,27 +161,65 @@ enum PathGuard {
         ".Trash", ".CFUserTextEncoding", ".viminfo", ".local",
     ]
 
-    /// Nomi di cartelle riconosciute come artefatti di build, eliminabili
-    /// dentro un progetto solo se il progetto ha un file manifest
-    /// corrispondente (vedi `validateProjectArtifact`).
-    static let projectArtifactNames: Set<String> = [
-        "node_modules", "Pods", ".dart_tool", ".cxx", "DerivedData",
-        ".gradle", "build", ".next", ".turbo", ".parcel-cache",
-    ]
+    /// Artefatti di build riconosciuti, ciascuno con i file manifest che ne
+    /// dimostrano la natura. Il legame è stretto di proposito: una cartella
+    /// `target` è un artefatto accanto a `Cargo.toml` o `pom.xml`, ma accanto a
+    /// un `package.json` è quasi certamente qualcos'altro. Un manifest qualsiasi
+    /// non basta più.
+    ///
+    /// Un marcatore che inizia con `*.` indica un'estensione (es. un
+    /// `.xcodeproj` di nome qualsiasi); uno con `/` è un percorso relativo.
+    ///
+    /// Esclusi di proposito: `vendor` (Composer e Go lo versionano spesso),
+    /// `bin`/`obj` di .NET (nomi troppo generici), `dist` (spesso un output
+    /// preparato a mano e pubblicato).
+    static let projectArtifactRules: [String: [String]] = {
+        let node = ["package.json"]
+        let gradle = ["build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts"]
+        let python = ["pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "Pipfile", "tox.ini"]
+        let unity = ["ProjectSettings/ProjectVersion.txt"]
+        return [
+            "node_modules": node, ".next": node, ".turbo": node, ".parcel-cache": node,
+            ".nuxt": node, ".expo": node, ".angular": node,
+            "Pods": ["Podfile"],
+            ".dart_tool": ["pubspec.yaml"],
+            "build": ["pubspec.yaml", "package.json", "CMakeLists.txt"] + gradle,
+            ".gradle": gradle, ".cxx": gradle,
+            "DerivedData": ["*.xcodeproj", "*.xcworkspace", "Package.swift"],
+            ".build": ["Package.swift"], ".swiftpm": ["Package.swift"],
+            "target": ["Cargo.toml", "pom.xml"],
+            ".pytest_cache": python, ".mypy_cache": python, ".ruff_cache": python,
+            ".tox": python, ".nox": python,
+            ".godot": ["project.godot"],
+            ".zig-cache": ["build.zig"], "zig-out": ["build.zig"],
+            ".terraform": [".terraform.lock.hcl"],
+            ".stack-work": ["stack.yaml"],
+            "dist-newstyle": ["cabal.project", "*.cabal"],
+            "_build": ["mix.exs"], ".elixir_ls": ["mix.exs"],
+            "Library": unity, "Temp": unity, "obj": unity,
+        ]
+    }()
 
-    /// File la cui presenza dimostra che la cartella padre è un progetto.
-    static let projectMarkers: [String] = [
-        "package.json", "pubspec.yaml", "Podfile", "build.gradle",
-        "build.gradle.kts", "settings.gradle", "settings.gradle.kts",
-        "Cargo.toml", "pom.xml", "Package.swift",
-    ]
+    static var projectArtifactNames: Set<String> { Set(projectArtifactRules.keys) }
+
+    /// Nomi abbastanza comuni da poter indicare anche cartelle scritte a
+    /// mano: per questi serve una prova in più (vedi `validateProjectArtifact`).
+    static let genericArtifactNames: Set<String> = ["build", "target", "Library", "Temp", "obj"]
+
+    /// Tutti i manifest noti, usati per riconoscere un progetto annidato.
+    static var allProjectMarkers: Set<String> {
+        Set(projectArtifactRules.values.joined().filter { !$0.hasPrefix("*.") && !$0.contains("/") })
+    }
 
     // MARK: - Validazione
 
     /// Normalizza il percorso e applica tutti i controlli.
     /// - Parameter mustExist: se `false` un percorso inesistente non è un errore
     ///   (utile nella fase di sola visualizzazione).
-    static func validate(_ rawPath: String, mustExist: Bool = true) throws {
+    /// - Parameter expected: identità registrata durante l'analisi. Se il
+    ///   percorso esiste ma non è più lo stesso oggetto, viene rifiutato.
+    static func validate(_ rawPath: String, mustExist: Bool = true,
+                         expected: FileIdentity? = nil) throws {
         let path = normalize(rawPath)
 
         guard path.hasPrefix("/") else { throw Violation.notAbsolute(rawPath) }
@@ -210,11 +254,13 @@ enum PathGuard {
         // destinazione, così eliminare "~/Library/Caches/x" che punta a
         // "~/Documents" non passa.
         try validateSymlinkTarget(path)
+        try validateIdentity(path, expected: expected)
+        try validateNoMountPoint(path)
     }
 
     /// Bundle applicazione: consentito solo direttamente in una cartella
     /// Applicazioni e solo con estensione `.app`.
-    static func validateApp(_ rawPath: String) throws {
+    static func validateApp(_ rawPath: String, expected: FileIdentity? = nil) throws {
         let path = normalize(rawPath)
         guard path.hasSuffix(".app") else { throw Violation.notAnApp(path) }
 
@@ -240,25 +286,33 @@ enum PathGuard {
         if let hit = protectedHit(path) {
             throw Violation.isProtected(path, hit.reason)
         }
+        try validateIdentity(path, expected: expected)
+        try validateNoMountPoint(path)
     }
 
     /// Artefatto di build dentro un progetto. Doppia condizione: il nome
-    /// della cartella deve essere in `projectArtifactNames` **e** la cartella
-    /// padre deve contenere un file manifest di progetto. Senza il manifest
-    /// una cartella chiamata "build" potrebbe essere codice sorgente.
-    static func validateProjectArtifact(_ rawPath: String) throws {
+    /// della cartella deve essere in `projectArtifactRules` **e** la cartella
+    /// padre deve contenere uno dei manifest associati a *quel* nome. Senza il
+    /// manifest una cartella chiamata "build" potrebbe essere codice sorgente.
+    static func validateProjectArtifact(_ rawPath: String, expected: FileIdentity? = nil) throws {
         let path = normalize(rawPath)
         let name = (path as NSString).lastPathComponent
-        guard projectArtifactNames.contains(name) else {
+        guard let markers = projectArtifactRules[name] else {
             throw Violation.notAProjectArtifact(path)
         }
         let parent = (path as NSString).deletingLastPathComponent
-        let hasMarker = projectMarkers.contains {
-            FileManager.default.fileExists(atPath: parent + "/" + $0)
-        }
-        guard hasMarker else { throw Violation.notAProjectArtifact(path) }
+        guard hasMarker(in: parent, markers) else { throw Violation.notAProjectArtifact(path) }
         guard FileManager.default.fileExists(atPath: path) else {
             throw Violation.doesNotExist(path)
+        }
+        // Per i nomi generici serve una prova in più: una cartella `build` o
+        // `target` che è a sua volta un repository o un progetto (ha un .git o
+        // un manifest proprio) è stata creata da qualcuno, non da un compilatore.
+        if genericArtifactNames.contains(name) {
+            let fm = FileManager.default
+            if fm.fileExists(atPath: path + "/.git") || hasMarker(in: path, Array(allProjectMarkers)) {
+                throw Violation.notAProjectArtifact(path)
+            }
         }
         // Le aree documenti sono ammesse qui — la prova doppia sopra è ciò
         // che le sblocca — ma la protezione assoluta resta valida.
@@ -267,6 +321,31 @@ enum PathGuard {
         }
         let components = URL(fileURLWithPath: path).pathComponents
         if components.count < 4 { throw Violation.tooShallow(path) }
+        // Un artefatto non deve mai essere un collegamento: si elimina la
+        // cartella vera dentro il progetto, non ciò a cui punta.
+        if FileIdentity.of(path)?.isSymlink == true {
+            throw Violation.notAProjectArtifact(path)
+        }
+        try validateIdentity(path, expected: expected)
+        try validateNoMountPoint(path)
+    }
+
+    /// Vero se la cartella contiene almeno uno dei marcatori indicati.
+    static func hasMarker(in directory: String, _ markers: [String]) -> Bool {
+        let fm = FileManager.default
+        var extensions: [String] = []
+        for marker in markers {
+            if marker.hasPrefix("*.") {
+                extensions.append(String(marker.dropFirst(2)))
+            } else if fm.fileExists(atPath: directory + "/" + marker) {
+                return true
+            }
+        }
+        guard !extensions.isEmpty,
+              let names = try? fm.contentsOfDirectory(atPath: directory) else { return false }
+        return names.contains { name in
+            extensions.contains((name as NSString).pathExtension)
+        }
     }
 
     // MARK: - Interni
@@ -328,6 +407,28 @@ enum PathGuard {
         return path.count > home.count + 2
     }
 
+    /// Confronta l'identità attuale con quella registrata durante l'analisi.
+    /// Senza un'identità attesa non c'è niente da confrontare: i controlli
+    /// sul percorso restano comunque tutti validi.
+    static func validateIdentity(_ path: String, expected: FileIdentity?) throws {
+        guard let expected, let current = FileIdentity.of(path) else { return }
+        if current != expected { throw Violation.identityChanged(path) }
+    }
+
+    /// Un volume montato dentro la cartella da eliminare verrebbe svuotato
+    /// insieme a lei. Il caso è raro, ma l'elenco dei volumi montati è breve e
+    /// il controllo costa poco.
+    static func validateNoMountPoint(_ path: String) throws {
+        let volumes = FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: nil,
+                                                            options: []) ?? []
+        for volume in volumes {
+            let mount = normalize(volume.path)
+            if mount == path || mount.hasPrefix(path + "/") {
+                throw Violation.containsMountPoint(path, mount)
+            }
+        }
+    }
+
     static func validateSymlinkTarget(_ path: String) throws {
         let attrs = try? FileManager.default.attributesOfItem(atPath: path)
         guard let type = attrs?[.type] as? FileAttributeType, type == .typeSymbolicLink else {
@@ -349,20 +450,20 @@ enum PathGuard {
         switch item.action {
         case .removePaths(let paths):
             for p in paths {
-                do { try validate(p) } catch { problems.append(error.localizedDescription) }
+                do { try validate(p, expected: item.identities[p]) } catch { problems.append(error.localizedDescription) }
             }
         case .removeProjectArtifacts(let paths):
             for p in paths {
-                do { try validateProjectArtifact(p) } catch { problems.append(error.localizedDescription) }
+                do { try validateProjectArtifact(p, expected: item.identities[p]) } catch { problems.append(error.localizedDescription) }
             }
         case .removeApp(let app, let related):
-            do { try validateApp(app) } catch { problems.append(error.localizedDescription) }
+            do { try validateApp(app, expected: item.identities[app]) } catch { problems.append(error.localizedDescription) }
             for p in related {
-                do { try validate(p) } catch { problems.append(error.localizedDescription) }
+                do { try validate(p, expected: item.identities[p]) } catch { problems.append(error.localizedDescription) }
             }
         case .privileged(_, let paths):
             for p in paths {
-                do { try validate(p) } catch { problems.append(error.localizedDescription) }
+                do { try validate(p, expected: item.identities[p]) } catch { problems.append(error.localizedDescription) }
             }
         case .revealOnly, .simctlDeleteDevice, .simctlEraseDevice,
              .simctlDeleteRuntime, .shell, .dockerPrune:

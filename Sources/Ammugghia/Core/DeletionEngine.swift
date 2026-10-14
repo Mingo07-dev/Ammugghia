@@ -44,6 +44,9 @@ final class DeletionEngine {
     private let fileManager = FileManager.default
     private(set) var log: [String] = []
     private let logURL: URL?
+    /// Dice se un'app (per bundle id) è in esecuzione. Iniettabile perché
+    /// l'autotest deve poter simulare un'app aperta senza aprirne una.
+    var isAppRunning: (String) -> Bool = { AppRuntime.isRunning(bundleID: $0) }
 
     init() {
         let dir = URL(fileURLWithPath: NSHomeDirectory())
@@ -98,6 +101,15 @@ final class DeletionEngine {
     }
 
     private func perform(_ item: CleanupItem, mode: RemovalMode, dryRun: Bool) -> DeletionOutcome {
+        // Controllato qui e non solo nel foglio di conferma: fra la conferma e
+        // l'esecuzione l'utente può aver riaperto l'app. Vale anche per la
+        // simulazione, che deve riportare ciò che accadrebbe davvero.
+        let running = item.requiredStoppedApps.filter(isAppRunning)
+        if !running.isEmpty {
+            let names = running.map { AppRuntime.displayName(bundleID: $0) }.joined(separator: ", ")
+            return skip(item, "\(names) è in esecuzione: chiudi \(running.count == 1 ? "l'app" : "le app") e riprova")
+        }
+
         switch item.action {
 
         case .revealOnly:
@@ -107,11 +119,11 @@ final class DeletionEngine {
 
         case .removePaths(let paths):
             return removeValidated(item, paths: paths, mode: mode, dryRun: dryRun,
-                                   validator: { try PathGuard.validate($0) })
+                                   validator: { try PathGuard.validate($0, expected: item.identities[$0]) })
 
         case .removeProjectArtifacts(let paths):
             return removeValidated(item, paths: paths, mode: mode, dryRun: dryRun,
-                                   validator: { try PathGuard.validateProjectArtifact($0) })
+                                   validator: { try PathGuard.validateProjectArtifact($0, expected: item.identities[$0]) })
 
         case .removeApp(let appPath, let related):
             return removeApp(item, appPath: appPath, related: related, mode: mode, dryRun: dryRun)
@@ -146,7 +158,7 @@ final class DeletionEngine {
             // Anche le operazioni amministrative passano da PathGuard: la
             // password non è un lasciapassare.
             for p in paths {
-                do { try PathGuard.validate(p) }
+                do { try PathGuard.validate(p, expected: item.identities[p]) }
                 catch { return fail(item, "controllo di sicurezza non superato — \(error.localizedDescription)") }
             }
             if dryRun {
@@ -256,7 +268,7 @@ final class DeletionEngine {
             return skip(item, "l'applicazione è in esecuzione: chiudila e riprova")
         }
         do {
-            try PathGuard.validateApp(appPath)
+            try PathGuard.validateApp(appPath, expected: item.identities[appPath])
         } catch {
             return fail(item, error.localizedDescription)
         }
@@ -268,7 +280,7 @@ final class DeletionEngine {
         // l'app resta al suo posto e la situazione è più facile da capire.
         for path in related {
             do {
-                try PathGuard.validate(path)
+                try PathGuard.validate(path, expected: item.identities[path])
                 let size = item.perPathSize[path] ?? Shell.diskSize(path)
                 if dryRun {
                     note("SIMULAZIONE  dati collegati: \(path) (\(ByteFormat.string(size)))")
@@ -431,5 +443,29 @@ enum AppRuntime {
     static func isRunning(bundleID: String) -> Bool {
         guard !bundleID.isEmpty else { return false }
         return NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleID }
+    }
+
+    /// Nome leggibile di un'app: quello dell'istanza in esecuzione o del
+    /// bundle installato, altrimenti il bundle id stesso.
+    static func displayName(bundleID: String) -> String {
+        if let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first,
+           let name = app.localizedName {
+            return name
+        }
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+            return FileManager.default.displayName(atPath: url.path)
+                .replacingOccurrences(of: ".app", with: "")
+        }
+        return bundleID
+    }
+
+    /// Chiede alle app di chiudersi come farebbe l'utente da menu: possono
+    /// chiedere di salvare i documenti. Mai `forceTerminate`.
+    static func requestQuit(bundleIDs: [String]) {
+        for id in bundleIDs {
+            for app in NSRunningApplication.runningApplications(withBundleIdentifier: id) {
+                app.terminate()
+            }
+        }
     }
 }

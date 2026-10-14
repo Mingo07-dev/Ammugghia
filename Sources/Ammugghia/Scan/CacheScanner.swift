@@ -118,16 +118,18 @@ enum BrowserScanner {
         var items: [CleanupItem] = []
 
         // Browser basati su Chromium: la cache sta nei profili.
-        let chromium: [(String, String)] = [
-            ("Google Chrome", home + "/Library/Application Support/Google/Chrome"),
-            ("Microsoft Edge", home + "/Library/Application Support/Microsoft Edge"),
-            ("Brave", home + "/Library/Application Support/BraveSoftware/Brave-Browser"),
-            ("Arc", home + "/Library/Application Support/Arc/User Data"),
-            ("Chromium", home + "/Library/Application Support/Chromium"),
-            ("Opera", home + "/Library/Application Support/com.operasoftware.Opera"),
+        // Il bundle id serve a bloccare la pulizia finché il browser è aperto:
+        // un browser in esecuzione riscrive la cache mentre la si elimina.
+        let chromium: [(String, String, String)] = [
+            ("Google Chrome", home + "/Library/Application Support/Google/Chrome", "com.google.Chrome"),
+            ("Microsoft Edge", home + "/Library/Application Support/Microsoft Edge", "com.microsoft.edgemac"),
+            ("Brave", home + "/Library/Application Support/BraveSoftware/Brave-Browser", "com.brave.Browser"),
+            ("Arc", home + "/Library/Application Support/Arc/User Data", "company.thebrowser.Browser"),
+            ("Chromium", home + "/Library/Application Support/Chromium", "org.chromium.Chromium"),
+            ("Opera", home + "/Library/Application Support/com.operasoftware.Opera", "com.operasoftware.Opera"),
         ]
 
-        for (name, base) in chromium {
+        for (name, base, bundleID) in chromium {
             guard ScanSupport.isDirectory(base) else { continue }
             var paths: [String] = []
             // I profili sono "Default", "Profile 1", … più la radice.
@@ -155,7 +157,7 @@ enum BrowserScanner {
                 title: "Cache \(name)",
                 detail: "Pagine, immagini e script memorizzati da \(name), più le cache di compilazione JavaScript.\n\nNON include cronologia, segnalibri, password, cookie di sessione o estensioni: quelle cartelle non vengono toccate.",
                 consequence: "I siti si ricaricano da zero la prima volta. Resti connesso ai servizi: le sessioni non sono nella cache.",
-                paths: paths, risk: .safe) {
+                paths: paths, risk: .safe, requiredStoppedApps: [bundleID]) {
                 items.append(item)
             }
         }
@@ -166,7 +168,7 @@ enum BrowserScanner {
             title: "Cache Firefox",
             detail: "Cache dei profili Firefox. Cronologia e password restano intatte (sono in Application Support).",
             consequence: "I siti si ricaricano da zero la prima volta.",
-            path: firefoxCache, risk: .safe) {
+            path: firefoxCache, risk: .safe, requiredStoppedApps: ["org.mozilla.firefox"]) {
             items.append(item)
         }
 
@@ -181,7 +183,8 @@ enum BrowserScanner {
             detail: "Cache delle pagine di Safari. Cronologia, segnalibri, elenco Letture e password non vengono toccati.",
             consequence: "I siti si ricaricano da zero la prima volta.",
             paths: safariCaches, risk: .safe,
-            warning: "Safari è protetto dal sistema: se l'eliminazione non riesce, concedi «Accesso completo al disco» a Ammugghia.") {
+            warning: "Safari è protetto dal sistema: se l'eliminazione non riesce, concedi «Accesso completo al disco» a Ammugghia.",
+            requiredStoppedApps: ["com.apple.Safari"]) {
             items.append(item)
         }
 
