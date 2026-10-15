@@ -1,0 +1,4 @@
+/* Ammugghia — English texts for Info.plist. */
+"NSHumanReadableCopyright" = "Local cleanup tool. No data leaves your Mac.";
+"NSAppleEventsUsageDescription" = "Used to run operations on system folders with administrator privileges, always showing the exact command first.";
+"NSSystemAdministrationUsageDescription" = "Used to remove system caches such as the iOS simulator cache.";
