@@ -67,13 +67,25 @@ notarize() {
     fi
 }
 
+# Subito dopo l'accettazione il ticket può non essere ancora disponibile sui
+# server di Apple: si riprova per qualche decina di secondi prima di arrendersi.
+staple() {
+    local file="$1"
+    for attempt in 1 2 3 4 5 6; do
+        if xcrun stapler staple "$file"; then return 0; fi
+        echo "  ticket non ancora disponibile, nuovo tentativo fra 15 s ($attempt/6)…"
+        sleep 15
+    done
+    fail "Impossibile attaccare il ticket di notarizzazione a $file"
+}
+
 step "Notarizzazione dell'app"
 ZIP="dist/$APP_NAME-$VERSION-notarize.zip"
 rm -f "$ZIP"
 ditto -c -k --keepParent "$APP" "$ZIP"
 notarize "$ZIP"
 rm -f "$ZIP"
-xcrun stapler staple "$APP"
+staple "$APP"
 xcrun stapler validate "$APP"
 spctl -a -vvv -t exec "$APP" 2>&1 | tee /dev/stderr | grep -q "Notarized Developer ID" \
     || fail "Gatekeeper non riconosce l'app come notarizzata."
@@ -91,7 +103,7 @@ step "Firma e notarizzazione del DMG"
 # sul DMG anche se l'app dentro è a posto.
 codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG"
 notarize "$DMG"
-xcrun stapler staple "$DMG"
+staple "$DMG"
 xcrun stapler validate "$DMG"
 spctl -a -vvv -t open --context context:primary-signature "$DMG" 2>&1 | tee /dev/stderr \
     | grep -q "Notarized Developer ID" || fail "Gatekeeper non riconosce il DMG come notarizzato."
