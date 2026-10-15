@@ -1,8 +1,8 @@
 // Confronta le chiavi estratte dal compilatore (`.stringsdata`) con le
 // traduzioni inglesi. Uso:
 //   swift Tools/CheckLocalization.swift <cartella .stringsdata> <en.lproj/Localizable.strings> [--missing]
-// Esce con errore se una chiave non ha traduzione o se una traduzione non
-// corrisponde più a nessuna chiave. Con `--missing` stampa le chiavi mancanti
+// Esce con errore se una chiave non ha traduzione; le traduzioni che non
+// corrispondono più a nessuna chiave sono solo segnalate. Con `--missing` stampa le chiavi mancanti
 // nel formato `.strings`, pronte da tradurre.
 import Foundation
 
@@ -53,4 +53,8 @@ if args.contains("--missing") {
 print("Chiavi nel codice: \(keys.count) · tradotte: \(keys.count - missing.count) · mancanti: \(missing.count) · orfane: \(orphaned.count)")
 for key in missing.prefix(40) { print("  mancante  \(keys[key]!)  \"\(key)\"") }
 for key in orphaned.prefix(40) { print("  orfana    \"\(key)\"") }
-exit(missing.isEmpty && orphaned.isEmpty ? 0 : 1)
+// Le chiavi orfane sono innocue (una traduzione in più) e compilatori di
+// versioni diverse non estraggono sempre le stesse: solo le mancanti, che
+// mostrerebbero testo italiano in inglese, fanno fallire il controllo.
+if !orphaned.isEmpty { print("  (avviso: \(orphaned.count) chiavi orfane, non bloccanti)") }
+exit(missing.isEmpty ? 0 : 1)
