@@ -9,7 +9,7 @@
 #       --apple-id <email> --team-id <TEAM ID>
 #
 # Variabili (facoltative):
-#   SIGN_IDENTITY   identità di firma (predefinita: il primo «Developer ID Application»)
+#   SIGN_IDENTITY   impronta SHA-1 del certificato (predefinita: il primo «Developer ID Application» valido)
 #   NOTARY_PROFILE  profilo del portachiavi (predefinito: ammugghia-notary)
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -19,8 +19,11 @@ APP_NAME="Ammugghia"
 APP="dist/$APP_NAME.app"
 DMG="dist/$APP_NAME-$VERSION.dmg"
 NOTARY_PROFILE="${NOTARY_PROFILE:-ammugghia-notary}"
+# Per impronta, non per nome: con due certificati omonimi nel portachiavi
+# (succede rinnovandolo) `codesign` rifiuta un nome ambiguo.
 SIGN_IDENTITY="${SIGN_IDENTITY:-$(security find-identity -v -p codesigning \
-    | sed -n 's/.*"\(Developer ID Application: [^"]*\)".*/\1/p' | head -1)}"
+    | sed -n 's/^ *[0-9]*) \([0-9A-F]\{40\}\) "Developer ID Application: .*/\1/p' | head -1)}"
+SIGN_NAME="$(security find-identity -v -p codesigning | sed -n "s/.*$SIGN_IDENTITY \"\(.*\)\"/\1/p" | head -1)"
 
 fail() { echo "✗ $*" >&2; exit 1; }
 step() { echo; echo "▸ $*"; }
@@ -32,7 +35,7 @@ xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1 \
 [[ -z "$(git status --porcelain --untracked-files=no)" ]] \
     || fail "Ci sono modifiche non salvate in git: fai prima il commit."
 
-echo "Ammugghia $VERSION — firma: $SIGN_IDENTITY"
+echo "Ammugghia $VERSION — firma: $SIGN_NAME ($SIGN_IDENTITY)"
 
 step "Autotest delle protezioni"
 swift build -c release >/dev/null
