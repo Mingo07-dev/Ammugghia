@@ -77,7 +77,7 @@ enum ProjectArtifactScanner {
             let newest = list.compactMap(\.modified).max()
             let sizes = Dictionary(uniqueKeysWithValues: list.map { ($0.path, $0.size) })
             return CleanupItem(
-                title: "Progetto «\(name)»: \(kinds)",
+                title: String(localized: "Progetto «\(name)»: \(kinds)"),
                 detail: String(localized: "Dipendenze e prodotti di compilazione del progetto in \(projectPath). Il codice sorgente NON viene toccato: solo le cartelle rigenerabili."),
                 consequence: String(localized: "Per lavorare di nuovo sul progetto serve reinstallare le dipendenze (`npm install`, `pod install`, `flutter pub get`…) e ricompilare (`cargo build`, `swift build`…)."),
                 action: .removeProjectArtifacts(list.map(\.path)),

@@ -104,7 +104,7 @@ enum PathGuard {
     /// irraggiungibili.
     static let documentAreas: [(path: String, reason: String)] = [
         (home + "/Documents", String(localized: "cartella Documenti")),
-        (home + "/Desktop", "Scrivania"),
+        (home + "/Desktop", String(localized: "Scrivania")),
         (home + "/Downloads", "Download"),
         (home + "/Movies", String(localized: "cartella Filmati")),
     ]

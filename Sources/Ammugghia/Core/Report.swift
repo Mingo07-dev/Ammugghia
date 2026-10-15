@@ -15,7 +15,7 @@ enum Report {
         FileHandle.standardError.write("\n".data(using: .utf8)!)
         switch report.mode {
         case .full(let reason): print(String(localized: "Analisi completa (\(reason))"))
-        case .incremental(let n): print("Aggiornamento parziale: \(Plural.of(n, "cartella riletta", "cartelle rilette"))")
+        case .incremental(let n): print(String(localized: "Aggiornamento parziale: \(Plural.of(n, "cartella riletta", "cartelle rilette"))"))
         }
         print(String(format: "Durata: %.1f s", report.duration))
         for entry in store.level(at: nil) ?? [] {
@@ -36,11 +36,11 @@ enum Report {
         }
         FileHandle.standardError.write("\n".data(using: .utf8)!)
         let total = groups.reduce(0) { $0 + $1.recoverable }
-        print("\(Plural.of(groups.count, "gruppo", "gruppi")), \(ByteFormat.string(total)) recuperabili, "
+        print(String(localized: "\(Plural.of(groups.count, "gruppo", "gruppi")), \(ByteFormat.string(total)) recuperabili, ")
               + String(format: "%.1f s", Date().timeIntervalSince(start)))
         for group in groups.prefix(15) {
             print(String(localized: "  \(ByteFormat.string(group.recoverable).padding(toLength: 10, withPad: " ", startingAt: 0)) ")
-                  + "\(group.files.count) × \(ByteFormat.string(group.size))\(group.hasClones ? " (cloni APFS)" : "")")
+                  + "\(group.files.count) × \(ByteFormat.string(group.size))\(group.hasClones ? String(localized: " (cloni APFS)") : "")")
             for file in group.files { print("      \(file.path)") }
         }
         return 0
@@ -52,14 +52,15 @@ enum Report {
         print(String(localized: "Ammugghia — elementi d'avvio (\(StartupScanner.appleServiceCount()) servizi di macOS esclusi)"))
         for item in items {
             var flags: [String] = []
-            if item.isDisabled { flags.append("disattivato") }
-            if item.isLoaded { flags.append("caricato") }
+            if item.isDisabled { flags.append(String(localized: "disattivato")) }
+            if item.isLoaded { flags.append(String(localized: "caricato")) }
             if item.isOrphan { flags.append("ORFANO") }
-            if item.runAtLoad { flags.append("all'avvio") }
+            if item.runAtLoad { flags.append(String(localized: "all'avvio")) }
             if item.keepAlive { flags.append(String(localized: "sempre attivo")) }
             if let i = item.interval { flags.append(String(localized: "ogni \(i / 60) min")) }
             print("  [\(item.domain.label)] \(item.displayName) — \(item.label)")
-            print("      \(flags.joined(separator: ", "))  ·  firma: \(item.signer ?? "sconosciuta")")
+            let signer = item.signer ?? String(localized: "sconosciuta")
+            print(String(localized: "      \(flags.joined(separator: ", "))  ·  firma: \(signer)"))
             if let p = item.program { print("      \(p)") }
         }
         return 0
@@ -69,12 +70,12 @@ enum Report {
     /// un'analisi completa fatta adesso. Serve a provare l'aggiornamento parziale.
     static func runVerifyIndex() -> Int32 {
         guard let report = DiskIndexStore.shared.refresh() else { return 1 }
-        print("Indice: \(report.mode) in \(String(format: "%.1f", report.duration)) s")
+        print(String(localized: "Indice: \(String(describing: report.mode)) in \(String(format: "%.1f", report.duration)) s"))
         let scratch = URL(fileURLWithPath: NSTemporaryDirectory() + "ammugghia-verifica-indice.bin")
         defer { try? FileManager.default.removeItem(at: scratch) }
         let reference = DiskIndexStore(roots: DiskIndexStore.shared.roots, storage: scratch)
         guard let full = reference.refresh(forceFull: true) else { return 1 }
-        print("Riferimento: analisi completa in \(String(format: "%.1f", full.duration)) s")
+        print(String(localized: "Riferimento: analisi completa in \(String(format: "%.1f", full.duration)) s"))
         let a = DiskIndexStore.shared.fingerprint()
         let b = reference.fingerprint()
         let differing = Set(a.keys).union(b.keys).filter { a[$0] != b[$0] }
@@ -156,12 +157,12 @@ enum Report {
             // Le categorie assenti si segnalano in una riga, senza elencare
             // nulla: è lo stesso criterio con cui l'interfaccia le nasconde.
             if case .absent(let detail) = presence {
-                print("── \(name) — nascosta: \(detail)")
+                print(String(localized: "── \(name) — nascosta: \(detail)"))
                 print("")
                 continue
             }
             if case .residual(let detail) = presence {
-                print("── \(name) — RESIDUI: \(detail)")
+                print(String(localized: "── \(name) — RESIDUI: \(detail)"))
             }
             let items = AppModel.scanner(for: categoryID)()
             // Una sola alternativa per gruppo esclusivo, altrimenti i totali
@@ -200,10 +201,10 @@ enum Report {
         print("")
         var versionSavings: Int64 = 0
         for group in groups {
-            print("── \(group.title) — \(group.entries.count) versioni, \(ByteFormat.string(group.totalSize))")
+            print(String(localized: "── \(group.title) — \(Plural.of(group.entries.count, "versione", "versioni")), \(ByteFormat.string(group.totalSize))"))
             print("   \(group.suggestion)")
             for entry in group.entries {
-                let keep = entry.recommendedToKeep ? "TIENI  " : "       "
+                let keep = entry.recommendedToKeep ? String(localized: "TIENI").padding(toLength: 7, withPad: " ", startingAt: 0) : "       "
                 print(String(localized: "   \(keep)\(ByteFormat.string(entry.size).padding(toLength: 9, withPad: " ", startingAt: 0))  ")
                       + "\(entry.label)  —  \(DateFormat.relative(entry.lastUsed))")
                 if let note = entry.note { print("            \(note)") }
@@ -225,7 +226,7 @@ enum Report {
         print("")
 
         print(String(repeating: "═", count: 78))
-        print("RIEPILOGO")
+        print(String(localized: "RIEPILOGO"))
         print(String(localized: "  Eliminabile per categoria:     \(ByteFormat.string(grandTotal))"))
         print(String(localized: "  di cui cache sicure:           \(ByteFormat.string(safeTotal))"))
         print(String(localized: "  Versioni duplicate superflue:  \(ByteFormat.string(versionSavings))"))

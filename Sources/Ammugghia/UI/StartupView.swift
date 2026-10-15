@@ -102,7 +102,7 @@ struct StartupView: View {
         let effect = pending.enable
             ? String(localized: "Il servizio torna ad avviarsi come prima e viene caricato subito.")
             : String(localized: "Il servizio viene fermato e non si avvierà più finché non lo riattivi. ")
-              + String(localized: "\(item.ownerName.map { "«\($0)»" } ?? "L'app che lo usa") potrebbe smettere di aggiornarsi, sincronizzare o funzionare del tutto.")
+              + String(localized: "\(item.ownerName.map { String(localized: "«\($0)»") } ?? String(localized: "L'app che lo usa")) potrebbe smettere di aggiornarsi, sincronizzare o funzionare del tutto.")
         let admin = item.domain.needsAdmin ? String(localized: "\n\nServe la password di amministratore.") : ""
         return effect + String(localized: "\n\nComandi eseguiti:\n") + commands + admin
     }
@@ -144,7 +144,7 @@ struct StartupRow: View {
                         .foregroundStyle(.orange)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Text("Firma: \(item.signer ?? "non determinabile")")
+                Text("Firma: \(item.signer ?? String(localized: "non determinabile"))")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -160,9 +160,9 @@ struct StartupRow: View {
 
     private var badges: [String] {
         var result: [String] = []
-        if item.isDisabled { result.append("disattivato") }
+        if item.isDisabled { result.append(String(localized: "disattivato")) }
         if item.isLoaded { result.append(String(localized: "in esecuzione")) }
-        if item.runAtLoad { result.append("all'avvio") }
+        if item.runAtLoad { result.append(String(localized: "all'avvio")) }
         if item.keepAlive { result.append(String(localized: "sempre attivo")) }
         if let interval = item.interval { result.append(String(localized: "ogni \(max(1, interval / 60)) min")) }
         return result

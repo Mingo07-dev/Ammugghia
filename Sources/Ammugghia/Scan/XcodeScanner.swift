@@ -46,7 +46,7 @@ enum XcodeScanner {
                 guard size >= 5_000_000 else { continue }
                 let version = (kid as NSString).lastPathComponent
                 items.append(CleanupItem(
-                    title: "Simboli \(label) \(version)",
+                    title: String(localized: "Simboli \(label) \(version)"),
                     detail: String(localized: "Simboli di debug copiati da un dispositivo \(label) con questa versione di sistema. Xcode li ricrea al primo collegamento del device."),
                     consequence: String(localized: "Ricollegando un dispositivo con \(label) \(version), Xcode rifarà la copia dei simboli: qualche minuto di attesa."),
                     action: .removePaths([kid]), risk: .safe, size: size,
@@ -235,7 +235,7 @@ enum SimulatorScanner {
             result.append(DeviceInfo(
                 udid: (dir as NSString).lastPathComponent,
                 name: name,
-                runtime: runtime.isEmpty ? "sconosciuto" : runtime,
+                runtime: runtime.isEmpty ? String(localized: "sconosciuto") : runtime,
                 path: dir,
                 size: sizes[dir] ?? 0,
                 lastBooted: lastBooted,
@@ -367,7 +367,9 @@ enum SimulatorScanner {
         for device in all where device.size >= 50_000_000 {
             let unavailable = !device.isAvailable
             items.append(CleanupItem(
-                title: "Simulatore \(device.name) (\(device.runtime))\(unavailable ? " — runtime non più installato" : "")",
+                title: unavailable
+                    ? String(localized: "Simulatore \(device.name) (\(device.runtime)) — runtime non più installato")
+                    : String(localized: "Simulatore \(device.name) (\(device.runtime))"),
                 detail: String(localized: "Dispositivo con dati: app installate, database, foto e impostazioni accumulate durante i test.")
                     + (unavailable ? String(localized: " Il runtime di questo simulatore non è più installato, quindi il dispositivo non è avviabile.") : ""),
                 consequence: String(localized: "Il dispositivo scompare da Xcode. Al prossimo avvio ne crei uno nuovo e le app di test vanno reinstallate."),

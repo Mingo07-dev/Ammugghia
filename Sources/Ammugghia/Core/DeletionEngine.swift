@@ -79,6 +79,11 @@ final class DeletionEngine {
 
     var logFilePath: String? { logURL?.path }
 
+    /// Esito di un comando esterno nel registro.
+    private func noteResult(_ r: Shell.Result, _ command: String) {
+        note(r.ok ? String(localized: "OK  \(command)") : String(localized: "ERRORE \(command) → \(r.stderr)"))
+    }
+
     /// Scrive nel registro operazioni che non sono eliminazioni (es. la
     /// disattivazione di un elemento d'avvio): tutto ciò che il software
     /// modifica deve lasciare traccia nello stesso posto.
@@ -111,7 +116,8 @@ final class DeletionEngine {
 
         let freed = outcomes.filter(\.succeeded).reduce(0) { $0 + $1.freed }
         note(String(localized: "=== Fine: \(outcomes.filter(\.succeeded).count)/\(items.count) riuscite, ")
-             + "\(ByteFormat.string(freed)) \(dryRun ? "liberabili" : "liberati") ===")
+             + (dryRun ? String(localized: "\(ByteFormat.string(freed)) liberabili ===")
+                       : String(localized: "\(ByteFormat.string(freed)) liberati ===")))
         return outcomes
     }
 
@@ -169,7 +175,7 @@ final class DeletionEngine {
                                        message: String(localized: "Simulato"), freed: item.size)
             }
             let r = Shell.run(path, args, timeout: 300)
-            note(String(localized: "\(r.ok ? "OK" : "ERRORE") \(([tool] + args).joined(separator: " ")) → \(r.ok ? "ok" : r.stderr)"))
+            noteResult(r, ([tool] + args).joined(separator: " "))
             return DeletionOutcome(title: item.title, succeeded: r.ok, skipped: false,
                                    message: r.ok ? String(localized: "Eseguito") : shortError(r.stderr.isEmpty ? r.stdout : r.stderr),
                                    freed: r.ok ? item.size : 0)
@@ -190,7 +196,7 @@ final class DeletionEngine {
                                        message: String(localized: "Simulato (richiederebbe la password)"), freed: item.size)
             }
             let r = Shell.runAsAdmin(command)
-            note("\(r.ok ? "OK" : "ERRORE") sudo \(command) → \(r.ok ? "ok" : r.stderr)")
+            noteResult(r, "sudo \(command)")
             if !r.ok && r.stderr.contains("-128") {
                 return skip(item, String(localized: "annullato: password non inserita"))
             }
@@ -208,7 +214,7 @@ final class DeletionEngine {
                                        message: String(localized: "Simulato"), freed: item.size)
             }
             let r = Shell.run(docker, kind.args, timeout: 300)
-            note("\(r.ok ? "OK" : "ERRORE") \(kind.command) → \(r.ok ? "ok" : r.stderr)")
+            noteResult(r, kind.command)
             return DeletionOutcome(title: item.title, succeeded: r.ok, skipped: false,
                                    message: r.ok ? String(localized: "Eseguito") : shortError(r.stderr),
                                    freed: r.ok ? item.size : 0)
@@ -240,14 +246,15 @@ final class DeletionEngine {
                 continue
             } catch {
                 errors.append(error.localizedDescription)
-                note("RIFIUTATO \(path) — \(error.localizedDescription)")
+                note(String(localized: "RIFIUTATO \(path) — \(error.localizedDescription)"))
                 continue
             }
 
             let size = item.perPathSize[path] ?? Shell.diskSize(path)
 
             if dryRun {
-                note("SIMULAZIONE  \(mode == .trash ? "cestino" : "elimina") \(path) (\(ByteFormat.string(size)))")
+                note(mode == .trash ? String(localized: "SIMULAZIONE  cestino \(path) (\(ByteFormat.string(size)))")
+                                    : String(localized: "SIMULAZIONE  elimina \(path) (\(ByteFormat.string(size)))"))
                 freed += size
                 done += 1
                 continue
@@ -264,11 +271,12 @@ final class DeletionEngine {
                 }
                 freed += size
                 done += 1
-                note("OK  \(mode == .trash ? "nel cestino" : "eliminato") \(path) (\(ByteFormat.string(size)))")
+                note(mode == .trash ? String(localized: "OK  nel cestino \(path) (\(ByteFormat.string(size)))")
+                                    : String(localized: "OK  eliminato \(path) (\(ByteFormat.string(size)))"))
             } catch {
                 let msg = friendlyFileError(error, path: path)
                 errors.append(msg)
-                note("ERRORE \(path) — \(msg)")
+                note(String(localized: "ERRORE \(path) — \(msg)"))
             }
         }
 
@@ -309,11 +317,12 @@ final class DeletionEngine {
                                                expected: file.identity)
             } catch {
                 skipped += 1
-                note("SALTATO \(error.localizedDescription)")
+                note(String(localized: "SALTATO \(error.localizedDescription)"))
                 continue
             }
             if dryRun {
-                note("SIMULAZIONE  \(mode == .trash ? "cestino" : "elimina") \(path) (\(ByteFormat.string(file.size)))")
+                note(mode == .trash ? String(localized: "SIMULAZIONE  cestino \(path) (\(ByteFormat.string(file.size)))")
+                                    : String(localized: "SIMULAZIONE  elimina \(path) (\(ByteFormat.string(file.size)))"))
                 freed += file.size
                 removed += 1
                 continue
@@ -329,18 +338,21 @@ final class DeletionEngine {
                 }
                 freed += file.size
                 removed += 1
-                note("OK  \(mode == .trash ? "nel cestino" : "eliminato") \(path) (\(ByteFormat.string(file.size)))")
+                note(mode == .trash ? String(localized: "OK  nel cestino \(path) (\(ByteFormat.string(file.size)))")
+                                    : String(localized: "OK  eliminato \(path) (\(ByteFormat.string(file.size)))"))
             } catch {
                 let msg = friendlyFileError(error, path: path)
                 errors.append(msg)
-                note("ERRORE \(path) — \(msg)")
+                note(String(localized: "ERRORE \(path) — \(msg)"))
             }
         }
 
         if removed == 0 && errors.isEmpty {
             return skip(item, String(localized: "nessun file è più eliminabile: sono stati usati o rimossi dopo l'analisi"))
         }
-        var message = "\(Plural.of(removed, "file", "file")) \(dryRun ? "da rimuovere" : (mode == .trash ? "nel Cestino" : "eliminati"))"
+        var message = dryRun ? String(localized: "\(Plural.of(removed, "file", "file")) da rimuovere")
+            : mode == .trash ? String(localized: "\(Plural.of(removed, "file", "file")) nel Cestino")
+            : String(localized: "\(Plural.of(removed, "file eliminato", "file eliminati"))")
         if skipped > 0 { message += String(localized: ", \(skipped) saltati perché usati di recente o esclusi") }
         if !errors.isEmpty { message += ", \(Plural.of(errors.count, "errore", "errori")): " + (errors.first ?? "") }
         return DeletionOutcome(title: item.title, succeeded: errors.isEmpty, skipped: false,
@@ -446,7 +458,7 @@ final class DeletionEngine {
                                    message: String(localized: "Simulato"), freed: item.size)
         }
         let r = Shell.run(xcrun, args, timeout: 300)
-        note("\(r.ok ? "OK" : "ERRORE") xcrun \(args.joined(separator: " ")) → \(r.ok ? "ok" : r.stderr)")
+        noteResult(r, "xcrun \(args.joined(separator: " "))")
         return DeletionOutcome(title: item.title, succeeded: r.ok, skipped: false,
                                message: r.ok ? (successNote ?? String(localized: "Eseguito")) : shortError(r.stderr),
                                freed: r.ok ? item.size : 0)
@@ -493,13 +505,13 @@ final class DeletionEngine {
     // MARK: - Utilità
 
     private func skip(_ item: CleanupItem, _ why: String) -> DeletionOutcome {
-        note("SALTATO \(item.title) — \(why)")
+        note(String(localized: "SALTATO \(item.title) — \(why)"))
         return DeletionOutcome(title: item.title, succeeded: false, skipped: true,
                                message: why, freed: 0)
     }
 
     private func fail(_ item: CleanupItem, _ why: String) -> DeletionOutcome {
-        note("ERRORE \(item.title) — \(why)")
+        note(String(localized: "ERRORE \(item.title) — \(why)"))
         return DeletionOutcome(title: item.title, succeeded: false, skipped: false,
                                message: why, freed: 0)
     }

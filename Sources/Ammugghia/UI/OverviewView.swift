@@ -229,10 +229,13 @@ struct SafetyNotice: View {
 }
 
 struct SectionTitle: View {
-    let title: String
+    /// `LocalizedStringKey`, non `String`: un titolo scritto come letterale
+    /// viene tradotto come quelli di `Text`. Con `String` restava in italiano.
+    let title: LocalizedStringKey
+    /// Già tradotto da chi chiama: spesso è costruito con dati variabili.
     let subtitle: String?
 
-    init(_ title: String, subtitle: String? = nil) {
+    init(_ title: LocalizedStringKey, subtitle: String? = nil) {
         self.title = title
         self.subtitle = subtitle
     }

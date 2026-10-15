@@ -10,6 +10,7 @@
 "\n\nServe la password di amministratore." = "\n\nYour administrator password is required.";
 "\n\nSolo file singoli non modificati né letti da più di %lld giorni. Database, preferenze, file di blocco e cartelle di sistema restano esclusi. Ogni file viene ricontrollato al momento dell'eliminazione." = "\n\nOnly individual files neither modified nor read for more than %lld days. Databases, preferences, lock files and system folders stay excluded. Each file is checked again at deletion time.";
 "%lld cartelle…" = "%lld folders…";
+"      %@  ·  firma: %@" = "      %@  ·  signed by: %@";
 "      indice: %@\n      disco:  %@" = "      index: %@\n      disk:  %@";
 "   %@  " = "   %@  ";
 "   %@  %@  %@%@%@" = "   %@  %@  %@%@%@";
@@ -21,6 +22,7 @@
 "  Totale potenziale:             %@" = "  Total potential:               %@";
 "  Versioni duplicate superflue:  %@" = "  Unneeded duplicate versions:   %@";
 "  di cui cache sicure:           %@" = "  of which safe caches:          %@";
+" (cloni APFS)" = " (APFS clones)";
 " Il container o i dati di supporto possono contenere documenti e impostazioni dell'app." = " The container or support data may hold the app's documents and settings.";
 " Il runtime di questo simulatore non è più installato, quindi il dispositivo non è avviabile." = " This simulator's runtime is no longer installed, so the device cannot be launched.";
 " La scheda è visibile perché hai attivato «Mostra tutte le categorie»." = " This category is shown because “Show all categories” is turned on.";
@@ -31,13 +33,15 @@
 " — attualmente selezionato" = " — currently selected";
 "%@" = "%@";
 "%@ %@ — %@" = "%@ %@ — %@";
-"%@ %@ → %@" = "%@ %@ → %@";
 "%@ (%@): macOS protegge i dati delle altre app. Concedi «Accesso completo al disco» ad Ammugghia in Impostazioni di Sistema → Privacy e sicurezza per misurarli e proporli." = "%@ (%@): macOS protects other apps' data. Grant Full Disk Access to Ammugghia in System Settings → Privacy & Security to measure and offer them.";
+"%@ al loro posto." = "%@ back in place.";
 "%@ cartelle lette…" = "%@ folders read…";
 "%@ da Ollama, che non risulta più installato: %@." = "%@ by Ollama, which no longer appears to be installed: %@.";
 "%@ da rimuovere" = "%@ to remove";
 "%@ di file identici" = "%@ of identical files";
 "%@ li riscarica alla prossima apertura con la rete attiva. Finché non succede, i contenuti potrebbero non essere disponibili offline." = "%@ downloads them again the next time it opens with a network connection. Until then, content may not be available offline.";
+"%@ liberabili ===" = "%@ can be freed ===";
+"%@ liberati ===" = "%@ freed ===";
 "%@ liberi su %@" = "%@ free of %@";
 "%@ nel Cestino" = "%@ in the Trash";
 "%@ nel piano di pulizia" = "%@ in the cleanup plan";
@@ -53,6 +57,7 @@
 "%@ è in esecuzione: chiudi l'app e riprova" = "%@ is running: quit the app and try again";
 "%@ — %@" = "%@ — %@";
 "%@) contengono database e stato delle applicazioni e " = "%@) hold databases and application state and ";
+"%@, %@ recuperabili, " = "%@, %@ recoverable, ";
 "%@, quindi è il residuo di un'installazione già completata." = "%@, so it is the leftover of an installation already completed.";
 "%@: %@" = "%@: %@";
 "%@: %@ di %@" = "%@: %@ of %@";
@@ -79,10 +84,12 @@
 "=== Fine: %lld/%lld riuscite, " = "=== End: %lld/%lld succeeded, ";
 "=== SIMULAZIONE: nessun file verrà modificato (%lld operazioni) ===" = "=== SIMULATION: no file will be changed (%lld operations) ===";
 "APPLICAZIONI — %lld totali, %lld disinstallabili" = "APPLICATIONS — %lld total, %lld can be uninstalled";
+"AVVIO  %@" = "STARTUP  %@";
 "Agente dell'utente" = "User agent";
 "Agente per tutti gli utenti" = "Agent for all users";
 "Aggiorna" = "Update";
 "Aggiorna la mappa rileggendo solo le cartelle cambiate. «Rifai da zero» rilegge tutto." = "Update the map by re-reading only folders that changed. “Rebuild from scratch” re-reads everything.";
+"Aggiornamento parziale: %@" = "Incremental update: %@";
 "Aggiornata alle %@ in %@ s: %@ grazie alla storia delle modifiche di macOS." = "Updated at %@ in %@ s: %@ thanks to the macOS change history.";
 "Aggiungi" = "Add";
 "Aggiungi cartella o file…" = "Add folder or file…";
@@ -111,6 +118,7 @@
 "Analisi completa (%@)" = "Full scan (%@)";
 "Analisi completa alle %@ in %@ s (%@)." = "Full scan at %@ in %@ s (%@).";
 "Analisi non ancora eseguita" = "Analysis not run yet";
+"Analisi: %@…" = "Analyzing: %@…";
 "Analisi: applicazioni installate…" = "Analysis: installed applications…";
 "Analisi: versioni multiple…" = "Analysis: multiple versions…";
 "Analizza" = "Analyze";
@@ -271,6 +279,7 @@
 "Corrispondenza esatta" = "Exact match";
 "Corrispondenza sul nome" = "Name match";
 "Cos'è: %@\n" = "What it is: %@\n";
+"Cosa vale la pena sapere" = "Worth knowing";
 "Cosa verrà eliminato" = "What will be deleted";
 "Crash dell'emulatore" = "Emulator crashes";
 "Crate Rust scaricati." = "Downloaded Rust crates.";
@@ -294,6 +303,7 @@
 "DerivedData di Xcode" = "Xcode DerivedData";
 "Deseleziona qualsiasi voce che non vuoi rimuovere" = "Deselect anything you don't want to remove";
 "Deseleziona tutto" = "Deselect all";
+"Dettaglio tecnico" = "Technical details";
 "Deve essere rifiutata." = "Must be refused.";
 "Deve essere rifiutato." = "Must be refused.";
 "Deve essere saltata." = "Must be skipped.";
@@ -335,7 +345,10 @@
 "Download interrotto: %@" = "Interrupted download: %@";
 "Duplicati" = "Duplicates";
 "ELIMINA" = "DELETE";
+"ERRORE %@ — %@" = "ERROR %@ — %@";
+"ERRORE %@ → %@" = "ERROR %@ → %@";
 "ERRORE applicazione %@ — %@" = "ERROR application %@ — %@";
+"ERRORE avvio — %@" = "ERROR startup — %@";
 "ERRORE dati collegati %@ — %@" = "ERROR related data %@ — %@";
 "Elementi d'avvio" = "Startup items";
 "Elementi login nelle Impostazioni…" = "Login Items in System Settings…";
@@ -356,6 +369,7 @@
 "Esporta…" = "Export…";
 "Etichetta del servizio non valida, rifiutata: %@" = "Invalid service label, refused: %@";
 "File .ipsw degli aggiornamenti iOS scaricati per il ripristino dei dispositivi." = ".ipsw files of iOS updates downloaded to restore devices.";
+"File collegati (%lld)" = "Related files (%lld)";
 "File con contenuto identico byte per byte, confermato dall'impronta SHA-256 dell'intero file. Ammugghia non elimina file dalle tue cartelle personali: mostra i gruppi, e la copia da tenere la scegli tu nel Finder." = "Files with byte-for-byte identical content, confirmed by a SHA-256 of the whole file. Ammugghia never deletes files from your personal folders: it shows the groups, and you choose which copy to keep in Finder.";
 "File da ripristinare" = "File to restore";
 "File di %@ in %@." = "%@ file in %@.";
@@ -459,6 +473,7 @@
 "Indice della documentazione" = "Documentation index";
 "Indice di ricerca della documentazione di Xcode." = "Search index of the Xcode documentation.";
 "Indice e cache dell'analizzatore Dart." = "Index and cache of the Dart analyzer.";
+"Indice: %@ in %@ s" = "Index: %@ in %@ s";
 "Indici dei progetti e cache di IntelliJ IDEA, PyCharm, WebStorm e degli altri IDE JetBrains, una cartella per prodotto e versione: quelle delle versioni non più installate restano sul disco." = "Project indexes and caches of IntelliJ IDEA, PyCharm, WebStorm and the other JetBrains IDEs, one folder per product and version: those of versions no longer installed stay on disk.";
 "Indici e cache dei progetti di Android Studio, una cartella per versione: quelle delle versioni precedenti restano dopo ogni aggiornamento." = "Android Studio project indexes and caches, one folder per version: those of older versions remain after every update.";
 "Installazioni di Xcode" = "Xcode installations";
@@ -467,6 +482,7 @@
 "Java Development Kit" = "Java Development Kit";
 "Keras li riscarica al prossimo caricamento del modello." = "Keras downloads them again the next time the model is loaded.";
 "L'analizzatore ricostruisce l'indice all'apertura del progetto." = "The analyzer rebuilds its index when the project is opened.";
+"L'app che lo usa" = "The app that uses it";
 "L'app viene rimossa insieme ai suoi dati. Reinstallandola ripartirà da zero: accessi, preferenze e contenuti locali andranno rifatti." = "The app is removed together with its data. If you reinstall it, it starts from scratch: logins, preferences and local content must be set up again.";
 "L'app viene rimossa. Reinstallandola ripartirà con le impostazioni predefinite." = "The app is removed. If you reinstall it, it starts with default settings.";
 "L'applicazione ricostruisce la propria cache al prossimo avvio. Alcune app perdono contenuti scaricati per l'uso offline." = "The app rebuilds its cache on next launch. Some apps lose content downloaded for offline use.";
@@ -569,6 +585,7 @@
 "Nessuna versione duplicata" = "No duplicate versions";
 "Nessuna, se l'aggiornamento a cui si riferisce è già stato installato. Se invece è un download in attesa, l'aggiornamento va riscaricato." = "None, if the update it belongs to has already been installed. If it is a pending download instead, the update has to be downloaded again.";
 "Nessuna, se né lo sfondo né il salvaschermo usano gli sfondi dinamici. Altrimenti viene riscaricato." = "None, if neither the wallpaper nor the screen saver uses dynamic wallpapers. Otherwise it is downloaded again.";
+"Nessuna." = "None.";
 "Nessuna: Homebrew riscarica al bisogno. È la cache che `brew cleanup` svuota." = "None: Homebrew downloads again when needed. It is the cache `brew cleanup` empties.";
 "Nessuna: sono file inerti. Reinstallando Xcode i simulatori vengono ricreati da zero." = "None: they are inert files. Reinstalling Xcode recreates the simulators from scratch.";
 "Nessuna: sono solo diagnostiche già inviate." = "None: they are only diagnostics already sent.";
@@ -581,13 +598,18 @@
 "Non puoi più tornare alla versione precedente di un pacchetto con `brew switch`. I pacchetti attivi non vengono toccati." = "You can no longer go back to the previous version of a package with `brew switch`. Active packages are not touched.";
 "Non rimovibile con questo software" = "Cannot be removed with this app";
 "Non risultano più versioni installate della stessa cosa." = "There are no longer multiple versions of the same thing installed.";
+"Non riuscite" = "Failed";
 "Non è più nel Cestino (svuotato o già ripristinato): %@" = "No longer in the Trash (emptied or already restored): %@";
 "Non è un bundle applicazione in una cartella Applicazioni: %@" = "Not an application bundle in an Applications folder: %@";
 "Non è una cartella di artefatti di build riconosciuta: %@" = "Not a recognized build-artifact folder: %@";
 "Nulla è stato modificato per queste voci" = "Nothing was changed for these items";
 "Né lo sfondo né il salvaschermo usano più gli sfondi dinamici: i video scaricati sono eliminabili in sicurezza e non torneranno." = "Neither the wallpaper nor the screen saver uses dynamic wallpapers any more: the downloaded videos can be deleted safely and won't come back.";
+"OK  %@" = "OK  %@";
 "OK  applicazione %@ (%@)" = "OK  application %@ (%@)";
 "OK  dati collegati %@ (%@)" = "OK  related data %@ (%@)";
+"OK  eliminato %@ (%@)" = "OK  deleted %@ (%@)";
+"OK  nel cestino %@ (%@)" = "OK  moved to Trash %@ (%@)";
+"OK avvio — %@" = "OK startup — %@";
 "Oggetti compilati riutilizzati fra una build e l'altra." = "Compiled objects reused between builds.";
 "Ogni Xcode occupa diversi GB. Avere due versioni ha senso solo mentre migri un progetto o se devi mantenere una build con una toolchain vecchia. Ricorda che ogni Xcode porta con sé i propri runtime di simulatore." = "Each Xcode takes several GB. Having two versions only makes sense while migrating a project or when you must maintain a build with an older toolchain. Remember that each Xcode brings its own simulator runtimes.";
 "Ogni immagine pesa 1–4 GB. Servono solo quelle usate dagli emulatori che tieni davvero: se testi su dispositivi reali, nessuna serve." = "Each image takes 1–4 GB. You only need those used by the emulators you actually keep: if you test on real devices, you need none.";
@@ -615,10 +637,12 @@
 "Pagine e risorse che %@ salva per funzionare anche senza connessione (cache dei service worker)." = "Pages and resources %@ saves to work without a connection (service worker cache).";
 "Pagine, immagini e script memorizzati da %@, più le cache di compilazione JavaScript.\n\nNON include cronologia, segnalibri, password, cookie di sessione o estensioni: quelle cartelle non vengono toccate." = "Pages, images and scripts stored by %@, plus JavaScript compilation caches.\n\nDoes NOT include history, bookmarks, passwords, session cookies or extensions: those folders are not touched.";
 "Panoramica" = "Overview";
+"Per categoria" = "By category";
 "Per lavorare di nuovo sul progetto serve reinstallare le dipendenze (`npm install`, `pod install`, `flutter pub get`…) e ricompilare (`cargo build`, `swift build`…)." = "To work on the project again you need to reinstall its dependencies (`npm install`, `pod install`, `flutter pub get`…) and rebuild (`cargo build`, `swift build`…).";
 "Per tutti gli utenti" = "For all users";
 "Perché ho più versioni?" = "Why do I have several versions?";
 "Percorsi interessati (%lld)" = "Affected paths (%lld)";
+"Percorsi:\n" = "Paths:\n";
 "Percorso fuori dalle aree che questo software può toccare: %@" = "Path outside the areas this app may touch: %@";
 "Percorso non assoluto, rifiutato: %@" = "Path is not absolute, refused: %@";
 "Percorso protetto, rifiutato: %@ — %@" = "Protected path, refused: %@ — %@";
@@ -638,6 +662,7 @@
 "Processi di lavoro, notifiche e file temporanei lasciati da Gradle e dal compilatore Kotlin." = "Worker processes, notifications and temporary files left by Gradle and the Kotlin compiler.";
 "Prodotti di build esportati" = "Exported build products";
 "Prodotti di compilazione, indice e log del progetto «%@»." = "Build products, index and logs of the project “%@”.";
+"Progetto «%@»: %@" = "Project “%@”: %@";
 "Programma non installato: nessun residuo trovato." = "Program not installed: no leftovers found.";
 "Programmi che macOS avvia da solo: all'accesso, all'avvio del Mac o a intervalli. Disattivarne uno è reversibile: il file resta dov'è e launchd smette di avviarlo finché non lo riattivi. Per eliminarlo del tutto usa «Disinstalla app»." = "Programs macOS starts on its own: at login, at startup or on a timer. Disabling one is reversible: the file stays where it is and launchd stops starting it until you turn it back on. To remove it completely, use “Uninstall apps”.";
 "Provenienza" = "Source";
@@ -650,6 +675,8 @@
 "Questo software non elimina file nella cartella Download: usa «Mostra nel Finder» e decidi tu." = "This app does not delete files in the Downloads folder: use “Show in Finder” and decide for yourself.";
 "Questo software non elimina i file nelle tue cartelle di documenti: usa «Mostra nel Finder» e decidi tu. L'elenco serve solo a rendere visibile ciò che occupa spazio." = "This app never deletes files in your document folders: use “Show in Finder” and decide for yourself. The list only makes visible what is taking up space.";
 "Qui compariranno gli esiti di ogni operazione, incluse quelle rifiutate dai controlli di sicurezza." = "The outcome of every operation will appear here, including those refused by the safety checks.";
+"RIEPILOGO" = "SUMMARY";
+"RIFIUTATO %@ — %@" = "REFUSED %@ — %@";
 "RIFIUTATO %@ — rientra nelle esclusioni impostate dall'utente" = "REFUSED %@ — matches an exclusion set by the user";
 "RIPRISTINO %@: %lld di %lld rimessi al loro posto" = "RESTORE %@: %lld of %lld put back in place";
 "Registro" = "Log";
@@ -677,6 +704,7 @@
 "Ricollegando un dispositivo con %@ %@, Xcode rifarà la copia dei simboli: qualche minuto di attesa." = "When you reconnect a device running %@ %@, Xcode will copy the symbols again: a few minutes of waiting.";
 "Rifai da zero" = "Rebuild from scratch";
 "Rifai la mappa del disco da zero" = "Rebuild the disk map from scratch";
+"Riferimento: analisi completa in %@ s" = "Reference: full scan in %@ s";
 "Rifiuto di eliminare una cartella radice o la cartella utente: %@" = "Refusing to delete a root folder or your home folder: %@";
 "Rimozione di una versione fra le %lld installate. Ne restano %lld." = "Removing one of the %lld installed versions. %lld will remain.";
 "Rimuove anche i servizi che l'app aveva installato a livello di sistema. Se non li elimini, restano attivi a vuoto dopo la disinstallazione." = "Also removes the services the app installed system-wide. If you don't delete them, they keep running idle after the uninstall.";
@@ -686,21 +714,28 @@
 "Ripristinare %@?" = "Restore %@?";
 "Risulta selezionato nella configurazione attuale." = "Selected in the current configuration.";
 "Risultati delle analisi del codice Python." = "Results of Python code analysis.";
+"Riuscite" = "Succeeded";
 "Rivedi ed elimina…" = "Review and delete…";
 "Runtime dei simulatori iOS" = "iOS simulator runtimes";
 "Ruote e archivi dei pacchetti Python scaricati." = "Downloaded Python wheels and package archives.";
+"SALTATO %@" = "SKIPPED %@";
+"SALTATO %@ — %@" = "SKIPPED %@ — %@";
 "SALTATO dati collegati %@ — rientra nelle esclusioni impostate dall'utente" = "SKIPPED related data %@ — matches an exclusion set by the user";
 "SDK Android, emulatori e cache Gradle. Il NDK e le immagini di sistema sono i componenti più grossi e servono solo in casi specifici." = "Android SDK, emulators and Gradle caches. The NDK and system images are the largest components and are only needed in specific cases.";
 "SDK Flutter" = "Flutter SDK";
 "SIMULAZIONE  %@" = "SIMULATION  %@";
 "SIMULAZIONE  applicazione: %@ (%@)" = "SIMULATION  application: %@ (%@)";
+"SIMULAZIONE  cestino %@ (%@)" = "SIMULATION  trash %@ (%@)";
 "SIMULAZIONE  dati collegati: %@ (%@)" = "SIMULATION  related data: %@ (%@)";
+"SIMULAZIONE  elimina %@ (%@)" = "SIMULATION  delete %@ (%@)";
 "SIMULAZIONE  sudo %@" = "SIMULATION  sudo %@";
 "SIMULAZIONE  xcrun %@" = "SIMULATION  xcrun %@";
 "Safari è protetto dal sistema: se l'eliminazione non riesce, concedi «Accesso completo al disco» a Ammugghia." = "Safari is protected by the system: if the deletion fails, grant Full Disk Access to Ammugghia.";
+"Saltate" = "Skipped";
 "Salva %@ con dati dell'applicazione in un file .zip in ~/Documents/Ammugghia Backup, così puoi %@ se ti accorgi di averne bisogno." = "Saves %@ with application data to a .zip file in ~/Documents/Ammugghia Backup, so you can %@ if you find you need it.";
 "Salvato anche in %@" = "Also saved to %@";
 "Script dell'app" = "App scripts";
+"Scrivania" = "Desktop";
 "Se non lo usi, il disco virtuale resta comunque su disco in ~/Library/Containers/com.docker.docker." = "If you don't use it, its virtual disk still stays on disk in ~/Library/Containers/com.docker.docker.";
 "Se reinstalli LM Studio, li riscarica al primo avvio." = "If you reinstall LM Studio, it downloads them again on first launch.";
 "Se reinstalli Ollama, i modelli vanno riscaricati." = "If you reinstall Ollama, the models must be downloaded again.";
@@ -724,11 +759,14 @@
 "Si rigenera al prossimo avvio dell'emulatore." = "Regenerated the next time the emulator starts.";
 "Si rigenera da sola: il primo avvio di ogni simulatore dopo la pulizia richiede uno o due minuti in più." = "Regenerates on its own: the first launch of each simulator after the cleanup takes a minute or two longer.";
 "Sicuro" = "Safe";
+"Simboli %@ %@" = "%@ %@ symbols";
 "Simboli di debug copiati da un dispositivo %@ con questa versione di sistema. Xcode li ricrea al primo collegamento del device." = "Debug symbols copied from a %@ device with this system version. Xcode recreates them the first time the device is connected.";
 "Simula" = "Simulate";
 "Simula disinstallazione" = "Simulate uninstall";
 "Simulato" = "Simulated";
 "Simulato (richiederebbe la password)" = "Simulated (would require the password)";
+"Simulatore %@ (%@)" = "Simulator %@ (%@)";
+"Simulatore %@ (%@) — runtime non più installato" = "Simulator %@ (%@) — runtime no longer installed";
 "Simulatori dello stesso modello" = "Simulators of the same model";
 "Simulatori iOS" = "iOS simulators";
 "Simulazione" = "Simulation";
@@ -740,7 +778,9 @@
 "Solo per il tuo utente" = "Only for your user";
 "Sorgenti Android" = "Android sources";
 "Sorgenti di Python scaricati da pyenv per compilare le versioni installate." = "Python sources downloaded by pyenv to build the installed versions.";
+"Sotto-identificatore" = "Sub-identifier";
 "Space" = "Space";
+"Spazio recuperabile" = "Recoverable space";
 "Specifiche CocoaPods" = "CocoaPods specs";
 "Sposta nel Cestino" = "Move to Trash";
 "Spotify riscarica i brani quando li ascolti. Le playlist scaricate per l'uso offline vanno riscaricate." = "Spotify downloads tracks again when you play them. Playlists downloaded for offline use must be downloaded again.";
@@ -753,6 +793,7 @@
 "Su" = "Up";
 "Sviluppo" = "Development";
 "Svuota il Cestino (%@)" = "Empty the Trash (%@)";
+"TIENI" = "KEEP";
 "Tentativo su percorso protetto" = "Attempt on a protected path";
 "Togli questa cartella dalla ricerca" = "Remove this folder from the search";
 "Togli questa esclusione" = "Remove this exclusion";
@@ -817,6 +858,7 @@
 "`--volumes` non sono implementati di proposito. Per rimuoverne uno, usa il comando " = "`--volumes` option are deliberately not implemented. To remove one, use the Docker ";
 "ad app chiusa la stessa eliminazione riesce" = "with the app closed the same deletion succeeds";
 "aggiornamento disponibile" = "update available";
+"all'avvio" = "at launch";
 "altri elementi" = "other items";
 "altri file" = "other files";
 "altro elemento" = "other item";
@@ -847,6 +889,7 @@
 "cache dyld dei simulatori" = "simulator dyld cache";
 "cache npm" = "npm cache";
 "cache utente" = "user cache";
+"caricato" = "loaded";
 "cartella" = "folder";
 "cartella Applicazioni" = "Applications folder";
 "cartella Documenti" = "Documents folder";
@@ -895,6 +938,7 @@
 "dati di Claude Code" = "Claude Code data";
 "differenza non spiegata" = "unexplained difference";
 "differenze non spiegate" = "unexplained differences";
+"disattivato" = "disabled";
 "dischi esterni e volumi montati" = "external disks and mounted volumes";
 "disco esterno" = "external disk";
 "dispositivo simulato" = "simulated device";
@@ -928,6 +972,8 @@
 "file di prova creato in %@" = "test file created in %@";
 "file di swap" = "swap file";
 "file di swap: eliminarli destabilizza il sistema" = "swap files: deleting them destabilizes the system";
+"file eliminati" = "files deleted";
+"file eliminato" = "file deleted";
 "file in Documenti" = "file in Documents";
 "file scaricato" = "downloaded file";
 "filmato personale" = "personal movie";
@@ -965,11 +1011,13 @@
 "l'elemento viene saltato se l'app richiesta è aperta" = "the item is skipped if the required app is open";
 "l'eliminazione reale riporta esito positivo" = "the real deletion reports success";
 "l'identità viene registrata alla creazione dell'elemento" = "the identity is recorded when the item is created";
+"la cartella" = "the folder";
 "la cartella Documenti è intatta" = "the Documents folder is intact";
 "la simulazione riporta esito positivo" = "the simulation reports success";
 "la storia delle modifiche del volume è stata azzerata" = "the volume's change history was reset";
 "la storia delle modifiche non ha risposto in tempo" = "the change history did not answer in time";
 "launchd non risulta aggiornato per %@: stato invariato." = "launchd does not report an update for %@: state unchanged.";
+"le %lld cartelle" = "the %lld folders";
 "le esclusioni della mappa sono cambiate" = "the map exclusions changed";
 "libreria Foto" = "Photos library";
 "lo scanner esclude file recenti, database, cartelle di sistema e collegamenti" = "the scanner excludes recent files, databases, system folders and links";
@@ -997,6 +1045,7 @@
 "node_modules accanto a package.json" = "node_modules next to package.json";
 "node_modules che è un collegamento simbolico" = "node_modules that is a symbolic link";
 "node_modules senza file di progetto nel padre" = "node_modules without a project file in the parent";
+"non determinabile" = "cannot be determined";
 "non firmato" = "not signed";
 "non installato" = "not installed";
 "non presente" = "not present";
@@ -1026,6 +1075,7 @@
 "radice delle cartelle temporanee di tutti gli utenti" = "root of all users' temporary folders";
 "recuperarla" = "recover it";
 "recuperarle" = "recover them";
+"residui" = "leftovers";
 "residui: app installata e sue estensioni non sono orfane" = "leftovers: an installed app and its extensions are not orphaned";
 "residui: estensione di un'app registrata fuori da /Applications non è orfana" = "leftovers: an extension of an app registered outside /Applications is not orphaned";
 "residui: gruppo condiviso riconosciuto solo nella forma TEAMID.<id>" = "leftovers: shared group recognized only in the TEAMID.<id> form";
@@ -1037,9 +1087,15 @@
 "richiede la password di amministratore" = "requires the administrator password";
 "richiede password" = "requires password";
 "ripristinato" = "restored";
+"riuscite" = "succeeded";
 "runtime di simulatore iOS non usati" = "iOS simulator runtimes";
 "runtime di simulatore iOS non usato" = "iOS simulator runtime";
 "runtime non più installato: dispositivo inutilizzabile" = "runtime no longer installed: device unusable";
+"saltate" = "skipped";
+"salvaschermo" = "screen saver";
+"salvaschermo: %@" = "screen saver: %@";
+"sconosciuta" = "unknown";
+"sconosciuto" = "unknown";
 "selezionata" = "selected";
 "selezionate" = "selected";
 "selezionato da xcode-select" = "selected by xcode-select";
@@ -1077,6 +1133,7 @@
 "voce" = "item";
 "voci" = "items";
 "xcrun non disponibile: Xcode o gli strumenti a riga di comando non sono installati" = "xcrun not available: Xcode or the command-line tools are not installed";
+"«%@»" = "“%@”";
 "· %@ liberabili da macOS (snapshot e cache di sistema)" = "· %@ that macOS can free (snapshots and system caches)";
 "È lo sfondo attivo: macOS lo riscarica subito, quindi non recuperi spazio in modo stabile." = "It is the active wallpaper: macOS downloads it again right away, so you don't recover space for good.";
 "• Mai toccati: libreria Foto, iCloud Drive, portachiavi, Mail, Messaggi, chiavi SSH e GPG, backup dei dispositivi iOS, cartelle di sistema." = "• Never touched: Photos library, iCloud Drive, Keychains, Mail, Messages, SSH and GPG keys, iOS device backups, system folders.";
@@ -1086,5 +1143,8 @@
 "• «Simula» esegue tutti i controlli e mostra il risultato senza toccare il disco." = "• “Simulate” runs every check and shows the result without touching the disk.";
 "• «Sposta nel Cestino» è la modalità predefinita, così ogni operazione è reversibile." = "• “Move to Trash” is the default mode, so every operation can be undone.";
 "… e altri %lld" = "… and %lld more";
+"── %@ — %@, %@" = "── %@ — %@, %@";
+"── %@ — RESIDUI: %@" = "── %@ — LEFTOVERS: %@";
+"── %@ — nascosta: %@" = "── %@ — hidden: %@";
 "✓ Tutti i %lld controlli superati." = "✓ All %lld checks passed.";
 "✗ %lld controlli su %lld NON superati. Non usare questa build." = "✗ %lld of %lld checks FAILED. Do not use this build.";

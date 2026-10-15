@@ -212,7 +212,7 @@ struct AppDetailView: View {
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text("Crea un archivio dei dati prima di eliminarli")
                                         .font(.callout.weight(.medium))
-                                    Text("Salva \(userDataFiles.count == 1 ? "la cartella" : "le \(userDataFiles.count) cartelle") con dati dell'applicazione in un file .zip in ~/Documents/Ammugghia Backup, così puoi \(Plural.word(userDataFiles.count, "recuperarla", "recuperarle")) se ti accorgi di averne bisogno.")
+                                    Text("Salva \(userDataFiles.count == 1 ? String(localized: "la cartella") : String(localized: "le \(userDataFiles.count) cartelle")) con dati dell'applicazione in un file .zip in ~/Documents/Ammugghia Backup, così puoi \(Plural.word(userDataFiles.count, "recuperarla", "recuperarle")) se ti accorgi di averne bisogno.")
                                         .font(.caption).foregroundStyle(.secondary)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }

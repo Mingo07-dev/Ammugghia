@@ -90,7 +90,7 @@ final class AppModel: ObservableObject {
                 self.logLines = engine.log
                 self.history = entries
                 self.historyMessage = errors.isEmpty
-                    ? "\(Plural.of(restored, "elemento ripristinato", "elementi ripristinati")) al loro posto."
+                    ? String(localized: "\(Plural.of(restored, "elemento ripristinato", "elementi ripristinati")) al loro posto.")
                     : errors.joined(separator: "\n")
                 // Le dimensioni misurate non valgono più.
                 self.didScan = false
@@ -129,8 +129,9 @@ final class AppModel: ObservableObject {
             let items = StartupScanner.scan()
             await MainActor.run {
                 let engine = self.engine
-                for command in outcome.commands { engine.record("AVVIO  \(command)") }
-                engine.record("\(outcome.succeeded ? "OK" : "ERRORE") avvio — \(outcome.message)")
+                for command in outcome.commands { engine.record(String(localized: "AVVIO  \(command)")) }
+                engine.record(outcome.succeeded ? String(localized: "OK avvio — \(outcome.message)")
+                                                : String(localized: "ERRORE avvio — \(outcome.message)"))
                 HistoryStore.shared.append([HistoryEntry(
                     date: Date(), kind: .startup, origin: String(localized: "Elementi d'avvio"),
                     title: enabled ? String(localized: "Riattivato: \(item.displayName)")
@@ -384,7 +385,7 @@ final class AppModel: ObservableObject {
                 let (label, categoryID) = step
                 let fraction = Double(offset) / totalSteps
                 await MainActor.run {
-                    self.scanProgress = "Analisi: \(label)…"
+                    self.scanProgress = String(localized: "Analisi: \(label)…")
                     self.scanFraction = fraction
                 }
                 let items = AppModel.scanner(for: categoryID)()
@@ -634,7 +635,7 @@ final class AppModel: ObservableObject {
             text += String(localized: "Conseguenza: \(item.consequence)\n")
             if let w = item.warning { text += String(localized: "Avvertimento: \(w)\n") }
             if !item.action.displayPaths.isEmpty {
-                text += "Percorsi:\n"
+                text += String(localized: "Percorsi:\n")
                 for p in item.action.displayPaths {
                     text += "  • \(p)  (\(ByteFormat.string(item.perPathSize[p] ?? 0)))\n"
                 }

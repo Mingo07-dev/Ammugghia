@@ -21,7 +21,7 @@ enum ToolPresence: Equatable {
     var badge: String? {
         switch self {
         case .installed: return nil
-        case .residual: return "residui"
+        case .residual: return String(localized: "residui")
         case .absent: return String(localized: "non installato")
         }
     }

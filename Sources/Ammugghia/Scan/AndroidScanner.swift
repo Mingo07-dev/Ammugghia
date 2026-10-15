@@ -91,7 +91,7 @@ enum AndroidScanner {
              String(localized: "Nessuna: sono solo diagnostiche già inviate."), .safe),
             (String(localized: "Cache CMake"), sdk + "/.temp",
              String(localized: "File temporanei del SDK Manager."),
-             "Nessuna.", .safe),
+             String(localized: "Nessuna."), .safe),
         ]
         for (title, path, detail, consequence, risk) in sdkExtras {
             if let item = ScanSupport.item(title: title, detail: detail,

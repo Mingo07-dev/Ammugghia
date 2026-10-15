@@ -366,7 +366,7 @@ enum WallpaperScanner {
         let shuffleNote: String = {
             var parts: [String] = []
             if let f = config.desktopShuffle { parts.append("desktop: \(shuffleLabel(f))") }
-            if let f = config.screensaverShuffle { parts.append("salvaschermo: \(shuffleLabel(f))") }
+            if let f = config.screensaverShuffle { parts.append(String(localized: "salvaschermo: \(shuffleLabel(f))")) }
             return parts.isEmpty ? "" : String(localized: " Rotazione impostata su — ") + parts.joined(separator: ", ") + "."
         }()
 
@@ -417,7 +417,7 @@ enum WallpaperScanner {
         if config.desktopUsesAerials || config.screensaverUsesAerials {
             var who: [String] = []
             if config.desktopUsesAerials { who.append(String(localized: "sfondo del desktop")) }
-            if config.screensaverUsesAerials { who.append("salvaschermo") }
+            if config.screensaverUsesAerials { who.append(String(localized: "salvaschermo")) }
             return String(localized: "In uso da: \(who.joined(separator: " e ")). Cancellare i video adesso è inefficace: vanno prima cambiate le impostazioni.")
         }
         return String(localized: "Né lo sfondo né il salvaschermo usano più gli sfondi dinamici: i video scaricati sono eliminabili in sicurezza e non torneranno.")

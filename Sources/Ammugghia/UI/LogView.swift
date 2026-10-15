@@ -24,7 +24,7 @@ struct LogView: View {
                         OutcomeCard(count: succeeded.count, label: "riuscite", color: .green,
                                     detail: ByteFormat.string(model.lastFreed))
                         OutcomeCard(count: skipped.count, label: "saltate", color: .secondary, detail: nil)
-                        OutcomeCard(count: failed.count, label: String(localized: "non riuscite"), color: .red, detail: nil)
+                        OutcomeCard(count: failed.count, label: "non riuscite", color: .red, detail: nil)
                     }
 
                     if !failed.isEmpty {
@@ -94,7 +94,8 @@ struct LogView: View {
 
 struct OutcomeCard: View {
     let count: Int
-    let label: String
+    /// `LocalizedStringKey` per lo stesso motivo di `SectionTitle`.
+    let label: LocalizedStringKey
     let color: Color
     let detail: String?
 

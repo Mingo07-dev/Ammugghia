@@ -385,7 +385,7 @@ enum MatchConfidence: Int, Comparable {
     var label: String {
         switch self {
         case .exact: return String(localized: "Corrispondenza esatta")
-        case .prefix: return "Sotto-identificatore"
+        case .prefix: return String(localized: "Sotto-identificatore")
         case .name: return String(localized: "Corrispondenza sul nome")
         }
     }
