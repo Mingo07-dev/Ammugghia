@@ -35,6 +35,9 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/$APP_NAME"
 cp "$ICON" "$APP/Contents/Resources/AppIcon.icns"
+# Lingue: nelle Resources dell'app, non nel bundle di risorse di SwiftPM, che
+# andrebbe nella radice dell'.app e ne romperebbe la firma.
+cp -R Resources/Localization/*.lproj "$APP/Contents/Resources/"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -46,6 +49,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleExecutable</key>        <string>$APP_NAME</string>
     <key>CFBundleIdentifier</key>        <string>$BUNDLE_ID</string>
     <key>CFBundleIconFile</key>          <string>AppIcon</string>
+    <key>CFBundleDevelopmentRegion</key> <string>it</string>
+    <key>CFBundleLocalizations</key>     <array><string>it</string><string>en</string></array>
     <key>CFBundleShortVersionString</key><string>$VERSION</string>
     <key>CFBundleVersion</key>           <string>$VERSION</string>
     <key>CFBundlePackageType</key>       <string>APPL</string>
