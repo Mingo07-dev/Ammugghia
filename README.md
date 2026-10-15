@@ -19,7 +19,7 @@ and tidy, as in <i>ammugghiari a tovagghia</i>: folding up the tablecloth after 
 ![No network](https://img.shields.io/badge/network-none-success)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**[⬇ Download for macOS](https://github.com/Mingo07-dev/Ammugghia/releases/latest)** · signed and notarized · macOS 14+
+**[⬇ Download for macOS](https://github.com/Mingo07-dev/Ammugghia/releases/latest)** · `brew install --cask mingo07-dev/tap/ammugghia` · signed and notarized · macOS 14+
 
 **English** · [Italiano](README.it.md)
 
@@ -227,9 +227,17 @@ If a single check fails, the build must not be used. CI runs it on every push.
 
 Requires **macOS 14 Sonoma or later**, on Apple silicon or Intel.
 
+### Homebrew
+
+```bash
+brew install --cask mingo07-dev/tap/ammugghia
+```
+
+Update with `brew upgrade --cask ammugghia`.
+
 ### Download
 
-Get the latest `Ammugghia-x.y.z.dmg` from the
+Or get the latest `Ammugghia-x.y.z.dmg` from the
 **[Releases page](https://github.com/Mingo07-dev/Ammugghia/releases/latest)**, open it and drag
 Ammugghia to Applications. The app is signed with a Developer ID and notarized by Apple, so it
 opens with a normal double-click. Each release also lists the DMG's SHA-256 checksum.

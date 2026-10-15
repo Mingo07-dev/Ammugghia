@@ -115,3 +115,6 @@ cat "$DMG.sha256"
 echo
 echo "✓ Pronto: $DMG"
 echo "  Per pubblicarlo: gh release create v$VERSION \"$DMG\" \"$DMG.sha256\" …"
+echo "  Poi, nel tap Homebrew (Mingo07-dev/homebrew-tap, Casks/ammugghia.rb):"
+echo "    version \"$VERSION\""
+echo "    sha256 \"$(cut -d' ' -f1 "$DMG.sha256")\""

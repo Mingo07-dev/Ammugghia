@@ -19,7 +19,7 @@ come in <i>ammugghiari a tovagghia</i>: raccogliere la tovaglia a fine pasto.</s
 ![Nessuna rete](https://img.shields.io/badge/rete-nessuna-success)
 [![Licenza: MIT](https://img.shields.io/badge/licenza-MIT-blue)](LICENSE)
 
-**[⬇ Scarica per macOS](https://github.com/Mingo07-dev/Ammugghia/releases/latest)** · firmata e notarizzata · macOS 14+
+**[⬇ Scarica per macOS](https://github.com/Mingo07-dev/Ammugghia/releases/latest)** · `brew install --cask mingo07-dev/tap/ammugghia` · firmata e notarizzata · macOS 14+
 
 [English](README.md) · **Italiano**
 
@@ -234,9 +234,17 @@ Se un solo controllo non passa, la build non va usata. La CI lo esegue a ogni pu
 
 Richiede **macOS 14 Sonoma o successivo**, su Apple silicon o Intel.
 
+### Homebrew
+
+```bash
+brew install --cask mingo07-dev/tap/ammugghia
+```
+
+Si aggiorna con `brew upgrade --cask ammugghia`.
+
 ### Scaricarla
 
-Scarica l'ultimo `Ammugghia-x.y.z.dmg` dalla
+Oppure scarica l'ultimo `Ammugghia-x.y.z.dmg` dalla
 **[pagina delle Release](https://github.com/Mingo07-dev/Ammugghia/releases/latest)**, aprilo e
 trascina Ammugghia in Applicazioni. L'app è firmata con un Developer ID e notarizzata da Apple,
 quindi si apre con un normale doppio clic. Ogni Release riporta anche l'impronta SHA-256 del DMG.
