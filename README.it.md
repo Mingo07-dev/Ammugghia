@@ -25,6 +25,10 @@ come in <i>ammugghiari a tovagghia</i>: raccogliere la tovaglia a fine pasto.</s
 
 </div>
 
+<p align="center">
+  <img src="docs/images/overview.png" width="780" alt="La panoramica di Ammugghia: spazio libero, spazio recuperabile diviso per rischio e tutte le categorie nella barra laterale">
+</p>
+
 ---
 
 ## Perché
@@ -81,6 +85,17 @@ che cos'è e che cosa succede dopo averlo eliminato, e lascia a te la decisione.
 | **Sfondi dinamici** | Video 4K degli sfondi animati. Ammugghia legge **prima** la configurazione: se la rotazione è ancora attiva, avvisa che macOS li riscaricherebbe |
 | **Docker** | Immagini non usate, container fermi, cache di build. **I volumi sono mostrati in sola lettura e non vengono mai eliminati** |
 | **File grandi** | Elenco dei file più grandi nelle cartelle personali. Si possono solo mostrare nel Finder: Ammugghia non li elimina mai |
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/uninstall.png" alt="Disinstalla app: ogni app installata con dimensione e identificatore"></td>
+    <td width="50%"><img src="docs/images/startup-items.png" alt="Elementi d'avvio: app, firma, stato e un interruttore reversibile"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Disinstallazione completa</sub></td>
+    <td align="center"><sub>Elementi d'avvio, con firma e stato</sub></td>
+  </tr>
+</table>
 
 ## Mappa del disco
 
@@ -144,6 +159,19 @@ solo contati e non vengono mai toccati.
 ```bash
 Ammugghia --startup   # elenca gli elementi d'avvio, non modifica nulla
 ```
+
+## Confronto con le alternative
+
+Per parti di questo lavoro esistono buoni strumenti. Ammugghia si concentra sui posti dove un
+Mac da sviluppo nasconde lo spazio, e spiega ogni eliminazione prima di farla.
+
+| | Obiettivo | Prezzo | Open source |
+|---|---|---|---|
+| **Ammugghia** | Cache e residui dello sviluppo, con una pulizia spiegata che nel dubbio rifiuta; mappa del disco; duplicati; elementi d'avvio | Gratis | Sì (MIT) |
+| [DevCleaner for Xcode](https://github.com/vashpan/xcode-dev-cleaner) | Cache di Xcode, simboli dei dispositivi, archivi, simulatori | Gratis | Sì |
+| [GrandPerspective](https://grandperspectiv.sourceforge.net) · [OmniDiskSweeper](https://www.omnigroup.com/more) · [DaisyDisk](https://daisydiskapp.com) | Vedere dove va lo spazio; cosa eliminare lo decidi tu | Gratis · Gratis · A pagamento | Solo GrandPerspective |
+| [CleanMyMac](https://macpaw.com/cleanmymac) | Pulizia e manutenzione generale del Mac | Abbonamento | No |
+| [MangoDisk](https://github.com/harry0703/MangoDisk) | Pulizia multipiattaforma con cataloghi di regole e funzioni online facoltative | Gratis | Sì |
 
 ## Il modello di sicurezza
 
@@ -302,13 +330,13 @@ mantenere e si modifica cambiando qualche coordinata.
 
 ## Prossimi passi
 
-- [x] Verifica dell'identità di ogni file (dispositivo + inode) fra analisi ed eliminazione
-- [x] Cache delle app Electron (Slack, Discord, VS Code, Teams…) e altri gestori di pacchetti
-- [x] Residui di app già disinstallate e modelli AI locali (Ollama, Hugging Face, LM Studio)
-- [x] Mappa del disco (treemap) con indice incrementale basato su FSEvents
-- [x] File duplicati per contenuto (solo «Mostra nel Finder»)
-- [x] Elementi d'avvio: elenco, disattivazione e riattivazione
-- [x] Cronologia delle pulizie con ripristino dal Cestino, ed esclusioni personalizzate
+- [x] Controllo dell'identità dei file, cache delle app Electron, residui di app e modelli AI,
+  mappa del disco con indice incrementale, duplicati, elementi d'avvio, cronologia ed
+  esclusioni, interfaccia in inglese, release firmate e notarizzate, tap Homebrew
+- [ ] Cask ufficiale di Homebrew, quando il progetto avrà i requisiti
+- [ ] Altre aree da pulire: proponile in una
+  [issue](https://github.com/Mingo07-dev/Ammugghia/issues/new/choose), con il percorso esatto e
+  cosa succede dopo averle eliminate
 
 ## Contribuire
 

@@ -25,6 +25,10 @@ and tidy, as in <i>ammugghiari a tovagghia</i>: folding up the tablecloth after 
 
 </div>
 
+<p align="center">
+  <img src="docs/images/overview.png" width="780" alt="Ammugghia's overview: free space, recoverable space split by risk, and every category in the sidebar">
+</p>
+
 ---
 
 ## Why
@@ -79,6 +83,17 @@ each item is and what happens after it is gone, and then lets you decide.
 | **Dynamic wallpapers** | 4K Aerial videos. Ammugghia reads your wallpaper configuration **first**: if rotation is still on, it warns you that macOS will download them again |
 | **Docker** | Unused images, stopped containers, build cache. **Volumes are shown read-only and never deleted** |
 | **Large files** | List of the largest files in your personal folders. You can only reveal them in Finder; Ammugghia never deletes them |
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/uninstall.png" alt="Uninstall apps: every installed app with its size and bundle identifier"></td>
+    <td width="50%"><img src="docs/images/startup-items.png" alt="Startup items: owner app, signer, state, and a reversible switch"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Complete uninstaller</sub></td>
+    <td align="center"><sub>Startup items, with signer and state</sub></td>
+  </tr>
+</table>
 
 ## Disk map
 
@@ -140,6 +155,19 @@ by count only and are never touched.
 ```bash
 Ammugghia --startup   # list startup items; changes nothing
 ```
+
+## How it compares
+
+There are good tools for parts of this job. Ammugghia's angle is to cover the places where a
+developer Mac hides its space, and to explain every deletion before it happens.
+
+| | Focus | Price | Open source |
+|---|---|---|---|
+| **Ammugghia** | Developer caches and leftovers, with an explained, refuse-when-in-doubt cleanup; disk map; duplicates; startup items | Free | Yes (MIT) |
+| [DevCleaner for Xcode](https://github.com/vashpan/xcode-dev-cleaner) | Xcode caches, device support files, archives, simulators | Free | Yes |
+| [GrandPerspective](https://grandperspectiv.sourceforge.net) · [OmniDiskSweeper](https://www.omnigroup.com/more) · [DaisyDisk](https://daisydiskapp.com) | Seeing where space goes; you decide what to delete | Free · Free · Paid | GrandPerspective only |
+| [CleanMyMac](https://macpaw.com/cleanmymac) | General-purpose Mac cleanup and maintenance | Subscription | No |
+| [MangoDisk](https://github.com/harry0703/MangoDisk) | Cross-platform cleaner with rule catalogs and optional online features | Free | Yes |
 
 ## Safety model
 
@@ -294,13 +322,13 @@ coordinates.
 
 ## Roadmap
 
-- [x] Verify each file's identity (device + inode) between scan and deletion
-- [x] Caches of Electron apps (Slack, Discord, VS Code, Teams…) and more package managers
-- [x] Leftovers of apps that are already uninstalled, and local AI models (Ollama, Hugging Face, LM Studio)
-- [x] Disk map (treemap) with an incremental index based on FSEvents
-- [x] Duplicate files by content (reveal only)
-- [x] Startup items: list, disable and re-enable
-- [x] Cleanup history with restore from Trash, and user-defined exclusions
+- [x] Identity checks, Electron app caches, app leftovers and AI models, disk map with an
+  incremental index, duplicates, startup items, history and exclusions, English UI,
+  signed and notarized releases, Homebrew tap
+- [ ] Official Homebrew cask, once the project qualifies
+- [ ] More cleanup targets: suggest one in an
+  [issue](https://github.com/Mingo07-dev/Ammugghia/issues/new/choose), with its exact path and
+  what happens after it is deleted
 
 ## Contributing
 
