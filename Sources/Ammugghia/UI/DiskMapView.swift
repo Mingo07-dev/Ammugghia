@@ -63,7 +63,7 @@ struct DiskMapView: View {
                 Text("Mappa del disco").font(.title2.bold())
                 Text(model.isIndexing
                      ? model.indexProgress
-                     : (model.indexStatus ?? "Lettura dell'indice…"))
+                     : (model.indexStatus ?? String(localized: "Lettura dell'indice…")))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -89,7 +89,7 @@ struct DiskMapView: View {
         VStack(spacing: 10) {
             Spacer()
             ProgressView()
-            Text(model.indexProgress.isEmpty ? "Lettura del disco…" : model.indexProgress)
+            Text(model.indexProgress.isEmpty ? String(localized: "Lettura del disco…") : model.indexProgress)
                 .font(.callout.monospacedDigit())
             Text("La prima lettura richiede qualche decina di secondi. Le successive rileggono solo le cartelle cambiate.")
                 .font(.caption)
@@ -103,7 +103,7 @@ struct DiskMapView: View {
         VStack(spacing: 10) {
             Spacer()
             Image(systemName: "square.grid.3x3.square").font(.largeTitle).foregroundStyle(.secondary)
-            Text(path == nil ? "La mappa non è ancora stata creata." : "Cartella vuota o non più presente.")
+            Text(path == nil ? String(localized: "La mappa non è ancora stata creata.") : String(localized: "Cartella vuota o non più presente."))
             if path == nil {
                 Button("Crea la mappa") { model.refreshIndex() }
             } else {
@@ -173,7 +173,7 @@ struct DiskMapView: View {
         guard let root = DiskIndexStore.shared.roots.first(where: { path == $0 || path.hasPrefix($0 + "/") }) else {
             return [(path, path)]
         }
-        var result = [(root == ScanSupport.home ? "Cartella utente" : root, root)]
+        var result = [(root == ScanSupport.home ? String(localized: "Cartella utente") : root, root)]
         var partial = root
         for component in path.dropFirst(root.count).split(separator: "/") {
             partial += "/" + component
@@ -337,12 +337,12 @@ enum MapPalette {
 
         var label: String {
             switch self {
-            case .development: return "Sviluppo"
-            case .documents: return "Documenti"
-            case .media: return "Foto, musica, video"
-            case .apps: return "Applicazioni"
-            case .system: return "Librerie e sistema"
-            case .other: return "Altro"
+            case .development: return String(localized: "Sviluppo")
+            case .documents: return String(localized: "Documenti")
+            case .media: return String(localized: "Foto, musica, video")
+            case .apps: return String(localized: "Applicazioni")
+            case .system: return String(localized: "Librerie e sistema")
+            case .other: return String(localized: "Altro")
             }
         }
 

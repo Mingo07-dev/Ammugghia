@@ -16,9 +16,9 @@ struct StartupItem: Identifiable, Hashable {
 
         var label: String {
             switch self {
-            case .userAgent: return "Agente dell'utente"
-            case .globalAgent: return "Agente per tutti gli utenti"
-            case .daemon: return "Servizio di sistema"
+            case .userAgent: return String(localized: "Agente dell'utente")
+            case .globalAgent: return String(localized: "Agente per tutti gli utenti")
+            case .daemon: return String(localized: "Servizio di sistema")
             }
         }
 
@@ -178,7 +178,7 @@ enum StartupScanner {
         for line in text.split(separator: "\n") where line.hasPrefix("Authority=") {
             return String(line.dropFirst("Authority=".count))
         }
-        return text.contains("not signed") ? "non firmato" : nil
+        return text.contains("not signed") ? String(localized: "non firmato") : nil
     }
 }
 
@@ -208,12 +208,12 @@ enum StartupGuard {
 
         var errorDescription: String? {
             switch self {
-            case .apple(let l): return "Servizio di macOS, non modificabile: \(l)"
-            case .invalidLabel(let l): return "Etichetta del servizio non valida, rifiutata: \(l)"
-            case .wrongLocation(let p): return "Il file del servizio non è in una cartella di avvio consentita: \(p)"
-            case .unreadable(let p): return "Il file del servizio non è leggibile: \(p)"
-            case .labelMismatch(let a, let b): return "Il file dichiara un servizio diverso (\(b)) da quello richiesto (\(a))"
-            case .symlink(let p): return "Il file del servizio è un collegamento, rifiutato: \(p)"
+            case .apple(let l): return String(localized: "Servizio di macOS, non modificabile: \(l)")
+            case .invalidLabel(let l): return String(localized: "Etichetta del servizio non valida, rifiutata: \(l)")
+            case .wrongLocation(let p): return String(localized: "Il file del servizio non è in una cartella di avvio consentita: \(p)")
+            case .unreadable(let p): return String(localized: "Il file del servizio non è leggibile: \(p)")
+            case .labelMismatch(let a, let b): return String(localized: "Il file dichiara un servizio diverso (\(b)) da quello richiesto (\(a))")
+            case .symlink(let p): return String(localized: "Il file del servizio è un collegamento, rifiutato: \(p)")
             }
         }
     }
@@ -278,7 +278,7 @@ enum StartupController {
             let command = script[0] + "; " + script[1] + " || true"
             let r = Shell.runAsAdmin(command)
             if !r.ok && r.stderr.contains("-128") {
-                return Outcome(succeeded: false, message: "Annullato: password non inserita.", commands: printable)
+                return Outcome(succeeded: false, message: String(localized: "Annullato: password non inserita."), commands: printable)
             }
         } else {
             _ = Shell.run("/bin/launchctl", steps[0], timeout: 20)
@@ -293,7 +293,7 @@ enum StartupController {
             succeeded: ok,
             message: ok
                 ? (enable ? "Riattivato: \(item.label)" : "Disattivato: \(item.label)")
-                : "launchd non risulta aggiornato per \(item.label): stato invariato.",
+                : String(localized: "launchd non risulta aggiornato per \(item.label): stato invariato."),
             commands: printable)
     }
 }

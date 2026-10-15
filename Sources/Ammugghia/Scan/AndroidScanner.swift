@@ -29,9 +29,9 @@ enum AndroidScanner {
                 let size = sizes[v] ?? 0
                 guard size >= 10_000_000 else { continue }
                 items.append(CleanupItem(
-                    title: "NDK Android \((v as NSString).lastPathComponent)",
-                    detail: "Toolchain per compilare codice nativo C/C++ in un progetto Android. Flutter e React Native, senza plugin nativi, non la usano.",
-                    consequence: "Se un progetto richiede il NDK, Gradle interrompe la compilazione chiedendo di reinstallarlo dal SDK Manager (qualche GB di download).",
+                    title: String(localized: "NDK Android \((v as NSString).lastPathComponent)"),
+                    detail: String(localized: "Toolchain per compilare codice nativo C/C++ in un progetto Android. Flutter e React Native, senza plugin nativi, non la usano."),
+                    consequence: String(localized: "Se un progetto richiede il NDK, Gradle interrompe la compilazione chiedendo di reinstallarlo dal SDK Manager (qualche GB di download)."),
                     action: .removePaths([v]), risk: .redownload, size: size,
                     perPathSize: [v: size], lastUsed: ScanSupport.modificationDate(v)))
             }
@@ -49,9 +49,9 @@ enum AndroidScanner {
                     let apiName = (api as NSString).lastPathComponent
                     let variantName = (variant as NSString).lastPathComponent
                     items.append(CleanupItem(
-                        title: "Immagine di sistema \(apiName) / \(variantName)",
-                        detail: "Immagine del sistema Android usata dagli emulatori con \(apiName) (\(variantName)).",
-                        consequence: "Gli emulatori basati su questa immagine non si avviano più finché non la riscarichi dal SDK Manager.",
+                        title: String(localized: "Immagine di sistema \(apiName) / \(variantName)"),
+                        detail: String(localized: "Immagine del sistema Android usata dagli emulatori con \(apiName) (\(variantName))."),
+                        consequence: String(localized: "Gli emulatori basati su questa immagine non si avviano più finché non la riscarichi dal SDK Manager."),
                         action: .removePaths([variant]), risk: .redownload, size: size,
                         perPathSize: [variant: size],
                         lastUsed: ScanSupport.modificationDate(variant)))
@@ -71,8 +71,8 @@ enum AndroidScanner {
                     .replacingOccurrences(of: ".avd", with: "")
                 items.append(CleanupItem(
                     title: "Emulatore «\(name)»",
-                    detail: "Disco virtuale dell'emulatore Android: app installate, dati delle app e stato del dispositivo.",
-                    consequence: "L'emulatore va ricreato da Android Studio e le app di test reinstallate. Se ci sono dati di test che ti servono, perderli è irreversibile.",
+                    detail: String(localized: "Disco virtuale dell'emulatore Android: app installate, dati delle app e stato del dispositivo."),
+                    consequence: String(localized: "L'emulatore va ricreato da Android Studio e le app di test reinstallate. Se ci sono dati di test che ti servono, perderli è irreversibile."),
                     action: .removePaths([avd]), risk: .userData, size: size,
                     perPathSize: [avd: size], lastUsed: ScanSupport.modificationDate(avd)))
             }
@@ -80,17 +80,17 @@ enum AndroidScanner {
 
         // SDK: componenti secondari e cache.
         let sdkExtras: [(String, String, String, String, RiskLevel)] = [
-            ("Sorgenti Android", sdk + "/sources",
-             "Codice sorgente del framework Android, usato solo per la navigazione nel debugger.",
-             "Il debugger mostra il bytecode invece del sorgente. Riscaricabile dal SDK Manager.", .redownload),
-            ("Cache dell'emulatore", home + "/.android/cache",
-             "File temporanei dell'emulatore Android.",
-             "Si rigenera al prossimo avvio dell'emulatore.", .safe),
-            ("Crash dell'emulatore", home + "/.android/breakpad",
-             "Report di crash dell'emulatore Android.",
-             "Nessuna: sono solo diagnostiche già inviate.", .safe),
-            ("Cache CMake", sdk + "/.temp",
-             "File temporanei del SDK Manager.",
+            (String(localized: "Sorgenti Android"), sdk + "/sources",
+             String(localized: "Codice sorgente del framework Android, usato solo per la navigazione nel debugger."),
+             String(localized: "Il debugger mostra il bytecode invece del sorgente. Riscaricabile dal SDK Manager."), .redownload),
+            (String(localized: "Cache dell'emulatore"), home + "/.android/cache",
+             String(localized: "File temporanei dell'emulatore Android."),
+             String(localized: "Si rigenera al prossimo avvio dell'emulatore."), .safe),
+            (String(localized: "Crash dell'emulatore"), home + "/.android/breakpad",
+             String(localized: "Report di crash dell'emulatore Android."),
+             String(localized: "Nessuna: sono solo diagnostiche già inviate."), .safe),
+            (String(localized: "Cache CMake"), sdk + "/.temp",
+             String(localized: "File temporanei del SDK Manager."),
              "Nessuna.", .safe),
         ]
         for (title, path, detail, consequence, risk) in sdkExtras {
@@ -103,24 +103,24 @@ enum AndroidScanner {
         // Gradle.
         let gradle = home + "/.gradle"
         if let item = ScanSupport.item(
-            title: "Cache Gradle",
-            detail: "Dipendenze scaricate, cache di build e artefatti trasformati di tutti i progetti Android.",
-            consequence: "La prima compilazione di ogni progetto riscarica le dipendenze da Maven Central: qualche minuto e parecchia banda.",
+            title: String(localized: "Cache Gradle"),
+            detail: String(localized: "Dipendenze scaricate, cache di build e artefatti trasformati di tutti i progetti Android."),
+            consequence: String(localized: "La prima compilazione di ogni progetto riscarica le dipendenze da Maven Central: qualche minuto e parecchia banda."),
             path: gradle + "/caches", risk: .redownload) {
             items.append(item)
         }
         if let item = ScanSupport.item(
-            title: "Daemon Gradle",
-            detail: "Log e registri dei processi Gradle in background.",
-            consequence: "Nessuna: vengono ricreati al prossimo build.",
+            title: String(localized: "Daemon Gradle"),
+            detail: String(localized: "Log e registri dei processi Gradle in background."),
+            consequence: String(localized: "Nessuna: vengono ricreati al prossimo build."),
             path: gradle + "/daemon", risk: .safe) {
             items.append(item)
         }
 
         if let item = ScanSupport.item(
-            title: "File temporanei di Gradle",
-            detail: "Processi di lavoro, notifiche e file temporanei lasciati da Gradle e dal compilatore Kotlin.",
-            consequence: "Nessuna: vengono ricreati al prossimo build.",
+            title: String(localized: "File temporanei di Gradle"),
+            detail: String(localized: "Processi di lavoro, notifiche e file temporanei lasciati da Gradle e dal compilatore Kotlin."),
+            consequence: String(localized: "Nessuna: vengono ricreati al prossimo build."),
             paths: ["workers", "notifications", ".tmp", "kotlin-profile"].map { gradle + "/" + $0 },
             risk: .safe) {
             items.append(item)
@@ -132,9 +132,9 @@ enum AndroidScanner {
         if ScanSupport.isDirectory(dists) {
             let versions = ScanSupport.children(of: dists)
             if versions.count > 1, let item = ScanSupport.item(
-                title: "Distribuzioni Gradle (\(versions.count) versioni)",
-                detail: "Copie complete di Gradle scaricate dai wrapper dei progetti, una per versione richiesta.",
-                consequence: "Il wrapper riscarica la distribuzione al primo build del progetto che la richiede (~150 MB per versione).",
+                title: String(localized: "Distribuzioni Gradle (\(versions.count) versioni)"),
+                detail: String(localized: "Copie complete di Gradle scaricate dai wrapper dei progetti, una per versione richiesta."),
+                consequence: String(localized: "Il wrapper riscarica la distribuzione al primo build del progetto che la richiede (~150 MB per versione)."),
                 path: dists, risk: .redownload) {
                 items.append(item)
             }

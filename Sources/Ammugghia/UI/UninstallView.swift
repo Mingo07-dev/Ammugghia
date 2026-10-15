@@ -110,7 +110,7 @@ struct AppListRow: View {
                         Image(systemName: "lock.fill").font(.caption2).foregroundStyle(.secondary)
                     }
                 }
-                Text(app.bundleID.isEmpty ? "senza identificatore" : app.bundleID)
+                Text(app.bundleID.isEmpty ? String(localized: "senza identificatore") : app.bundleID)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1).truncationMode(.middle)
@@ -287,7 +287,7 @@ struct AppDetailView: View {
                     VStack(alignment: .leading, spacing: 7) {
                         HStack {
                             SectionTitle("File collegati (\(app.related.count))",
-                                         subtitle: "Deseleziona qualsiasi voce che non vuoi rimuovere")
+                                         subtitle: String(localized: "Deseleziona qualsiasi voce che non vuoi rimuovere"))
                             Spacer()
                             Button("Tutti") {
                                 for f in app.related { f.isSelected = true }
@@ -302,9 +302,9 @@ struct AppDetailView: View {
                         if !lowConfidence.isEmpty {
                             HStack(alignment: .top, spacing: 7) {
                                 Image(systemName: "questionmark.circle.fill").foregroundStyle(.orange)
-                                Text(lowConfidence.count == 1
-                                     ? "Una voce è stata trovata confrontando il **nome** dell'app invece dell'identificatore di bundle. Potrebbe appartenere a un altro programma: non è preselezionata, controllala."
-                                     : "\(lowConfidence.count) voci sono state trovate confrontando il **nome** dell'app invece dell'identificatore di bundle. Potrebbero appartenere a un altro programma: non sono preselezionate, controllale una per una.")
+                                Text(markdown: lowConfidence.count == 1
+                                     ? String(localized: "Una voce è stata trovata confrontando il **nome** dell'app invece dell'identificatore di bundle. Potrebbe appartenere a un altro programma: non è preselezionata, controllala.")
+                                     : String(localized: "\(lowConfidence.count) voci sono state trovate confrontando il **nome** dell'app invece dell'identificatore di bundle. Potrebbero appartenere a un altro programma: non sono preselezionate, controllale una per una."))
                                     .font(.caption).fixedSize(horizontal: false, vertical: true)
                             }
                             .padding(10)

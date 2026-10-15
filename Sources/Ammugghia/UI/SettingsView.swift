@@ -87,7 +87,7 @@ struct ExclusionsSettings: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = true
         panel.allowsMultipleSelection = true
-        panel.prompt = "Escludi"
+        panel.prompt = String(localized: "Escludi")
         guard panel.runModal() == .OK else { return }
         for url in panel.urls where !model.exclusionRules.contains(where: { $0.expandedPath == url.path }) {
             model.exclusionRules.append(ExclusionRule(pattern: url.path))

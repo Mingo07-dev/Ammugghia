@@ -26,29 +26,29 @@ enum PathGuard {
         var errorDescription: String? {
             switch self {
             case .notAbsolute(let p):
-                return "Percorso non assoluto, rifiutato: \(p)"
+                return String(localized: "Percorso non assoluto, rifiutato: \(p)")
             case .tooShallow(let p):
-                return "Percorso troppo vicino alla radice del disco, rifiutato: \(p)"
+                return String(localized: "Percorso troppo vicino alla radice del disco, rifiutato: \(p)")
             case .doesNotExist(let p):
-                return "Il percorso non esiste (già eliminato?): \(p)"
+                return String(localized: "Il percorso non esiste (già eliminato?): \(p)")
             case .isProtected(let p, let why):
-                return "Percorso protetto, rifiutato: \(p) — \(why)"
+                return String(localized: "Percorso protetto, rifiutato: \(p) — \(why)")
             case .outsideAllowlist(let p):
-                return "Percorso fuori dalle aree che questo software può toccare: \(p)"
+                return String(localized: "Percorso fuori dalle aree che questo software può toccare: \(p)")
             case .symlinkEscape(let p, let target):
-                return "Il percorso è un collegamento che punta fuori dall'area consentita: \(p) → \(target)"
+                return String(localized: "Il percorso è un collegamento che punta fuori dall'area consentita: \(p) → \(target)")
             case .notAnApp(let p):
-                return "Non è un bundle applicazione in una cartella Applicazioni: \(p)"
+                return String(localized: "Non è un bundle applicazione in una cartella Applicazioni: \(p)")
             case .notAProjectArtifact(let p):
-                return "Non è una cartella di artefatti di build riconosciuta: \(p)"
+                return String(localized: "Non è una cartella di artefatti di build riconosciuta: \(p)")
             case .rootOrHome(let p):
-                return "Rifiuto di eliminare una cartella radice o la cartella utente: \(p)"
+                return String(localized: "Rifiuto di eliminare una cartella radice o la cartella utente: \(p)")
             case .identityChanged(let p):
-                return "Il percorso è cambiato dopo l'analisi (non è più lo stesso file o cartella): \(p). Rianalizza prima di eliminare."
+                return String(localized: "Il percorso è cambiato dopo l'analisi (non è più lo stesso file o cartella): \(p). Rianalizza prima di eliminare.")
             case .notEligibleTemporary(let p, let why):
-                return "File temporaneo non eliminabile: \(p) — \(why)"
+                return String(localized: "File temporaneo non eliminabile: \(p) — \(why)")
             case .containsMountPoint(let p, let mount):
-                return "Il percorso contiene un volume montato, rifiutato: \(p) → \(mount)"
+                return String(localized: "Il percorso contiene un volume montato, rifiutato: \(p) → \(mount)")
             }
         }
     }
@@ -61,38 +61,38 @@ enum PathGuard {
     /// toccare questi percorsi. Non esistono eccezioni oltre a
     /// `explicitExceptions`.
     static let absoluteProtected: [(path: String, reason: String)] = [
-        (home + "/Pictures", "cartella Immagini (include la libreria Foto)"),
-        (home + "/Music", "cartella Musica"),
-        (home + "/Public", "cartella Pubblica"),
-        (home + "/Library/Mobile Documents", "iCloud Drive"),
-        (home + "/Library/CloudStorage", "cartelle sincronizzate su cloud"),
-        (home + "/Library/Keychains", "portachiavi e credenziali"),
-        (home + "/Library/Messages", "cronologia Messaggi"),
-        (home + "/Library/Mail", "archivio Mail"),
-        (home + "/Library/Photos", "libreria Foto"),
+        (home + "/Pictures", String(localized: "cartella Immagini (include la libreria Foto)")),
+        (home + "/Music", String(localized: "cartella Musica")),
+        (home + "/Public", String(localized: "cartella Pubblica")),
+        (home + "/Library/Mobile Documents", String(localized: "iCloud Drive")),
+        (home + "/Library/CloudStorage", String(localized: "cartelle sincronizzate su cloud")),
+        (home + "/Library/Keychains", String(localized: "portachiavi e credenziali")),
+        (home + "/Library/Messages", String(localized: "cronologia Messaggi")),
+        (home + "/Library/Mail", String(localized: "archivio Mail")),
+        (home + "/Library/Photos", String(localized: "libreria Foto")),
         (home + "/Library/Application Support/AddressBook", "Contatti"),
         (home + "/Library/Calendars", "Calendario"),
         (home + "/Library/Reminders", "Promemoria"),
-        (home + "/Library/Safari", "cronologia e segnalibri Safari"),
-        (home + "/Library/Application Support/MobileSync", "backup dei dispositivi iOS"),
-        (home + "/.ssh", "chiavi SSH"),
-        (home + "/.gnupg", "chiavi GPG"),
-        (home + "/.aws", "credenziali AWS"),
-        (home + "/.kube", "configurazione Kubernetes"),
-        (home + "/.config", "file di configurazione"),
-        (home + "/.docker/config.json", "credenziali dei registry Docker"),
-        (home + "/.claude", "configurazione e cronologia di Claude Code"),
-        ("/System", "sistema operativo"),
-        ("/usr", "componenti di sistema"),
-        ("/bin", "componenti di sistema"),
-        ("/sbin", "componenti di sistema"),
-        ("/etc", "configurazione di sistema"),
-        ("/private/etc", "configurazione di sistema"),
-        ("/private/var/db", "database di sistema"),
-        ("/private/var/vm", "file di swap: eliminarli destabilizza il sistema"),
-        ("/Volumes", "dischi esterni e volumi montati"),
-        ("/Users/Shared", "cartella condivisa tra utenti"),
-        ("/Library/Keychains", "portachiavi di sistema"),
+        (home + "/Library/Safari", String(localized: "cronologia e segnalibri Safari")),
+        (home + "/Library/Application Support/MobileSync", String(localized: "backup dei dispositivi iOS")),
+        (home + "/.ssh", String(localized: "chiavi SSH")),
+        (home + "/.gnupg", String(localized: "chiavi GPG")),
+        (home + "/.aws", String(localized: "credenziali AWS")),
+        (home + "/.kube", String(localized: "configurazione Kubernetes")),
+        (home + "/.config", String(localized: "file di configurazione")),
+        (home + "/.docker/config.json", String(localized: "credenziali dei registry Docker")),
+        (home + "/.claude", String(localized: "configurazione e cronologia di Claude Code")),
+        ("/System", String(localized: "sistema operativo")),
+        ("/usr", String(localized: "componenti di sistema")),
+        ("/bin", String(localized: "componenti di sistema")),
+        ("/sbin", String(localized: "componenti di sistema")),
+        ("/etc", String(localized: "configurazione di sistema")),
+        ("/private/etc", String(localized: "configurazione di sistema")),
+        ("/private/var/db", String(localized: "database di sistema")),
+        ("/private/var/vm", String(localized: "file di swap: eliminarli destabilizza il sistema")),
+        ("/Volumes", String(localized: "dischi esterni e volumi montati")),
+        ("/Users/Shared", String(localized: "cartella condivisa tra utenti")),
+        ("/Library/Keychains", String(localized: "portachiavi di sistema")),
     ]
 
     /// Protezione di secondo livello: le cartelle dei documenti dell'utente.
@@ -103,10 +103,10 @@ enum PathGuard {
     /// Scrivania: senza questa distinzione i loro `node_modules` sarebbero
     /// irraggiungibili.
     static let documentAreas: [(path: String, reason: String)] = [
-        (home + "/Documents", "cartella Documenti"),
+        (home + "/Documents", String(localized: "cartella Documenti")),
         (home + "/Desktop", "Scrivania"),
         (home + "/Downloads", "Download"),
-        (home + "/Movies", "cartella Filmati"),
+        (home + "/Movies", String(localized: "cartella Filmati")),
     ]
 
     static var protectedPrefixes: [(path: String, reason: String)] {
@@ -274,27 +274,27 @@ enum PathGuard {
         }
         let relative = path.dropFirst(root.count + 1).split(separator: "/").map(String.init)
         if relative.dropLast().contains(where: isExcludedTemporaryComponent) {
-            throw Violation.notEligibleTemporary(path, "cartella di sistema esclusa")
+            throw Violation.notEligibleTemporary(path, String(localized: "cartella di sistema esclusa"))
         }
         if ageGatedExcludedExtensions.contains((path as NSString).pathExtension.lowercased()) {
-            throw Violation.notEligibleTemporary(path, "database, preferenze o file di blocco: esclusi")
+            throw Violation.notEligibleTemporary(path, String(localized: "database, preferenze o file di blocco: esclusi"))
         }
         if let hit = absoluteHit(path) { throw Violation.isProtected(path, hit.reason) }
 
         var info = stat()
         guard lstat(path, &info) == 0 else { throw Violation.doesNotExist(path) }
         guard info.st_mode & S_IFMT == S_IFREG else {
-            throw Violation.notEligibleTemporary(path, "non è un file normale")
+            throw Violation.notEligibleTemporary(path, String(localized: "non è un file normale"))
         }
         var rootInfo = stat()
         guard lstat(root, &rootInfo) == 0, rootInfo.st_dev == info.st_dev else {
-            throw Violation.notEligibleTemporary(path, "su un volume diverso")
+            throw Violation.notEligibleTemporary(path, String(localized: "su un volume diverso"))
         }
         let limit = now.timeIntervalSince1970 - Double(days) * 86_400
         let modified = Double(info.st_mtimespec.tv_sec)
         let accessed = Double(info.st_atimespec.tv_sec)
         guard modified < limit, accessed < limit else {
-            throw Violation.notEligibleTemporary(path, "usato negli ultimi \(days) giorni")
+            throw Violation.notEligibleTemporary(path, String(localized: "usato negli ultimi \(days) giorni"))
         }
         try validateIdentity(path, expected: expected)
     }
@@ -455,7 +455,7 @@ enum PathGuard {
             if path == entry.path || path.hasPrefix(entry.path + "/") { return entry }
         }
         if let dot = homeDotComponent(path), deniedHomeDotDirectories.contains(dot) {
-            return (path, "area riservata della cartella utente (\(dot))")
+            return (path, String(localized: "area riservata della cartella utente (\(dot))"))
         }
         return nil
     }
@@ -533,25 +533,32 @@ enum PathGuard {
 
     /// Verifica preventiva usata dall'interfaccia per marcare gli elementi
     /// non eliminabili *prima* che l'utente li selezioni.
-    static func preflight(_ item: CleanupItem) -> [String] {
+    /// - Parameter ignoringMissing: un percorso già assente non è un problema
+    ///   di sicurezza ma lavoro già fatto. Il criterio è il *tipo* di errore,
+    ///   mai il testo del messaggio, che cambia con la lingua.
+    static func preflight(_ item: CleanupItem, ignoringMissing: Bool = false) -> [String] {
         var problems: [String] = []
+        func record(_ error: Error) {
+            if ignoringMissing, case Violation.doesNotExist = error { return }
+            problems.append(error.localizedDescription)
+        }
         switch item.action {
         case .removePaths(let paths):
             for p in paths {
-                do { try validate(p, expected: item.identities[p]) } catch { problems.append(error.localizedDescription) }
+                do { try validate(p, expected: item.identities[p]) } catch { record(error) }
             }
         case .removeProjectArtifacts(let paths):
             for p in paths {
-                do { try validateProjectArtifact(p, expected: item.identities[p]) } catch { problems.append(error.localizedDescription) }
+                do { try validateProjectArtifact(p, expected: item.identities[p]) } catch { record(error) }
             }
         case .removeApp(let app, let related):
-            do { try validateApp(app, expected: item.identities[app]) } catch { problems.append(error.localizedDescription) }
+            do { try validateApp(app, expected: item.identities[app]) } catch { record(error) }
             for p in related {
-                do { try validate(p, expected: item.identities[p]) } catch { problems.append(error.localizedDescription) }
+                do { try validate(p, expected: item.identities[p]) } catch { record(error) }
             }
         case .privileged(_, let paths):
             for p in paths {
-                do { try validate(p, expected: item.identities[p]) } catch { problems.append(error.localizedDescription) }
+                do { try validate(p, expected: item.identities[p]) } catch { record(error) }
             }
         case .removeAgedFiles(let root, _, _):
             if !ageGatedRoots.contains(realPath(root) ?? root) {

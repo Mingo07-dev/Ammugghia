@@ -15,15 +15,15 @@ enum AIModelScanner {
         items += ollamaModels()
         items += huggingFaceItems()
         items += lmStudioItems()
-        items += perChildItems(root: torchHome() + "/hub", source: "PyTorch Hub",
-                               detail: "Modello o repository scaricato da PyTorch Hub.",
-                               consequence: "Lo script che lo usa lo riscarica al prossimo avvio.")
+        items += perChildItems(root: torchHome() + "/hub", source: String(localized: "PyTorch Hub"),
+                               detail: String(localized: "Modello o repository scaricato da PyTorch Hub."),
+                               consequence: String(localized: "Lo script che lo usa lo riscarica al prossimo avvio."))
         items += perChildItems(root: ScanSupport.home + "/.cache/whisper", source: "Whisper",
-                               detail: "Modello di trascrizione vocale di OpenAI Whisper.",
-                               consequence: "Whisper lo riscarica alla prossima trascrizione con questo modello.")
+                               detail: String(localized: "Modello di trascrizione vocale di OpenAI Whisper."),
+                               consequence: String(localized: "Whisper lo riscarica alla prossima trascrizione con questo modello."))
         items += perChildItems(root: ScanSupport.home + "/.keras/models", source: "Keras",
-                               detail: "Pesi di un modello scaricati da Keras.",
-                               consequence: "Keras li riscarica al prossimo caricamento del modello.")
+                               detail: String(localized: "Pesi di un modello scaricati da Keras."),
+                               consequence: String(localized: "Keras li riscarica al prossimo caricamento del modello."))
         return items.sorted { $0.size > $1.size }
     }
 
@@ -93,9 +93,9 @@ enum AIModelScanner {
         // Senza il programma i modelli sono solo residui: una voce unica.
         guard let ollama else {
             return [ScanSupport.item(
-                title: "Modelli di Ollama (Ollama non installato)",
-                detail: "\(Plural.of(models.count, "modello scaricato", "modelli scaricati")) da Ollama, che non risulta più installato: \(models.map(\.name).joined(separator: ", ")).",
-                consequence: "Se reinstalli Ollama, i modelli vanno riscaricati.",
+                title: String(localized: "Modelli di Ollama (Ollama non installato)"),
+                detail: String(localized: "\(Plural.of(models.count, "modello scaricato", "modelli scaricati")) da Ollama, che non risulta più installato: \(models.map(\.name).joined(separator: ", "))."),
+                consequence: String(localized: "Se reinstalli Ollama, i modelli vanno riscaricati."),
                 path: root, risk: .redownload)].compactMap { $0 }
         }
 
@@ -114,15 +114,15 @@ enum AIModelScanner {
             let shared = model.blobs.filter { (references[$0.key] ?? 0) > 1 }.values.reduce(0, +)
             var warning: String?
             if !ps.ok {
-                warning = "Ollama non è in esecuzione: avvialo prima di procedere, il comando ufficiale passa dal suo server."
+                warning = String(localized: "Ollama non è in esecuzione: avvialo prima di procedere, il comando ufficiale passa dal suo server.")
             } else if loaded.contains(model.name) {
-                warning = "Il modello è caricato in memoria in questo momento."
+                warning = String(localized: "Il modello è caricato in memoria in questo momento.")
             }
             return CleanupItem(
                 title: "Ollama: \(model.name)",
-                detail: "Modello scaricato da Ollama."
-                    + (shared > 0 ? "\n\nAltri \(ByteFormat.string(shared)) sono condivisi con altri modelli e si liberano solo eliminando anche quelli." : ""),
-                consequence: "Va riscaricato con `ollama pull \(model.name)` se ti serve di nuovo. Usa il comando ufficiale `ollama rm`, che tiene coerente l'archivio di Ollama.",
+                detail: String(localized: "Modello scaricato da Ollama.")
+                    + (shared > 0 ? String(localized: "\n\nAltri \(ByteFormat.string(shared)) sono condivisi con altri modelli e si liberano solo eliminando anche quelli.") : ""),
+                consequence: String(localized: "Va riscaricato con `ollama pull \(model.name)` se ti serve di nuovo. Usa il comando ufficiale `ollama rm`, che tiene coerente l'archivio di Ollama."),
                 action: .shell(tool: "ollama", args: ["rm", model.name]),
                 risk: .redownload, size: exclusive,
                 lastUsed: ScanSupport.modificationDate(model.manifest),
@@ -153,12 +153,13 @@ enum AIModelScanner {
             let size = sizes[repo] ?? 0
             guard size >= 1_000_000 else { continue }
             let folder = (repo as NSString).lastPathComponent
-            let kind = folder.hasPrefix("datasets--") ? "dataset" : (folder.hasPrefix("spaces--") ? "space" : "modello")
+            let kind = folder.hasPrefix("datasets--") ? String(localized: "Dataset")
+                : (folder.hasPrefix("spaces--") ? String(localized: "Space") : String(localized: "Modello"))
             let name = folder.components(separatedBy: "--").dropFirst().joined(separator: "/")
             items.append(CleanupItem(
-                title: "Hugging Face: \(name)",
-                detail: "\(kind.capitalized) scaricato nella cache di Hugging Face (librerie transformers, diffusers, huggingface_hub).",
-                consequence: "Il codice che lo usa lo riscarica al prossimo caricamento.",
+                title: String(localized: "Hugging Face: \(name)"),
+                detail: String(localized: "\(kind) scaricato nella cache di Hugging Face (librerie transformers, diffusers, huggingface_hub)."),
+                consequence: String(localized: "Il codice che lo usa lo riscarica al prossimo caricamento."),
                 action: .removePaths([repo]), risk: .redownload, size: size,
                 perPathSize: [repo: size], lastUsed: ScanSupport.modificationDate(repo)))
         }
@@ -169,9 +170,9 @@ enum AIModelScanner {
             return $0 != hub && n != "token" && n != "stored_tokens"
         }
         if let item = ScanSupport.item(
-            title: "Altre cache di Hugging Face",
-            detail: "Cache di scaricamento (Xet) e file accessori di Hugging Face. Il token di accesso non viene toccato.",
-            consequence: "Vengono ricreate al prossimo scaricamento.",
+            title: String(localized: "Altre cache di Hugging Face"),
+            detail: String(localized: "Cache di scaricamento (Xet) e file accessori di Hugging Face. Il token di accesso non viene toccato."),
+            consequence: String(localized: "Vengono ricreate al prossimo scaricamento."),
             paths: others, risk: .safe) {
             items.append(item)
         }
@@ -194,9 +195,9 @@ enum AIModelScanner {
                 guard size >= 1_000_000 else { continue }
                 let name = (publisher as NSString).lastPathComponent + "/" + (model as NSString).lastPathComponent
                 items.append(CleanupItem(
-                    title: "LM Studio: \(name)",
-                    detail: "Modello scaricato da LM Studio.",
-                    consequence: "Va riscaricato da LM Studio se ti serve di nuovo.",
+                    title: String(localized: "LM Studio: \(name)"),
+                    detail: String(localized: "Modello scaricato da LM Studio."),
+                    consequence: String(localized: "Va riscaricato da LM Studio se ti serve di nuovo."),
                     action: .removePaths([model]), risk: .redownload, size: size,
                     perPathSize: [model: size], lastUsed: ScanSupport.modificationDate(model),
                     requiredStoppedApps: [lmStudioBundleID]))
@@ -208,9 +209,9 @@ enum AIModelScanner {
         let installed = OrphanScanner.installedBundleIDs().contains(lmStudioBundleID)
             || ScanSupport.exists("/Applications/LM Studio.app")
         if !installed, let item = ScanSupport.item(
-            title: "Componenti di LM Studio (app non installata)",
-            detail: "Motori di inferenza, estensioni e log lasciati da LM Studio, che non risulta più installato.\n\nConversazioni, impostazioni, progetti e credenziali in ~/.lmstudio non vengono toccati.",
-            consequence: "Se reinstalli LM Studio, li riscarica al primo avvio.",
+            title: String(localized: "Componenti di LM Studio (app non installata)"),
+            detail: String(localized: "Motori di inferenza, estensioni e log lasciati da LM Studio, che non risulta più installato.\n\nConversazioni, impostazioni, progetti e credenziali in ~/.lmstudio non vengono toccati."),
+            consequence: String(localized: "Se reinstalli LM Studio, li riscarica al primo avvio."),
             paths: ["extensions", "bin", "server-logs"].map { root + "/" + $0 },
             risk: .redownload) {
             items.append(item)
@@ -245,6 +246,6 @@ enum AIModelScanner {
                      torchHome(), ScanSupport.home + "/.cache/whisper", ScanSupport.home + "/.keras/models"]
         return roots.contains(where: ScanSupport.isDirectory)
             ? .installed
-            : .absent(detail: "Nessun modello AI locale trovato.")
+            : .absent(detail: String(localized: "Nessun modello AI locale trovato."))
     }
 }

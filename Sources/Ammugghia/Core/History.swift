@@ -70,10 +70,10 @@ final class HistoryStore {
         case notInTrash(String), occupied(String), parentMissing(String), unknown(String)
         var errorDescription: String? {
             switch self {
-            case .notInTrash(let p): return "Non è più nel Cestino (svuotato o già ripristinato): \(p)"
-            case .occupied(let p): return "Al posto originale c'è già qualcosa, non lo sovrascrivo: \(p)"
-            case .parentMissing(let p): return "La cartella che lo conteneva non esiste più: \(p)"
-            case .unknown(let p): return "Elemento non presente in questa voce: \(p)"
+            case .notInTrash(let p): return String(localized: "Non è più nel Cestino (svuotato o già ripristinato): \(p)")
+            case .occupied(let p): return String(localized: "Al posto originale c'è già qualcosa, non lo sovrascrivo: \(p)")
+            case .parentMissing(let p): return String(localized: "La cartella che lo conteneva non esiste più: \(p)")
+            case .unknown(let p): return String(localized: "Elemento non presente in questa voce: \(p)")
             }
         }
     }

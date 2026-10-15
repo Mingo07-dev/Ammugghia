@@ -115,17 +115,17 @@ enum AppCacheScanner {
             }
 
             if let item = ScanSupport.item(
-                title: "Cache di \(app.name)",
-                detail: "Cache del motore web di \(app.name): pagine, immagini, codice JavaScript compilato e shader della scheda grafica.\n\nNON include messaggi, documenti, impostazioni, accessi o archivi locali dell'app: quelle cartelle non vengono toccate.",
-                consequence: "Al prossimo avvio \(app.name) ricostruisce la cache: il primo avvio è più lento e le immagini si ricaricano. Resti connesso e non perdi dati.",
+                title: String(localized: "Cache di \(app.name)"),
+                detail: String(localized: "Cache del motore web di \(app.name): pagine, immagini, codice JavaScript compilato e shader della scheda grafica.\n\nNON include messaggi, documenti, impostazioni, accessi o archivi locali dell'app: quelle cartelle non vengono toccate."),
+                consequence: String(localized: "Al prossimo avvio \(app.name) ricostruisce la cache: il primo avvio è più lento e le immagini si ricaricano. Resti connesso e non perdi dati."),
                 paths: cachePaths, risk: .safe,
                 requiredStoppedApps: app.bundleIDs, minBytes: 10_000_000) {
                 items.append(item)
             }
             if let item = ScanSupport.item(
-                title: "Contenuti offline di \(app.name)",
-                detail: "Pagine e risorse che \(app.name) salva per funzionare anche senza connessione (cache dei service worker).",
-                consequence: "\(app.name) li riscarica alla prossima apertura con la rete attiva. Finché non succede, i contenuti potrebbero non essere disponibili offline.",
+                title: String(localized: "Contenuti offline di \(app.name)"),
+                detail: String(localized: "Pagine e risorse che \(app.name) salva per funzionare anche senza connessione (cache dei service worker)."),
+                consequence: String(localized: "\(app.name) li riscarica alla prossima apertura con la rete attiva. Finché non succede, i contenuti potrebbero non essere disponibili offline."),
                 paths: offlinePaths, risk: .redownload,
                 requiredStoppedApps: app.bundleIDs, minBytes: 10_000_000) {
                 items.append(item)
@@ -135,9 +135,9 @@ enum AppCacheScanner {
         // Spotify tiene nella cache anche i brani scaricati per l'ascolto
         // offline: per questo non è una cache «sicura».
         if let item = ScanSupport.item(
-            title: "Cache di Spotify",
-            detail: "Brani ascoltati di recente e, se li hai scaricati, i brani disponibili offline.",
-            consequence: "Spotify riscarica i brani quando li ascolti. Le playlist scaricate per l'uso offline vanno riscaricate.",
+            title: String(localized: "Cache di Spotify"),
+            detail: String(localized: "Brani ascoltati di recente e, se li hai scaricati, i brani disponibili offline."),
+            consequence: String(localized: "Spotify riscarica i brani quando li ascolti. Le playlist scaricate per l'uso offline vanno riscaricate."),
             paths: [caches + "/com.spotify.client"], risk: .redownload,
             requiredStoppedApps: ["com.spotify.client"], minBytes: 10_000_000) {
             items.append(item)
@@ -146,9 +146,9 @@ enum AppCacheScanner {
         // IDE JetBrains e Android Studio: indici e cache dei progetti.
         let ideCaches = ScanSupport.children(of: caches + "/JetBrains")
         if let item = ScanSupport.item(
-            title: "Cache degli IDE JetBrains",
-            detail: "Indici dei progetti e cache di IntelliJ IDEA, PyCharm, WebStorm e degli altri IDE JetBrains, una cartella per prodotto e versione: quelle delle versioni non più installate restano sul disco.",
-            consequence: "Alla prossima apertura di un progetto l'IDE ricostruisce l'indice: qualche minuto con autocompletamento e ricerca rallentati.",
+            title: String(localized: "Cache degli IDE JetBrains"),
+            detail: String(localized: "Indici dei progetti e cache di IntelliJ IDEA, PyCharm, WebStorm e degli altri IDE JetBrains, una cartella per prodotto e versione: quelle delle versioni non più installate restano sul disco."),
+            consequence: String(localized: "Alla prossima apertura di un progetto l'IDE ricostruisce l'indice: qualche minuto con autocompletamento e ricerca rallentati."),
             paths: ideCaches, risk: .safe,
             requiredStoppedApps: jetBrainsBundleIDs, minBytes: 10_000_000) {
             items.append(item)
@@ -156,9 +156,9 @@ enum AppCacheScanner {
         let studioCaches = ScanSupport.children(of: caches + "/Google")
             .filter { ($0 as NSString).lastPathComponent.hasPrefix("AndroidStudio") }
         if let item = ScanSupport.item(
-            title: "Cache di Android Studio",
-            detail: "Indici e cache dei progetti di Android Studio, una cartella per versione: quelle delle versioni precedenti restano dopo ogni aggiornamento.",
-            consequence: "Alla prossima apertura di un progetto Android Studio ricostruisce l'indice: qualche minuto più lento.",
+            title: String(localized: "Cache di Android Studio"),
+            detail: String(localized: "Indici e cache dei progetti di Android Studio, una cartella per versione: quelle delle versioni precedenti restano dopo ogni aggiornamento."),
+            consequence: String(localized: "Alla prossima apertura di un progetto Android Studio ricostruisce l'indice: qualche minuto più lento."),
             paths: studioCaches, risk: .safe,
             requiredStoppedApps: ["com.google.android.studio"], minBytes: 10_000_000) {
             items.append(item)
@@ -168,20 +168,20 @@ enum AppCacheScanner {
         let officeIDs = ["com.microsoft.Word", "com.microsoft.Excel",
                          "com.microsoft.Powerpoint", "com.microsoft.Outlook"]
         if let item = ScanSupport.item(
-            title: "Cache di Microsoft Office",
-            detail: "Cache di Word, Excel, PowerPoint e Outlook: modelli, caratteri e componenti scaricati.",
-            consequence: "Le app di Office riscaricano modelli e componenti quando servono. I documenti non vengono toccati.",
+            title: String(localized: "Cache di Microsoft Office"),
+            detail: String(localized: "Cache di Word, Excel, PowerPoint e Outlook: modelli, caratteri e componenti scaricati."),
+            consequence: String(localized: "Le app di Office riscaricano modelli e componenti quando servono. I documenti non vengono toccati."),
             paths: officeIDs.map { caches + "/" + $0 }, risk: .redownload,
             requiredStoppedApps: officeIDs, minBytes: 10_000_000) {
             items.append(item)
         }
         if let item = ScanSupport.item(
-            title: "Cache multimediale di Adobe",
-            detail: "File di anteprima audio e video generati da Premiere Pro, After Effects e Media Encoder (Media Cache).",
-            consequence: "Alla riapertura dei progetti Adobe rigenera le anteprime: può richiedere parecchio tempo su progetti grandi. I progetti e i file originali non vengono toccati.",
+            title: String(localized: "Cache multimediale di Adobe"),
+            detail: String(localized: "File di anteprima audio e video generati da Premiere Pro, After Effects e Media Encoder (Media Cache)."),
+            consequence: String(localized: "Alla riapertura dei progetti Adobe rigenera le anteprime: può richiedere parecchio tempo su progetti grandi. I progetti e i file originali non vengono toccati."),
             paths: [support + "/Adobe/Common/Media Cache Files", support + "/Adobe/Common/Media Cache"],
             risk: .redownload,
-            warning: "Chiudi Premiere Pro, After Effects e Media Encoder prima di procedere.",
+            warning: String(localized: "Chiudi Premiere Pro, After Effects e Media Encoder prima di procedere."),
             minBytes: 10_000_000) {
             items.append(item)
         }

@@ -5,6 +5,10 @@ import Foundation
 /// Finder e non segnalate da nessuna parte nel sistema.
 enum DuplicateScanner {
 
+    /// Usato anche per riconoscere il gruppo da `AppModel`: un confronto sul
+    /// titolo scritto a mano si romperebbe cambiando lingua.
+    static var simulatorRuntimesTitle: String { String(localized: "Runtime dei simulatori iOS") }
+
     static func scan() -> [VersionGroup] {
         var groups: [VersionGroup] = []
         if let g = simulatorRuntimes() { groups.append(g) }
@@ -30,8 +34,8 @@ enum DuplicateScanner {
 
         let entries = runtimes.map { rt -> VersionEntry in
             var notes: [String] = []
-            if rt.isCurrent { notes.append("corrisponde all'SDK dell'Xcode attivo") }
-            if rt.version == newest { notes.append("versione più recente installata") }
+            if rt.isCurrent { notes.append(String(localized: "corrisponde all'SDK dell'Xcode attivo")) }
+            if rt.version == newest { notes.append(String(localized: "versione più recente installata")) }
             if let used = rt.lastUsed { notes.append(DateFormat.relative(used)) }
             return VersionEntry(
                 label: rt.name,
@@ -46,9 +50,9 @@ enum DuplicateScanner {
         }
 
         return VersionGroup(
-            title: "Runtime dei simulatori iOS",
+            title: simulatorRuntimesTitle,
             symbol: "iphone",
-            rationale: "Ogni runtime pesa circa 8 GB e serve solo se vuoi testare su quella specifica versione di iOS. Vivono in /System/Library/AssetsV2, quindi non compaiono nel Finder e le Impostazioni li contano fra i «dati di sistema».\n\nSono la voce che più spesso spiega decine di GB inspiegabili su un Mac usato per sviluppo mobile. Tieni la versione dell'Xcode attivo, più eventuali versioni su cui devi davvero garantire compatibilità.",
+            rationale: String(localized: "Ogni runtime pesa circa 8 GB e serve solo se vuoi testare su quella specifica versione di iOS. Vivono in /System/Library/AssetsV2, quindi non compaiono nel Finder e le Impostazioni li contano fra i «dati di sistema».\n\nSono la voce che più spesso spiega decine di GB inspiegabili su un Mac usato per sviluppo mobile. Tieni la versione dell'Xcode attivo, più eventuali versioni su cui devi davvero garantire compatibilità."),
             entries: entries)
     }
 
@@ -86,14 +90,14 @@ enum DuplicateScanner {
                 lastUsed: Shell.lastUsedDate(path),
                 action: .removeApp(appPath: path, related: []),
                 risk: .redownload,
-                note: isActive ? "selezionato da xcode-select" : nil,
+                note: isActive ? String(localized: "selezionato da xcode-select") : nil,
                 recommendedToKeep: isActive)
         }
 
         return VersionGroup(
-            title: "Installazioni di Xcode",
+            title: String(localized: "Installazioni di Xcode"),
             symbol: "hammer",
-            rationale: "Ogni Xcode occupa diversi GB. Avere due versioni ha senso solo mentre migri un progetto o se devi mantenere una build con una toolchain vecchia. Ricorda che ogni Xcode porta con sé i propri runtime di simulatore.",
+            rationale: String(localized: "Ogni Xcode occupa diversi GB. Avere due versioni ha senso solo mentre migri un progetto o se devi mantenere una build con una toolchain vecchia. Ricorda che ogni Xcode porta con sé i propri runtime di simulatore."),
             entries: entries)
     }
 
@@ -104,14 +108,14 @@ enum DuplicateScanner {
         var groups: [VersionGroup] = []
 
         let components: [(String, String, String, String)] = [
-            ("ndk", "NDK Android", "cpu",
-             "Il NDK serve solo per compilare codice nativo C/C++. Un progetto usa una versione alla volta, indicata in build.gradle: le altre sono peso morto da qualche GB ciascuna."),
-            ("build-tools", "Build Tools Android", "wrench.and.screwdriver",
-             "Gradle usa la versione dichiarata nel progetto. Le versioni più vecchie restano installate dopo ogni aggiornamento dell'SDK."),
-            ("platforms", "Piattaforme Android", "square.stack.3d.up",
-             "Una piattaforma per livello di API. Servono quelle su cui compili (compileSdk) e quelle minime che supporti."),
+            ("ndk", String(localized: "NDK Android"), "cpu",
+             String(localized: "Il NDK serve solo per compilare codice nativo C/C++. Un progetto usa una versione alla volta, indicata in build.gradle: le altre sono peso morto da qualche GB ciascuna.")),
+            ("build-tools", String(localized: "Build Tools Android"), "wrench.and.screwdriver",
+             String(localized: "Gradle usa la versione dichiarata nel progetto. Le versioni più vecchie restano installate dopo ogni aggiornamento dell'SDK.")),
+            ("platforms", String(localized: "Piattaforme Android"), "square.stack.3d.up",
+             String(localized: "Una piattaforma per livello di API. Servono quelle su cui compili (compileSdk) e quelle minime che supporti.")),
             ("cmake", "CMake", "gearshape.2",
-             "Usato solo con il NDK per i progetti nativi."),
+             String(localized: "Usato solo con il NDK per i progetti nativi.")),
         ]
 
         for (dir, title, symbol, rationale) in components {
@@ -133,7 +137,7 @@ enum DuplicateScanner {
                     lastUsed: ScanSupport.modificationDate(path),
                     action: .removePaths([path]),
                     risk: .redownload,
-                    note: name == newest ? "versione più recente" : nil,
+                    note: name == newest ? String(localized: "versione più recente") : nil,
                     recommendedToKeep: name == newest)
             }
             groups.append(VersionGroup(title: title, symbol: symbol, rationale: rationale, entries: entries))
@@ -165,9 +169,9 @@ enum DuplicateScanner {
             }
             if entries.count > 1 {
                 groups.append(VersionGroup(
-                    title: "Immagini di sistema per gli emulatori",
+                    title: String(localized: "Immagini di sistema per gli emulatori"),
                     symbol: "square.on.square",
-                    rationale: "Ogni immagine pesa 1–4 GB. Servono solo quelle usate dagli emulatori che tieni davvero: se testi su dispositivi reali, nessuna serve.",
+                    rationale: String(localized: "Ogni immagine pesa 1–4 GB. Servono solo quelle usate dagli emulatori che tieni davvero: se testi su dispositivi reali, nessuna serve."),
                     entries: entries))
             }
         }
@@ -197,13 +201,13 @@ enum DuplicateScanner {
                 lastUsed: ScanSupport.modificationDate(path),
                 action: .removePaths([path]),
                 risk: .redownload,
-                note: name == newest ? "versione più recente" : nil,
+                note: name == newest ? String(localized: "versione più recente") : nil,
                 recommendedToKeep: name == newest)
         }
         return VersionGroup(
-            title: "Distribuzioni Gradle",
+            title: String(localized: "Distribuzioni Gradle"),
             symbol: "shippingbox",
-            rationale: "Ogni progetto Android scarica la versione di Gradle indicata nel proprio wrapper. Con più progetti si accumulano copie complete da ~150 MB. Il wrapper riscarica automaticamente quella che serve.",
+            rationale: String(localized: "Ogni progetto Android scarica la versione di Gradle indicata nel proprio wrapper. Con più progetti si accumulano copie complete da ~150 MB. Il wrapper riscarica automaticamente quella che serve."),
             entries: entries)
     }
 
@@ -227,13 +231,13 @@ enum DuplicateScanner {
                 lastUsed: ScanSupport.modificationDate(path),
                 action: .privileged(shellCommand: cmd, displayPaths: [path]),
                 risk: .redownload,
-                note: "richiede la password di amministratore",
+                note: String(localized: "richiede la password di amministratore"),
                 recommendedToKeep: false)
         }
         return VersionGroup(
-            title: "Java Development Kit",
+            title: String(localized: "Java Development Kit"),
             symbol: "cup.and.saucer",
-            rationale: "Android Studio porta con sé un JDK proprio, quindi i JDK installati a parte spesso non servono. Verifica cosa usa JAVA_HOME e cosa richiedono i tuoi progetti prima di rimuoverne uno.",
+            rationale: String(localized: "Android Studio porta con sé un JDK proprio, quindi i JDK installati a parte spesso non servono. Verifica cosa usa JAVA_HOME e cosa richiedono i tuoi progetti prima di rimuoverne uno."),
             entries: entries)
     }
 
@@ -258,13 +262,13 @@ enum DuplicateScanner {
                 lastUsed: ScanSupport.modificationDate(path),
                 action: .privileged(shellCommand: cmd, displayPaths: [path]),
                 risk: .redownload,
-                note: name == newest ? "versione più recente" : "richiede la password di amministratore",
+                note: name == newest ? String(localized: "versione più recente") : String(localized: "richiede la password di amministratore"),
                 recommendedToKeep: name == newest)
         }
         return VersionGroup(
-            title: "Versioni di Python (python.org)",
+            title: String(localized: "Versioni di Python (python.org)"),
             symbol: "chevron.left.forwardslash.chevron.right",
-            rationale: "Le installazioni da python.org non si sovrascrivono fra loro. Attenzione: gli ambienti virtuali creati con una versione smettono di funzionare se quella versione viene rimossa.",
+            rationale: String(localized: "Le installazioni da python.org non si sovrascrivono fra loro. Attenzione: gli ambienti virtuali creati con una versione smettono di funzionare se quella versione viene rimossa."),
             entries: entries)
     }
 
@@ -286,13 +290,13 @@ enum DuplicateScanner {
                 lastUsed: ScanSupport.modificationDate(path),
                 action: .removePaths([path]),
                 risk: .redownload,
-                note: name == newest ? "versione più recente" : nil,
+                note: name == newest ? String(localized: "versione più recente") : nil,
                 recommendedToKeep: name == newest)
         }
         return VersionGroup(
-            title: "Versioni di Node (nvm)",
+            title: String(localized: "Versioni di Node (nvm)"),
             symbol: "hexagon",
-            rationale: "Ogni versione di Node installata con nvm porta i propri pacchetti globali. Controlla il file .nvmrc dei tuoi progetti prima di rimuoverne una.",
+            rationale: String(localized: "Ogni versione di Node installata con nvm porta i propri pacchetti globali. Controlla il file .nvmrc dei tuoi progetti prima di rimuoverne una."),
             entries: entries)
     }
 
@@ -324,13 +328,13 @@ enum DuplicateScanner {
                 lastUsed: ScanSupport.modificationDate(entry.path),
                 action: .removePaths([entry.path]),
                 risk: .safe,
-                note: "versione superata",
+                note: String(localized: "versione superata"),
                 recommendedToKeep: false)
         }
         return VersionGroup(
-            title: "Versioni superate di Homebrew",
+            title: String(localized: "Versioni superate di Homebrew"),
             symbol: "mug",
-            rationale: "Homebrew conserva la versione precedente di ogni formula dopo un aggiornamento. Qui sono elencate solo le versioni NON attive.\n\nIn alternativa, la categoria «Gestori di pacchetti» offre `brew cleanup --prune=all`, che fa la stessa cosa passando dal comando ufficiale: è la via preferibile.",
+            rationale: String(localized: "Homebrew conserva la versione precedente di ogni formula dopo un aggiornamento. Qui sono elencate solo le versioni NON attive.\n\nIn alternativa, la categoria «Gestori di pacchetti» offre `brew cleanup --prune=all`, che fa la stessa cosa passando dal comando ufficiale: è la via preferibile."),
             entries: entries)
     }
 
@@ -366,9 +370,9 @@ enum DuplicateScanner {
                 recommendedToKeep: false)
         }
         return VersionGroup(
-            title: "SDK Flutter",
+            title: String(localized: "SDK Flutter"),
             symbol: "bird",
-            rationale: "Più copie dell'SDK Flutter in cartelle diverse: capita installandolo a mano e poi di nuovo con un gestore. Verifica quale è nel PATH prima di rimuovere le altre.",
+            rationale: String(localized: "Più copie dell'SDK Flutter in cartelle diverse: capita installandolo a mano e poi di nuovo con un gestore. Verifica quale è nel PATH prima di rimuovere le altre."),
             entries: entries)
     }
 
@@ -398,7 +402,7 @@ enum DuplicateScanner {
             for path in paths {
                 let version = ScanSupport.plistValue(path + "/Contents/Info.plist", key: "CFBundleShortVersionString") ?? "?"
                 entries.append(VersionEntry(
-                    label: "\((path as NSString).lastPathComponent) \(version) — \((path as NSString).deletingLastPathComponent)",
+                    label: String(localized: "\((path as NSString).lastPathComponent) \(version) — \((path as NSString).deletingLastPathComponent)"),
                     version: version,
                     paths: [path],
                     size: sizes[path] ?? 0,
@@ -410,9 +414,9 @@ enum DuplicateScanner {
             }
         }
         return VersionGroup(
-            title: "Applicazioni installate due volte",
+            title: String(localized: "Applicazioni installate due volte"),
             symbol: "square.on.square.dashed",
-            rationale: "Stesso identificatore di bundle in più posizioni: succede scaricando un'app che era già stata installata dall'App Store, o copiandola in una sottocartella. Le due copie condividono le stesse preferenze, quindi tenere una sola non fa perdere nulla.\n\nQui viene rimosso solo il bundle: per eliminare anche i dati usa la scheda «Disinstalla app».",
+            rationale: String(localized: "Stesso identificatore di bundle in più posizioni: succede scaricando un'app che era già stata installata dall'App Store, o copiandola in una sottocartella. Le due copie condividono le stesse preferenze, quindi tenere una sola non fa perdere nulla.\n\nQui viene rimosso solo il bundle: per eliminare anche i dati usa la scheda «Disinstalla app»."),
             entries: entries)
     }
 
@@ -432,14 +436,14 @@ enum DuplicateScanner {
                     lastUsed: device.lastBooted,
                     action: .simctlDeleteDevice(udid: device.udid),
                     risk: device.isAvailable ? .redownload : .safe,
-                    note: device.isAvailable ? nil : "runtime non più installato: dispositivo inutilizzabile",
+                    note: device.isAvailable ? nil : String(localized: "runtime non più installato: dispositivo inutilizzabile"),
                     recommendedToKeep: device.isAvailable && device.size > 50_000_000))
             }
         }
         return VersionGroup(
-            title: "Simulatori dello stesso modello",
+            title: String(localized: "Simulatori dello stesso modello"),
             symbol: "iphone.gen3",
-            rationale: "Xcode crea un dispositivo per ogni combinazione modello + versione di iOS. Con tre runtime installati hai tre «iPhone 17» distinti. Quelli il cui runtime non è più installato non sono nemmeno avviabili.",
+            rationale: String(localized: "Xcode crea un dispositivo per ogni combinazione modello + versione di iOS. Con tre runtime installati hai tre «iPhone 17» distinti. Quelli il cui runtime non è più installato non sono nemmeno avviabili."),
             entries: entries)
     }
 }

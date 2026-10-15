@@ -13,8 +13,8 @@ enum RemovalMode: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .trash: return "Sposta nel Cestino"
-        case .permanent: return "Elimina definitivamente"
+        case .trash: return String(localized: "Sposta nel Cestino")
+        case .permanent: return String(localized: "Elimina definitivamente")
         }
     }
 
@@ -22,17 +22,17 @@ enum RemovalMode: String, CaseIterable, Identifiable {
     /// complete non stanno nella larghezza disponibile.
     var shortLabel: String {
         switch self {
-        case .trash: return "Cestino"
-        case .permanent: return "Definitiva"
+        case .trash: return String(localized: "Cestino")
+        case .permanent: return String(localized: "Definitiva")
         }
     }
 
     var caveat: String {
         switch self {
         case .trash:
-            return "Reversibile: puoi ripristinare tutto dal Cestino. Lo spazio si libera solo quando svuoti il Cestino."
+            return String(localized: "Reversibile: puoi ripristinare tutto dal Cestino. Lo spazio si libera solo quando svuoti il Cestino.")
         case .permanent:
-            return "Irreversibile. Lo spazio si libera immediatamente."
+            return String(localized: "Irreversibile. Lo spazio si libera immediatamente.")
         }
     }
 }
@@ -95,8 +95,8 @@ final class DeletionEngine {
                  progress: ((Int, Int, String) -> Void)? = nil) -> [DeletionOutcome] {
 
         note(dryRun
-             ? "=== SIMULAZIONE: nessun file verrà modificato (\(items.count) operazioni) ==="
-             : "=== ESECUZIONE: \(items.count) operazioni, modalità \(mode.label) ===")
+             ? String(localized: "=== SIMULAZIONE: nessun file verrà modificato (\(items.count) operazioni) ===")
+             : String(localized: "=== ESECUZIONE: \(items.count) operazioni, modalità \(mode.label) ==="))
 
         activeExclusions = exclusions ?? ExclusionSet.current()
         var outcomes: [DeletionOutcome] = []
@@ -107,10 +107,10 @@ final class DeletionEngine {
             outcome.trashed = trashedNow
             outcomes.append(outcome)
         }
-        progress?(items.count, items.count, "Completato")
+        progress?(items.count, items.count, String(localized: "Completato"))
 
         let freed = outcomes.filter(\.succeeded).reduce(0) { $0 + $1.freed }
-        note("=== Fine: \(outcomes.filter(\.succeeded).count)/\(items.count) riuscite, "
+        note(String(localized: "=== Fine: \(outcomes.filter(\.succeeded).count)/\(items.count) riuscite, ")
              + "\(ByteFormat.string(freed)) \(dryRun ? "liberabili" : "liberati") ===")
         return outcomes
     }
@@ -122,7 +122,9 @@ final class DeletionEngine {
         let running = item.requiredStoppedApps.filter(isAppRunning)
         if !running.isEmpty {
             let names = running.map { AppRuntime.displayName(bundleID: $0) }.joined(separator: ", ")
-            return skip(item, "\(names) è in esecuzione: chiudi \(running.count == 1 ? "l'app" : "le app") e riprova")
+            return skip(item, running.count == 1
+                ? String(localized: "\(names) è in esecuzione: chiudi l'app e riprova")
+                : String(localized: "\(names) sono in esecuzione: chiudi le app e riprova"))
         }
 
         switch item.action {
@@ -130,7 +132,7 @@ final class DeletionEngine {
         case .revealOnly:
             // Non dovrebbe arrivare qui: l'interfaccia non ne permette la
             // selezione. Il rifiuto esplicito è la seconda barriera.
-            return skip(item, "elemento solo informativo: questo software non lo elimina")
+            return skip(item, String(localized: "elemento solo informativo: questo software non lo elimina"))
 
         case .removePaths(let paths):
             return removeValidated(item, paths: paths, mode: mode, dryRun: dryRun,
@@ -154,22 +156,22 @@ final class DeletionEngine {
 
         case .simctlDeleteRuntime(let id):
             return runSimctl(item, ["simctl", "runtime", "delete", id], dryRun: dryRun,
-                             successNote: "La cancellazione del runtime è asincrona: "
-                                        + "lo spazio si libera entro qualche minuto.")
+                             successNote: String(localized: "La cancellazione del runtime è asincrona: ")
+                                        + String(localized: "lo spazio si libera entro qualche minuto."))
 
         case .shell(let tool, let args):
             guard let path = Shell.which(tool) else {
-                return skip(item, "strumento «\(tool)» non trovato nel sistema")
+                return skip(item, String(localized: "strumento «\(tool)» non trovato nel sistema"))
             }
             if dryRun {
-                note("SIMULAZIONE  \(([tool] + args).joined(separator: " "))")
+                note(String(localized: "SIMULAZIONE  \(([tool] + args).joined(separator: " "))"))
                 return DeletionOutcome(title: item.title, succeeded: true, skipped: false,
-                                       message: "Simulato", freed: item.size)
+                                       message: String(localized: "Simulato"), freed: item.size)
             }
             let r = Shell.run(path, args, timeout: 300)
-            note("\(r.ok ? "OK" : "ERRORE") \(([tool] + args).joined(separator: " ")) → \(r.ok ? "ok" : r.stderr)")
+            note(String(localized: "\(r.ok ? "OK" : "ERRORE") \(([tool] + args).joined(separator: " ")) → \(r.ok ? "ok" : r.stderr)"))
             return DeletionOutcome(title: item.title, succeeded: r.ok, skipped: false,
-                                   message: r.ok ? "Eseguito" : shortError(r.stderr.isEmpty ? r.stdout : r.stderr),
+                                   message: r.ok ? String(localized: "Eseguito") : shortError(r.stderr.isEmpty ? r.stdout : r.stderr),
                                    freed: r.ok ? item.size : 0)
 
         case .privileged(let command, let paths):
@@ -177,38 +179,38 @@ final class DeletionEngine {
             // password non è un lasciapassare.
             for p in paths {
                 if activeExclusions.blocksDeletion(of: p) {
-                    return fail(item, "il percorso rientra nelle tue esclusioni: \(p)")
+                    return fail(item, String(localized: "il percorso rientra nelle tue esclusioni: \(p)"))
                 }
                 do { try PathGuard.validate(p, expected: item.identities[p]) }
-                catch { return fail(item, "controllo di sicurezza non superato — \(error.localizedDescription)") }
+                catch { return fail(item, String(localized: "controllo di sicurezza non superato — \(error.localizedDescription)")) }
             }
             if dryRun {
-                note("SIMULAZIONE  sudo \(command)")
+                note(String(localized: "SIMULAZIONE  sudo \(command)"))
                 return DeletionOutcome(title: item.title, succeeded: true, skipped: false,
-                                       message: "Simulato (richiederebbe la password)", freed: item.size)
+                                       message: String(localized: "Simulato (richiederebbe la password)"), freed: item.size)
             }
             let r = Shell.runAsAdmin(command)
             note("\(r.ok ? "OK" : "ERRORE") sudo \(command) → \(r.ok ? "ok" : r.stderr)")
             if !r.ok && r.stderr.contains("-128") {
-                return skip(item, "annullato: password non inserita")
+                return skip(item, String(localized: "annullato: password non inserita"))
             }
             return DeletionOutcome(title: item.title, succeeded: r.ok, skipped: false,
-                                   message: r.ok ? "Eseguito con privilegi di amministratore" : shortError(r.stderr),
+                                   message: r.ok ? String(localized: "Eseguito con privilegi di amministratore") : shortError(r.stderr),
                                    freed: r.ok ? item.size : 0)
 
         case .dockerPrune(let kind):
             guard let docker = Shell.which("docker") else {
-                return skip(item, "docker non installato")
+                return skip(item, String(localized: "docker non installato"))
             }
             if dryRun {
                 note("SIMULAZIONE  \(kind.command)")
                 return DeletionOutcome(title: item.title, succeeded: true, skipped: false,
-                                       message: "Simulato", freed: item.size)
+                                       message: String(localized: "Simulato"), freed: item.size)
             }
             let r = Shell.run(docker, kind.args, timeout: 300)
             note("\(r.ok ? "OK" : "ERRORE") \(kind.command) → \(r.ok ? "ok" : r.stderr)")
             return DeletionOutcome(title: item.title, succeeded: r.ok, skipped: false,
-                                   message: r.ok ? "Eseguito" : shortError(r.stderr),
+                                   message: r.ok ? String(localized: "Eseguito") : shortError(r.stderr),
                                    freed: r.ok ? item.size : 0)
         }
     }
@@ -227,8 +229,8 @@ final class DeletionEngine {
 
         for path in paths {
             if activeExclusions.blocksDeletion(of: path) {
-                errors.append("escluso dalle tue esclusioni: \(path)")
-                note("RIFIUTATO \(path) — rientra nelle esclusioni impostate dall'utente")
+                errors.append(String(localized: "escluso dalle tue esclusioni: \(path)"))
+                note(String(localized: "RIFIUTATO \(path) — rientra nelle esclusioni impostate dall'utente"))
                 continue
             }
             do {
@@ -271,14 +273,16 @@ final class DeletionEngine {
         }
 
         if done == 0 && alreadyGone > 0 && errors.isEmpty {
-            return skip(item, "già eliminato in precedenza")
+            return skip(item, String(localized: "già eliminato in precedenza"))
         }
         let succeeded = errors.isEmpty && done > 0
         var message = succeeded
-            ? "\(done) element\(done == 1 ? "o" : "i") \(dryRun ? "da rimuovere" : (mode == .trash ? "nel Cestino" : "eliminati"))"
+            ? (dryRun ? String(localized: "\(Plural.of(done, "elemento", "elementi")) da rimuovere")
+               : mode == .trash ? String(localized: "\(Plural.of(done, "elemento", "elementi")) nel Cestino")
+               : String(localized: "\(Plural.of(done, "elemento eliminato", "elementi eliminati"))"))
             : errors.joined(separator: "; ")
         if alreadyGone > 0 && succeeded {
-            message += ", \(alreadyGone) già assent\(alreadyGone == 1 ? "e" : "i")"
+            message += String(localized: ", \(Plural.of(alreadyGone, "già assente", "già assenti"))")
         }
         return DeletionOutcome(title: item.title, succeeded: succeeded, skipped: false,
                                message: message, freed: freed)
@@ -334,10 +338,10 @@ final class DeletionEngine {
         }
 
         if removed == 0 && errors.isEmpty {
-            return skip(item, "nessun file è più eliminabile: sono stati usati o rimossi dopo l'analisi")
+            return skip(item, String(localized: "nessun file è più eliminabile: sono stati usati o rimossi dopo l'analisi"))
         }
         var message = "\(Plural.of(removed, "file", "file")) \(dryRun ? "da rimuovere" : (mode == .trash ? "nel Cestino" : "eliminati"))"
-        if skipped > 0 { message += ", \(skipped) saltati perché usati di recente o esclusi" }
+        if skipped > 0 { message += String(localized: ", \(skipped) saltati perché usati di recente o esclusi") }
         if !errors.isEmpty { message += ", \(Plural.of(errors.count, "errore", "errori")): " + (errors.first ?? "") }
         return DeletionOutcome(title: item.title, succeeded: errors.isEmpty, skipped: false,
                                message: message, freed: freed)
@@ -351,10 +355,10 @@ final class DeletionEngine {
         // Un'app in esecuzione non va rimossa: file aperti, helper attivi e
         // preferenze riscritte alla chiusura vanificherebbero la pulizia.
         if AppRuntime.isRunning(bundlePath: appPath) {
-            return skip(item, "l'applicazione è in esecuzione: chiudila e riprova")
+            return skip(item, String(localized: "l'applicazione è in esecuzione: chiudila e riprova"))
         }
         if activeExclusions.blocksDeletion(of: appPath) {
-            return fail(item, "l'applicazione rientra nelle tue esclusioni")
+            return fail(item, String(localized: "l'applicazione rientra nelle tue esclusioni"))
         }
         do {
             try PathGuard.validateApp(appPath, expected: item.identities[appPath])
@@ -369,14 +373,14 @@ final class DeletionEngine {
         // l'app resta al suo posto e la situazione è più facile da capire.
         for path in related {
             if activeExclusions.blocksDeletion(of: path) {
-                note("SALTATO dati collegati \(path) — rientra nelle esclusioni impostate dall'utente")
+                note(String(localized: "SALTATO dati collegati \(path) — rientra nelle esclusioni impostate dall'utente"))
                 continue
             }
             do {
                 try PathGuard.validate(path, expected: item.identities[path])
                 let size = item.perPathSize[path] ?? Shell.diskSize(path)
                 if dryRun {
-                    note("SIMULAZIONE  dati collegati: \(path) (\(ByteFormat.string(size)))")
+                    note(String(localized: "SIMULAZIONE  dati collegati: \(path) (\(ByteFormat.string(size)))"))
                     freed += size
                     continue
                 }
@@ -389,19 +393,19 @@ final class DeletionEngine {
                     try fileManager.removeItem(atPath: path)
                 }
                 freed += size
-                note("OK  dati collegati \(path) (\(ByteFormat.string(size)))")
+                note(String(localized: "OK  dati collegati \(path) (\(ByteFormat.string(size)))"))
             } catch PathGuard.Violation.doesNotExist {
                 continue
             } catch {
                 let msg = friendlyFileError(error, path: path)
                 errors.append(msg)
-                note("ERRORE dati collegati \(path) — \(msg)")
+                note(String(localized: "ERRORE dati collegati \(path) — \(msg)"))
             }
         }
 
         let appSize = item.perPathSize[appPath] ?? Shell.diskSize(appPath)
         if dryRun {
-            note("SIMULAZIONE  applicazione: \(appPath) (\(ByteFormat.string(appSize)))")
+            note(String(localized: "SIMULAZIONE  applicazione: \(appPath) (\(ByteFormat.string(appSize)))"))
             freed += appSize
         } else {
             do {
@@ -414,17 +418,17 @@ final class DeletionEngine {
                     try fileManager.removeItem(atPath: appPath)
                 }
                 freed += appSize
-                note("OK  applicazione \(appPath) (\(ByteFormat.string(appSize)))")
+                note(String(localized: "OK  applicazione \(appPath) (\(ByteFormat.string(appSize)))"))
             } catch {
                 let msg = friendlyFileError(error, path: appPath)
-                errors.append("bundle applicazione: \(msg)")
-                note("ERRORE applicazione \(appPath) — \(msg)")
+                errors.append(String(localized: "bundle applicazione: \(msg)"))
+                note(String(localized: "ERRORE applicazione \(appPath) — \(msg)"))
             }
         }
 
         return DeletionOutcome(title: item.title, succeeded: errors.isEmpty, skipped: false,
                                message: errors.isEmpty
-                                ? "Applicazione e \(related.count) element\(related.count == 1 ? "o" : "i") collegat\(related.count == 1 ? "o" : "i") rimossi"
+                                ? String(localized: "Applicazione e \(Plural.of(related.count, "elemento collegato", "elementi collegati")) rimossi")
                                 : errors.joined(separator: "; "),
                                freed: freed)
     }
@@ -434,17 +438,17 @@ final class DeletionEngine {
                            dryRun: Bool,
                            successNote: String? = nil) -> DeletionOutcome {
         guard let xcrun = Shell.which("xcrun") else {
-            return skip(item, "xcrun non disponibile: Xcode o gli strumenti a riga di comando non sono installati")
+            return skip(item, String(localized: "xcrun non disponibile: Xcode o gli strumenti a riga di comando non sono installati"))
         }
         if dryRun {
-            note("SIMULAZIONE  xcrun \(args.joined(separator: " "))")
+            note(String(localized: "SIMULAZIONE  xcrun \(args.joined(separator: " "))"))
             return DeletionOutcome(title: item.title, succeeded: true, skipped: false,
-                                   message: "Simulato", freed: item.size)
+                                   message: String(localized: "Simulato"), freed: item.size)
         }
         let r = Shell.run(xcrun, args, timeout: 300)
         note("\(r.ok ? "OK" : "ERRORE") xcrun \(args.joined(separator: " ")) → \(r.ok ? "ok" : r.stderr)")
         return DeletionOutcome(title: item.title, succeeded: r.ok, skipped: false,
-                               message: r.ok ? (successNote ?? "Eseguito") : shortError(r.stderr),
+                               message: r.ok ? (successNote ?? String(localized: "Eseguito")) : shortError(r.stderr),
                                freed: r.ok ? item.size : 0)
     }
 
@@ -454,7 +458,7 @@ final class DeletionEngine {
     /// «crea backup» è attiva e sono stati rilevati dati dell'utente.
     func backup(paths: [String], appName: String) -> (ok: Bool, message: String, archivePath: String?) {
         guard let ditto = Shell.which("ditto") else {
-            return (false, "strumento «ditto» non disponibile", nil)
+            return (false, String(localized: "strumento «ditto» non disponibile"), nil)
         }
         let stamp = DateFormatter()
         stamp.dateFormat = "yyyy-MM-dd-HHmm"
@@ -465,7 +469,7 @@ final class DeletionEngine {
         let archive = dest.appendingPathComponent("\(safeName)-\(stamp.string(from: Date())).zip")
 
         let existing = paths.filter { fileManager.fileExists(atPath: $0) }
-        guard !existing.isEmpty else { return (true, "nessun dato da archiviare", nil) }
+        guard !existing.isEmpty else { return (true, String(localized: "nessun dato da archiviare"), nil) }
 
         // Cartella temporanea con la struttura da comprimere.
         let staging = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -480,9 +484,9 @@ final class DeletionEngine {
         let r = Shell.run(ditto, ["-c", "-k", "--sequesterRsrc", staging.path, archive.path], timeout: 600)
         if r.ok {
             note("BACKUP  \(archive.path)")
-            return (true, "Backup creato in \(archive.path)", archive.path)
+            return (true, String(localized: "Backup creato in \(archive.path)"), archive.path)
         }
-        note("BACKUP FALLITO  \(shortError(r.stderr))")
+        note(String(localized: "BACKUP FALLITO  \(shortError(r.stderr))"))
         return (false, shortError(r.stderr), nil)
     }
 
@@ -502,7 +506,7 @@ final class DeletionEngine {
 
     private func shortError(_ s: String) -> String {
         let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
-        if t.isEmpty { return "errore non specificato" }
+        if t.isEmpty { return String(localized: "errore non specificato") }
         return t.split(separator: "\n").prefix(2).joined(separator: " ")
     }
 
@@ -513,12 +517,12 @@ final class DeletionEngine {
         let ns = error as NSError
         switch ns.code {
         case NSFileWriteNoPermissionError, NSFileReadNoPermissionError:
-            return "permesso negato. Concedi «Accesso completo al disco» a Ammugghia in "
-                 + "Impostazioni di Sistema → Privacy e sicurezza, oppure elimina questo elemento a mano."
+            return String(localized: "permesso negato. Concedi «Accesso completo al disco» a Ammugghia in ")
+                 + String(localized: "Impostazioni di Sistema → Privacy e sicurezza, oppure elimina questo elemento a mano.")
         case NSFileWriteVolumeReadOnlyError:
-            return "il volume è in sola lettura"
+            return String(localized: "il volume è in sola lettura")
         case NSFileNoSuchFileError:
-            return "già rimosso"
+            return String(localized: "già rimosso")
         default:
             return ns.localizedDescription
         }

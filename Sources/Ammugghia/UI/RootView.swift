@@ -73,8 +73,8 @@ struct RootView: View {
                     Menu {
                         Toggle("Mostra tutte le categorie", isOn: $model.showAllCategories)
                         Text(model.hiddenCategoryCount == 0
-                             ? "Tutte le categorie sono già visibili."
-                             : "\(Plural.of(model.hiddenCategoryCount, "categoria nascosta", "categorie nascoste")): il programma di riferimento non è installato e non ha lasciato residui.")
+                             ? String(localized: "Tutte le categorie sono già visibili.")
+                             : String(localized: "\(Plural.of(model.hiddenCategoryCount, "categoria nascosta", "categorie nascoste")): il programma di riferimento non è installato e non ha lasciato residui."))
                         Divider()
                         Button("Rianalizza tutto") { model.scanAll() }
                             .disabled(model.isScanning || model.isExecuting)
@@ -88,7 +88,7 @@ struct RootView: View {
                     Button {
                         model.scanAll()
                     } label: {
-                        Label(model.didScan ? "Rianalizza" : "Analizza", systemImage: "arrow.clockwise")
+                        Label(model.didScan ? String(localized: "Rianalizza") : String(localized: "Analizza"), systemImage: "arrow.clockwise")
                     }
                     .disabled(model.isScanning || model.isExecuting)
                 }
@@ -275,7 +275,7 @@ struct ActionBar: View {
                 } else {
                     let count = model.selectedItems.count
                     Text(count == 0
-                         ? "Nessun elemento selezionato"
+                         ? String(localized: "Nessun elemento selezionato")
                          : "\(Plural.of(count, "operazione", "operazioni")) \(Plural.word(count, "selezionata", "selezionate"))")
                         .font(.callout)
                         .lineLimit(1)

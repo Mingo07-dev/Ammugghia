@@ -17,7 +17,7 @@ enum Shell {
                     _ arguments: [String],
                     timeout: TimeInterval = 120) -> Result {
         guard FileManager.default.isExecutableFile(atPath: launchPath) else {
-            return Result(status: 127, stdout: "", stderr: "eseguibile non trovato: \(launchPath)")
+            return Result(status: 127, stdout: "", stderr: String(localized: "eseguibile non trovato: \(launchPath)"))
         }
 
         let process = Process()
@@ -51,7 +51,7 @@ enum Shell {
         do {
             try process.run()
         } catch {
-            return Result(status: 126, stdout: "", stderr: "avvio non riuscito: \(error.localizedDescription)")
+            return Result(status: 126, stdout: "", stderr: String(localized: "avvio non riuscito: \(error.localizedDescription)"))
         }
 
         let deadline = Date().addingTimeInterval(timeout)
@@ -64,7 +64,7 @@ enum Shell {
             if process.isRunning { kill(process.processIdentifier, SIGKILL) }
             outPipe.fileHandleForReading.readabilityHandler = nil
             errPipe.fileHandleForReading.readabilityHandler = nil
-            return Result(status: 124, stdout: "", stderr: "timeout dopo \(Int(timeout))s")
+            return Result(status: 124, stdout: "", stderr: String(localized: "timeout dopo \(Int(timeout))s"))
         }
 
         // Recupera quel che resta nelle pipe dopo l'uscita del processo.

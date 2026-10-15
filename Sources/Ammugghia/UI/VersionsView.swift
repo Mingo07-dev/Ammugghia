@@ -72,7 +72,7 @@ struct VersionGroupCard: View {
             Button {
                 showRationale.toggle()
             } label: {
-                Label(showRationale ? "Nascondi spiegazione" : "Perché ho più versioni?",
+                Label(showRationale ? String(localized: "Nascondi spiegazione") : String(localized: "Perché ho più versioni?"),
                       systemImage: showRationale ? "chevron.up" : "chevron.down")
                     .font(.caption)
             }
@@ -110,7 +110,7 @@ struct VersionGroupCard: View {
             if group.reclaimableSize > 0 {
                 HStack {
                     Spacer()
-                    Text("Selezionati: \(ByteFormat.string(group.reclaimableSize)) — restano \(group.remainingCount) version\(group.remainingCount == 1 ? "e" : "i")")
+                    Text("Selezionati: \(ByteFormat.string(group.reclaimableSize)) — restano \(Plural.of(group.remainingCount, "versione", "versioni"))")
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.tint)
                 }

@@ -78,8 +78,8 @@ enum ProjectArtifactScanner {
             let sizes = Dictionary(uniqueKeysWithValues: list.map { ($0.path, $0.size) })
             return CleanupItem(
                 title: "Progetto «\(name)»: \(kinds)",
-                detail: "Dipendenze e prodotti di compilazione del progetto in \(projectPath). Il codice sorgente NON viene toccato: solo le cartelle rigenerabili.",
-                consequence: "Per lavorare di nuovo sul progetto serve reinstallare le dipendenze (`npm install`, `pod install`, `flutter pub get`…) e ricompilare (`cargo build`, `swift build`…).",
+                detail: String(localized: "Dipendenze e prodotti di compilazione del progetto in \(projectPath). Il codice sorgente NON viene toccato: solo le cartelle rigenerabili."),
+                consequence: String(localized: "Per lavorare di nuovo sul progetto serve reinstallare le dipendenze (`npm install`, `pod install`, `flutter pub get`…) e ricompilare (`cargo build`, `swift build`…)."),
                 action: .removeProjectArtifacts(list.map(\.path)),
                 risk: .redownload, size: total, perPathSize: sizes,
                 lastUsed: newest, preselect: false)
@@ -144,8 +144,8 @@ enum LargeFileScanner {
             let name = (file.path as NSString).lastPathComponent
             return CleanupItem(
                 title: name,
-                detail: "File di \(ByteFormat.string(file.size)) in \((file.path as NSString).deletingLastPathComponent).",
-                consequence: "Questo software non elimina i file nelle tue cartelle di documenti: usa «Mostra nel Finder» e decidi tu. L'elenco serve solo a rendere visibile ciò che occupa spazio.",
+                detail: String(localized: "File di \(ByteFormat.string(file.size)) in \((file.path as NSString).deletingLastPathComponent)."),
+                consequence: String(localized: "Questo software non elimina i file nelle tue cartelle di documenti: usa «Mostra nel Finder» e decidi tu. L'elenco serve solo a rendere visibile ciò che occupa spazio."),
                 action: .revealOnly([file.path]),
                 risk: .userData, size: file.size,
                 perPathSize: [file.path: file.size],

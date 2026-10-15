@@ -24,12 +24,12 @@ struct LogView: View {
                         OutcomeCard(count: succeeded.count, label: "riuscite", color: .green,
                                     detail: ByteFormat.string(model.lastFreed))
                         OutcomeCard(count: skipped.count, label: "saltate", color: .secondary, detail: nil)
-                        OutcomeCard(count: failed.count, label: "non riuscite", color: .red, detail: nil)
+                        OutcomeCard(count: failed.count, label: String(localized: "non riuscite"), color: .red, detail: nil)
                     }
 
                     if !failed.isEmpty {
                         VStack(alignment: .leading, spacing: 7) {
-                            SectionTitle("Non riuscite", subtitle: "Nulla è stato modificato per queste voci")
+                            SectionTitle("Non riuscite", subtitle: String(localized: "Nulla è stato modificato per queste voci"))
                             ForEach(failed) { outcome in
                                 OutcomeRow(outcome: outcome, color: .red)
                             }
@@ -70,7 +70,7 @@ struct LogView: View {
                     VStack(alignment: .leading, spacing: 7) {
                         HStack {
                             SectionTitle("Dettaglio tecnico",
-                                         subtitle: model.logFilePath.map { "Salvato anche in \($0)" })
+                                         subtitle: model.logFilePath.map { String(localized: "Salvato anche in \($0)") })
                             Spacer()
                             Button("Esporta…") { model.exportLog() }
                         }

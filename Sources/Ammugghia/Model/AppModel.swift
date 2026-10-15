@@ -85,7 +85,7 @@ final class AppModel: ObservableObject {
                 let restored = restoredCount
                 let errors = failures
                 let engine = self.engine
-                engine.record("RIPRISTINO \(entry.title): \(restored) di \(paths.count) rimessi al loro posto"
+                engine.record(String(localized: "RIPRISTINO \(entry.title): \(restored) di \(paths.count) rimessi al loro posto")
                               + (errors.isEmpty ? "" : " — " + errors.joined(separator: "; ")))
                 self.logLines = engine.log
                 self.history = entries
@@ -132,8 +132,9 @@ final class AppModel: ObservableObject {
                 for command in outcome.commands { engine.record("AVVIO  \(command)") }
                 engine.record("\(outcome.succeeded ? "OK" : "ERRORE") avvio — \(outcome.message)")
                 HistoryStore.shared.append([HistoryEntry(
-                    date: Date(), kind: .startup, origin: "Elementi d'avvio",
-                    title: "\(enabled ? "Riattivato" : "Disattivato"): \(item.displayName)",
+                    date: Date(), kind: .startup, origin: String(localized: "Elementi d'avvio"),
+                    title: enabled ? String(localized: "Riattivato: \(item.displayName)")
+                                   : String(localized: "Disattivato: \(item.displayName)"),
                     paths: [item.plistPath], freed: 0, succeeded: outcome.succeeded, skipped: false,
                     message: outcome.message, mode: outcome.commands.joined(separator: "; "), trashed: [:])])
                 self.loadHistory()
@@ -166,7 +167,7 @@ final class AppModel: ObservableObject {
     func findDuplicates() {
         guard !isFindingDuplicates else { return }
         isFindingDuplicates = true
-        duplicateProgress = "Elenco dei file…"
+        duplicateProgress = String(localized: "Elenco dei file…")
         let flag = CancellationFlag()
         duplicateCancellation = flag
         let roots = duplicateRoots
@@ -178,7 +179,7 @@ final class AppModel: ObservableObject {
                 progress: { p in
                     Task { @MainActor in
                         self.duplicateProgress = p.total > 0
-                            ? "\(p.stage): \(p.done.formatted()) di \(p.total.formatted())"
+                            ? String(localized: "\(p.stage): \(p.done.formatted()) di \(p.total.formatted())")
                             : "\(p.stage)…"
                     }
                 },
@@ -216,7 +217,7 @@ final class AppModel: ObservableObject {
         Task.detached(priority: .userInitiated) {
             let report = DiskIndexStore.shared.refresh(forceFull: forceFull) { count in
                 Task { @MainActor in
-                    self.indexProgress = "\(count.formatted()) cartelle lette…"
+                    self.indexProgress = String(localized: "\(count.formatted()) cartelle lette…")
                 }
             }
             await MainActor.run {
@@ -233,9 +234,9 @@ final class AppModel: ObservableObject {
         let seconds = String(format: "%.1f", report.duration)
         switch report.mode {
         case .full(let reason):
-            return "Analisi completa alle \(time) in \(seconds) s (\(reason))."
+            return String(localized: "Analisi completa alle \(time) in \(seconds) s (\(reason)).")
         case .incremental(let changed):
-            return "Aggiornata alle \(time) in \(seconds) s: \(Plural.of(changed, "cartella riletta", "cartelle rilette")) grazie alla storia delle modifiche di macOS."
+            return String(localized: "Aggiornata alle \(time) in \(seconds) s: \(Plural.of(changed, "cartella riletta", "cartelle rilette")) grazie alla storia delle modifiche di macOS.")
         }
     }
 
@@ -246,32 +247,32 @@ final class AppModel: ObservableObject {
 
     static func buildCategories() -> [CleanupCategory] {
         [
-            CleanupCategory(id: .xcode, name: "Xcode", symbol: "hammer.fill",
-                explanation: "Cache e sottoprodotti di Xcode. Per chi compila app mobile è quasi sempre la voce più pesante del disco, e quasi tutto qui si rigenera da solo alla prossima compilazione."),
-            CleanupCategory(id: .simulators, name: "Simulatori iOS", symbol: "iphone",
-                explanation: "Dispositivi simulati e loro contenuto. Xocde ne crea uno per ogni combinazione di modello e versione di iOS, e quelli avviati almeno una volta accumulano app di test e database.\n\nI runtime (il sistema operativo simulato, ~8 GB ciascuno) si trovano nella scheda «Versioni multiple»."),
-            CleanupCategory(id: .android, name: "Android", symbol: "cpu",
-                explanation: "SDK Android, emulatori e cache Gradle. Il NDK e le immagini di sistema sono i componenti più grossi e servono solo in casi specifici."),
-            CleanupCategory(id: .packageManagers, name: "Gestori di pacchetti", symbol: "shippingbox.fill",
-                explanation: "Cache di npm, pip, Homebrew, CocoaPods, pub, Maven e simili. Singolarmente piccole, insieme spesso diversi GB. Tutto qui si riscarica: costa banda e tempo, non dati."),
-            CleanupCategory(id: .projectArtifacts, name: "Artefatti dei progetti", symbol: "folder.badge.gearshape",
-                explanation: "Cartelle `node_modules`, `Pods`, `.dart_tool` e `build` nei tuoi progetti. Sono la ragione per cui le Impostazioni di macOS dichiarano decine di GB di «Documenti» che non riesci a trovare.\n\nIl codice sorgente non viene mai toccato: una cartella viene proposta solo se il suo nome è in un elenco chiuso E la cartella padre contiene un file di progetto riconoscibile (package.json, pubspec.yaml, Podfile…)."),
-            CleanupCategory(id: .browsers, name: "Browser", symbol: "globe",
-                explanation: "Solo le cartelle di cache dei browser. Cronologia, segnalibri, password, cookie di sessione ed estensioni non vengono mai toccati: restano fuori dall'elenco per costruzione."),
-            CleanupCategory(id: .appCaches, name: "App", symbol: "app.badge",
-                explanation: "Cache di Slack, Discord, Teams, VS Code, Notion, Figma, degli IDE JetBrains e di altre app comuni.\n\nLe app costruite su Electron tengono la cache dentro «Application Support», accanto ai dati veri, dove le pulizie generiche non guardano. Qui si elencano solo le cartelle che l'app ricostruisce da sola: messaggi, documenti, accessi e impostazioni non vengono toccati. Ogni voce richiede che l'app sia chiusa."),
-            CleanupCategory(id: .aiModels, name: "Modelli AI", symbol: "brain",
-                explanation: "Modelli scaricati da Ollama, Hugging Face, LM Studio, PyTorch, Whisper e Keras, uno per voce con la data dell'ultima attività. Spesso sono la voce più pesante di un Mac da sviluppo, in cartelle nascoste.\n\nPer Ollama si usa il comando ufficiale `ollama rm`. Un modello eliminato va riscaricato se ti serve di nuovo."),
-            CleanupCategory(id: .orphans, name: "Residui di app", symbol: "app.dashed",
-                explanation: "File lasciati da applicazioni che non risultano più installate: container sandbox, preferenze, cache, stato delle finestre.\n\nUn'app è considerata rimossa solo se nessuna app con quell'identificatore è presente, registrata nel sistema o in esecuzione, nemmeno come estensione di un'altra. Si raccolgono solo i file il cui nome è esattamente l'identificatore. Nessuna voce è preselezionata."),
-            CleanupCategory(id: .system, name: "Sistema", symbol: "gearshape.fill",
-                explanation: "Residui e cache che macOS contabilizza come «dati di sistema» senza mostrarli da nessuna parte: l'installer rimasto dopo un aggiornamento, i log, lo stato delle finestre, i backup dei dispositivi iOS."),
-            CleanupCategory(id: .wallpapers, name: "Sfondi dinamici", symbol: "photo.fill",
-                explanation: "Video 4K scaricati da Apple per gli sfondi animati e il salvaschermo, circa 500 MB l'uno.\n\nQuesta categoria legge la tua configurazione prima di proporre qualcosa: se lo sfondo o il salvaschermo usano ancora la rotazione automatica, eliminarli è inutile perché macOS li riscarica in pochi giorni."),
-            CleanupCategory(id: .docker, name: "Docker", symbol: "cube.box.fill",
-                explanation: "Immagini e cache di build di Docker.\n\nI volumi non vengono mai eliminati da questo software: contengono database e stato delle applicazioni, e `--volumes` non è implementato di proposito."),
-            CleanupCategory(id: .largeFiles, name: "File grandi", symbol: "doc.text.magnifyingglass",
-                explanation: "Elenco dei file più grossi nelle tue cartelle di documenti, con la data dell'ultimo utilizzo.\n\nSolo informativo: questo software non elimina nulla dalle cartelle Documenti, Scrivania, Download e Filmati. Usa «Mostra nel Finder» e decidi tu, file per file."),
+            CleanupCategory(id: .xcode, name: String(localized: "Xcode"), symbol: "hammer.fill",
+                explanation: String(localized: "Cache e sottoprodotti di Xcode. Per chi compila app mobile è quasi sempre la voce più pesante del disco, e quasi tutto qui si rigenera da solo alla prossima compilazione.")),
+            CleanupCategory(id: .simulators, name: String(localized: "Simulatori iOS"), symbol: "iphone",
+                explanation: String(localized: "Dispositivi simulati e loro contenuto. Xocde ne crea uno per ogni combinazione di modello e versione di iOS, e quelli avviati almeno una volta accumulano app di test e database.\n\nI runtime (il sistema operativo simulato, ~8 GB ciascuno) si trovano nella scheda «Versioni multiple».")),
+            CleanupCategory(id: .android, name: String(localized: "Android"), symbol: "cpu",
+                explanation: String(localized: "SDK Android, emulatori e cache Gradle. Il NDK e le immagini di sistema sono i componenti più grossi e servono solo in casi specifici.")),
+            CleanupCategory(id: .packageManagers, name: String(localized: "Gestori di pacchetti"), symbol: "shippingbox.fill",
+                explanation: String(localized: "Cache di npm, pip, Homebrew, CocoaPods, pub, Maven e simili. Singolarmente piccole, insieme spesso diversi GB. Tutto qui si riscarica: costa banda e tempo, non dati.")),
+            CleanupCategory(id: .projectArtifacts, name: String(localized: "Artefatti dei progetti"), symbol: "folder.badge.gearshape",
+                explanation: String(localized: "Cartelle `node_modules`, `Pods`, `.dart_tool` e `build` nei tuoi progetti. Sono la ragione per cui le Impostazioni di macOS dichiarano decine di GB di «Documenti» che non riesci a trovare.\n\nIl codice sorgente non viene mai toccato: una cartella viene proposta solo se il suo nome è in un elenco chiuso E la cartella padre contiene un file di progetto riconoscibile (package.json, pubspec.yaml, Podfile…).")),
+            CleanupCategory(id: .browsers, name: String(localized: "Browser"), symbol: "globe",
+                explanation: String(localized: "Solo le cartelle di cache dei browser. Cronologia, segnalibri, password, cookie di sessione ed estensioni non vengono mai toccati: restano fuori dall'elenco per costruzione.")),
+            CleanupCategory(id: .appCaches, name: String(localized: "App"), symbol: "app.badge",
+                explanation: String(localized: "Cache di Slack, Discord, Teams, VS Code, Notion, Figma, degli IDE JetBrains e di altre app comuni.\n\nLe app costruite su Electron tengono la cache dentro «Application Support», accanto ai dati veri, dove le pulizie generiche non guardano. Qui si elencano solo le cartelle che l'app ricostruisce da sola: messaggi, documenti, accessi e impostazioni non vengono toccati. Ogni voce richiede che l'app sia chiusa.")),
+            CleanupCategory(id: .aiModels, name: String(localized: "Modelli AI"), symbol: "brain",
+                explanation: String(localized: "Modelli scaricati da Ollama, Hugging Face, LM Studio, PyTorch, Whisper e Keras, uno per voce con la data dell'ultima attività. Spesso sono la voce più pesante di un Mac da sviluppo, in cartelle nascoste.\n\nPer Ollama si usa il comando ufficiale `ollama rm`. Un modello eliminato va riscaricato se ti serve di nuovo.")),
+            CleanupCategory(id: .orphans, name: String(localized: "Residui di app"), symbol: "app.dashed",
+                explanation: String(localized: "File lasciati da applicazioni che non risultano più installate: container sandbox, preferenze, cache, stato delle finestre.\n\nUn'app è considerata rimossa solo se nessuna app con quell'identificatore è presente, registrata nel sistema o in esecuzione, nemmeno come estensione di un'altra. Si raccolgono solo i file il cui nome è esattamente l'identificatore. Nessuna voce è preselezionata.")),
+            CleanupCategory(id: .system, name: String(localized: "Sistema"), symbol: "gearshape.fill",
+                explanation: String(localized: "Residui e cache che macOS contabilizza come «dati di sistema» senza mostrarli da nessuna parte: l'installer rimasto dopo un aggiornamento, i log, lo stato delle finestre, i backup dei dispositivi iOS.")),
+            CleanupCategory(id: .wallpapers, name: String(localized: "Sfondi dinamici"), symbol: "photo.fill",
+                explanation: String(localized: "Video 4K scaricati da Apple per gli sfondi animati e il salvaschermo, circa 500 MB l'uno.\n\nQuesta categoria legge la tua configurazione prima di proporre qualcosa: se lo sfondo o il salvaschermo usano ancora la rotazione automatica, eliminarli è inutile perché macOS li riscarica in pochi giorni.")),
+            CleanupCategory(id: .docker, name: String(localized: "Docker"), symbol: "cube.box.fill",
+                explanation: String(localized: "Immagini e cache di build di Docker.\n\nI volumi non vengono mai eliminati da questo software: contengono database e stato delle applicazioni, e `--volumes` non è implementato di proposito.")),
+            CleanupCategory(id: .largeFiles, name: String(localized: "File grandi"), symbol: "doc.text.magnifyingglass",
+                explanation: String(localized: "Elenco dei file più grossi nelle tue cartelle di documenti, con la data dell'ultimo utilizzo.\n\nSolo informativo: questo software non elimina nulla dalle cartelle Documenti, Scrivania, Download e Filmati. Usa «Mostra nel Finder» e decidi tu, file per file.")),
         ]
     }
 
@@ -401,14 +402,14 @@ final class AppModel: ObservableObject {
 
             let versionsFraction = Double(steps.count) / totalSteps
             await MainActor.run {
-                self.scanProgress = "Analisi: versioni multiple…"
+                self.scanProgress = String(localized: "Analisi: versioni multiple…")
                 self.scanFraction = versionsFraction
             }
             let groups = DuplicateScanner.scan()
 
             let appsFraction = Double(steps.count + 1) / totalSteps
             await MainActor.run {
-                self.scanProgress = "Analisi: applicazioni installate…"
+                self.scanProgress = String(localized: "Analisi: applicazioni installate…")
                 self.scanFraction = appsFraction
             }
             let apps = AppInventory.applications()
@@ -431,30 +432,30 @@ final class AppModel: ObservableObject {
     private func collectNotes() {
         var out: [String] = []
 
-        if let runtimes = versionGroups.first(where: { $0.title.contains("Runtime dei simulatori") }) {
+        if let runtimes = versionGroups.first(where: { $0.title == DuplicateScanner.simulatorRuntimesTitle }) {
             let unused = runtimes.entries.filter { entry in
                 guard let last = entry.lastUsed else { return false }
                 return Date().timeIntervalSince(last) > 60 * 86_400
             }
             if !unused.isEmpty {
                 let size = unused.reduce(0) { $0 + $1.size }
-                out.append("Hai \(unused.count) runtime di simulatore iOS non usat\(unused.count == 1 ? "o" : "i") da oltre due mesi (\(unused.map(\.label).joined(separator: ", "))), per \(ByteFormat.string(size)). Sono la voce più pesante e meno visibile del disco: le Impostazioni li contano fra i «dati di sistema».")
+                out.append(String(localized: "Hai \(Plural.of(unused.count, "runtime di simulatore iOS non usato", "runtime di simulatore iOS non usati")) da oltre due mesi (\(unused.map(\.label).joined(separator: ", "))), per \(ByteFormat.string(size)). Sono la voce più pesante e meno visibile del disco: le Impostazioni li contano fra i «dati di sistema»."))
             }
         }
 
         let config = WallpaperScanner.readConfig()
         if config.screensaverUsesAerials {
-            out.append("Il salvaschermo usa gli sfondi dinamici con rotazione automatica: la cartella dei video 4K continuerà a crescere di ~500 MB alla volta finché non cambi l'impostazione in Impostazioni di Sistema → Salvaschermo.")
+            out.append(String(localized: "Il salvaschermo usa gli sfondi dinamici con rotazione automatica: la cartella dei video 4K continuerà a crescere di ~500 MB alla volta finché non cambi l'impostazione in Impostazioni di Sistema → Salvaschermo."))
         }
 
         let dockerUsage = DockerScanner.usage()
         if dockerUsage.installed && !dockerUsage.volumeNames.isEmpty {
-            out.append("Docker ha \(dockerUsage.volumeNames.count) volumi con dati (\(dockerUsage.volumeNames.prefix(3).joined(separator: ", "))). Questo software non li elimina mai: se cerchi comandi online, evita `docker system prune --volumes`, che li distruggerebbe.")
+            out.append(String(localized: "Docker ha \(dockerUsage.volumeNames.count) volumi con dati (\(dockerUsage.volumeNames.prefix(3).joined(separator: ", "))). Questo software non li elimina mai: se cerchi comandi online, evita `docker system prune --volumes`, che li distruggerebbe."))
         }
 
         let totalSafe = categories.flatMap(\.items).filter { $0.risk == .safe }.reduce(0) { $0 + $1.size }
         if totalSafe > 1_000_000_000 {
-            out.append("\(ByteFormat.string(totalSafe)) sono cache che si rigenerano da sole: è la parte che puoi eliminare senza conseguenze oltre a una compilazione più lenta la prima volta.")
+            out.append(String(localized: "\(ByteFormat.string(totalSafe)) sono cache che si rigenerano da sole: è la parte che puoi eliminare senza conseguenze oltre a una compilazione più lenta la prima volta."))
         }
 
         if let snapshot = SystemScanner.localSnapshotsNote() { out.append(snapshot) }
@@ -469,15 +470,15 @@ final class AppModel: ObservableObject {
             for entry in group.entries where group.markedForRemoval.contains(entry.id) {
                 let item = CleanupItem(
                     title: "\(group.title): \(entry.label)",
-                    detail: entry.note ?? "Versione selezionata per la rimozione.",
-                    consequence: "Rimozione di una versione fra le \(group.entries.count) installate. Ne restano \(group.remainingCount).",
+                    detail: entry.note ?? String(localized: "Versione selezionata per la rimozione."),
+                    consequence: String(localized: "Rimozione di una versione fra le \(group.entries.count) installate. Ne restano \(group.remainingCount)."),
                     action: entry.action,
                     risk: entry.risk,
                     size: entry.size,
                     perPathSize: Dictionary(uniqueKeysWithValues: entry.paths.map { ($0, entry.size) }),
                     lastUsed: entry.lastUsed,
                     preselect: true)
-                item.origin = "Versioni multiple · \(group.title)"
+                item.origin = String(localized: "Versioni multiple · \(group.title)")
                 items.append(item)
             }
         }
@@ -551,7 +552,7 @@ final class AppModel: ObservableObject {
             let paths = app.selectedRelated.filter(\.holdsUserData).map(\.path)
             guard !paths.isEmpty else { continue }
             if dryRun {
-                backupMessages.append("\(app.name): in esecuzione reale verrebbe creato un archivio di "
+                backupMessages.append(String(localized: "\(app.name): in esecuzione reale verrebbe creato un archivio di ")
                     + "\(Plural.of(paths.count, "cartella", "cartelle")) in ~/Documents/Ammugghia Backup.")
             } else {
                 backupMessages.append("\(app.name): " + engine.backup(paths: paths, appName: app.name).message)
@@ -621,17 +622,17 @@ final class AppModel: ObservableObject {
         panel.canCreateDirectories = true
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
-        var text = "Ammugghia — piano di pulizia\n"
-        text += "Generato: \(DateFormatter.localizedString(from: Date(), dateStyle: .full, timeStyle: .medium))\n"
-        text += "Modalità: \(removalMode.label)\n"
-        text += "Totale: \(ByteFormat.string(items.reduce(0) { $0 + $1.size }))\n\n"
+        var text = String(localized: "Ammugghia — piano di pulizia\n")
+        text += String(localized: "Generato: \(DateFormatter.localizedString(from: Date(), dateStyle: .full, timeStyle: .medium))\n")
+        text += String(localized: "Modalità: \(removalMode.label)\n")
+        text += String(localized: "Totale: \(ByteFormat.string(items.reduce(0) { $0 + $1.size }))\n\n")
         for item in items {
             text += "─────────────────────────────────────────────\n"
             text += "\(item.title)  [\(item.risk.label)]  \(ByteFormat.string(item.size))\n"
-            text += "Operazione: \(item.action.commandDescription)\n"
-            text += "Cos'è: \(item.detail)\n"
-            text += "Conseguenza: \(item.consequence)\n"
-            if let w = item.warning { text += "Avvertimento: \(w)\n" }
+            text += String(localized: "Operazione: \(item.action.commandDescription)\n")
+            text += String(localized: "Cos'è: \(item.detail)\n")
+            text += String(localized: "Conseguenza: \(item.consequence)\n")
+            if let w = item.warning { text += String(localized: "Avvertimento: \(w)\n") }
             if !item.action.displayPaths.isEmpty {
                 text += "Percorsi:\n"
                 for p in item.action.displayPaths {

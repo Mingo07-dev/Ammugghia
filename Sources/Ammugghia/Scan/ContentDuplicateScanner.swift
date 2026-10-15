@@ -89,7 +89,7 @@ enum ContentDuplicateScanner {
                      isCancelled: @escaping () -> Bool = { false }) -> [DuplicateGroup] {
         // 1. Elenco dei file, un inode una volta sola: i collegamenti fisici
         //    sono lo stesso file, non un duplicato.
-        progress?(Progress(stage: "Elenco dei file", done: 0, total: 0))
+        progress?(Progress(stage: String(localized: "Elenco dei file"), done: 0, total: 0))
         var candidates: [Candidate] = []
         var seen = Set<String>()
         for root in roots where !isCancelled() {
@@ -112,7 +112,7 @@ enum ContentDuplicateScanner {
             done += 1
             let snapshot = done
             lock.unlock()
-            if snapshot % 50 == 0 { progress?(Progress(stage: "Confronto rapido", done: snapshot, total: toSample.count)) }
+            if snapshot % 50 == 0 { progress?(Progress(stage: String(localized: "Confronto rapido"), done: snapshot, total: toSample.count)) }
         }
 
         var toHash: [Candidate] = []
@@ -130,7 +130,7 @@ enum ContentDuplicateScanner {
             done += 1
             let snapshot = done
             lock.unlock()
-            if snapshot % 10 == 0 { progress?(Progress(stage: "Confronto completo", done: snapshot, total: toHash.count)) }
+            if snapshot % 10 == 0 { progress?(Progress(stage: String(localized: "Confronto completo"), done: snapshot, total: toHash.count)) }
         }
         cache?.save()
         guard !isCancelled() else { return [] }

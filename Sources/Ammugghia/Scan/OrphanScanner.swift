@@ -294,11 +294,11 @@ enum OrphanScanner {
             guard total >= 1_000_000 else { return nil }
             let modified = orphan.paths.compactMap(ScanSupport.modificationDate).max()
             return CleanupItem(
-                title: "Residui di «\(orphan.bundleID)»",
-                detail: "File lasciati da un'applicazione che non risulta più installata: nessuna app con questo identificatore è presente sul Mac, registrata nel sistema o in esecuzione.\n\nSi raccolgono solo i file il cui nome è esattamente l'identificatore dell'app."
-                    + (orphan.holdsData ? " Il container o i dati di supporto possono contenere documenti e impostazioni dell'app." : ""),
-                consequence: "Se reinstalli l'app riparte da zero, senza impostazioni né dati locali. "
-                    + (orphan.holdsData ? "Documenti salvati solo dentro l'app vanno persi: con il Cestino restano recuperabili." : "Nessun'altra conseguenza."),
+                title: String(localized: "Residui di «\(orphan.bundleID)»"),
+                detail: String(localized: "File lasciati da un'applicazione che non risulta più installata: nessuna app con questo identificatore è presente sul Mac, registrata nel sistema o in esecuzione.\n\nSi raccolgono solo i file il cui nome è esattamente l'identificatore dell'app.")
+                    + (orphan.holdsData ? String(localized: " Il container o i dati di supporto possono contenere documenti e impostazioni dell'app.") : ""),
+                consequence: String(localized: "Se reinstalli l'app riparte da zero, senza impostazioni né dati locali. ")
+                    + (orphan.holdsData ? String(localized: "Documenti salvati solo dentro l'app vanno persi: con il Cestino restano recuperabili.") : String(localized: "Nessun'altra conseguenza.")),
                 action: .removePaths(orphan.paths),
                 risk: orphan.holdsData ? .userData : .redownload,
                 size: total, perPathSize: perPath, lastUsed: modified,
@@ -311,6 +311,6 @@ enum OrphanScanner {
         let unreadable = find().unreadable
         guard !unreadable.isEmpty else { return nil }
         let names = unreadable.prefix(8).joined(separator: ", ") + (unreadable.count > 8 ? "…" : "")
-        return "\(Plural.of(unreadable.count, "possibile residuo non accessibile", "possibili residui non accessibili")) (\(names)): macOS protegge i dati delle altre app. Concedi «Accesso completo al disco» ad Ammugghia in Impostazioni di Sistema → Privacy e sicurezza per misurarli e proporli."
+        return String(localized: "\(Plural.of(unreadable.count, "possibile residuo non accessibile", "possibili residui non accessibili")) (\(names)): macOS protegge i dati delle altre app. Concedi «Accesso completo al disco» ad Ammugghia in Impostazioni di Sistema → Privacy e sicurezza per misurarli e proporli.")
     }
 }

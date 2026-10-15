@@ -25,9 +25,9 @@ enum XcodeScanner {
                 items.append(CleanupItem(
                     title: isShared ? "DerivedData: \(name)" : "DerivedData: \(project.isEmpty ? name : project)",
                     detail: isShared
-                        ? "Cache condivisa tra progetti generata dal compilatore."
-                        : "Prodotti di compilazione, indice e log del progetto «\(project.isEmpty ? name : project)».",
-                    consequence: "La prossima compilazione del progetto sarà completa invece che incrementale: qualche minuto in più una volta sola.",
+                        ? String(localized: "Cache condivisa tra progetti generata dal compilatore.")
+                        : String(localized: "Prodotti di compilazione, indice e log del progetto «\(project.isEmpty ? name : project)»."),
+                    consequence: String(localized: "La prossima compilazione del progetto sarà completa invece che incrementale: qualche minuto in più una volta sola."),
                     action: .removePaths([kid]), risk: .safe, size: size,
                     perPathSize: [kid: size],
                     lastUsed: ScanSupport.modificationDate(kid),
@@ -47,8 +47,8 @@ enum XcodeScanner {
                 let version = (kid as NSString).lastPathComponent
                 items.append(CleanupItem(
                     title: "Simboli \(label) \(version)",
-                    detail: "Simboli di debug copiati da un dispositivo \(label) con questa versione di sistema. Xcode li ricrea al primo collegamento del device.",
-                    consequence: "Ricollegando un dispositivo con \(label) \(version), Xcode rifarà la copia dei simboli: qualche minuto di attesa.",
+                    detail: String(localized: "Simboli di debug copiati da un dispositivo \(label) con questa versione di sistema. Xcode li ricrea al primo collegamento del device."),
+                    consequence: String(localized: "Ricollegando un dispositivo con \(label) \(version), Xcode rifarà la copia dei simboli: qualche minuto di attesa."),
                     action: .removePaths([kid]), risk: .safe, size: size,
                     perPathSize: [kid: size],
                     lastUsed: ScanSupport.modificationDate(kid)))
@@ -58,54 +58,54 @@ enum XcodeScanner {
         // Archivi: contengono i dSYM necessari a simbolizzare i crash delle
         // build già distribuite. Dato non riproducibile.
         if let archives = ScanSupport.item(
-            title: "Archivi Xcode",
-            detail: "Archivi .xcarchive delle build distribuite, con i simboli dSYM necessari a leggere i report di crash già in produzione.",
-            consequence: "Perdi la possibilità di simbolizzare i crash delle versioni già pubblicate. Non è ricostruibile: la stessa build va ricompilata identica.",
+            title: String(localized: "Archivi Xcode"),
+            detail: String(localized: "Archivi .xcarchive delle build distribuite, con i simboli dSYM necessari a leggere i report di crash già in produzione."),
+            consequence: String(localized: "Perdi la possibilità di simbolizzare i crash delle versioni già pubblicate. Non è ricostruibile: la stessa build va ricompilata identica."),
             path: dev + "/Xcode/Archives", risk: .userData) {
             items.append(archives)
         }
 
         // Cache varie di Xcode.
         let caches: [(String, String, String, String, RiskLevel)] = [
-            ("Cache modulo e indice di Xcode", home + "/Library/Caches/com.apple.dt.Xcode",
-             "Indice del codice, cache dei moduli precompilati e anteprime.",
-             "Xcode ricostruisce l'indice alla prossima apertura del progetto: l'autocompletamento è lento per qualche minuto.", .safe),
-            ("Anteprime SwiftUI", dev + "/Xcode/UserData/Previews",
-             "Cache delle anteprime live di SwiftUI.",
-             "La prima anteprima dopo la pulizia richiede una ricompilazione.", .safe),
-            ("Cache Swift Package Manager", home + "/Library/Caches/org.swift.swiftpm",
-             "Copie dei pacchetti Swift scaricati, condivise tra i progetti.",
-             "Al prossimo build i pacchetti vengono riscaricati dai repository: serve la rete.", .redownload),
-            ("Cache CocoaPods", home + "/Library/Caches/CocoaPods",
-             "Archivi delle pod scaricate.",
-             "Il prossimo `pod install` riscarica le dipendenze.", .redownload),
-            ("Specifiche CocoaPods", home + "/.cocoapods/repos",
-             "Copia locale dell'intero indice delle pod pubbliche.",
-             "Il prossimo `pod install` riscarica l'indice: parecchi minuti la prima volta.", .redownload),
-            ("Log dei dispositivi", dev + "/Xcode/DeviceLogs",
-             "Log e report di crash raccolti dai dispositivi collegati.",
-             "Perdi i report di crash non ancora esaminati.", .redownload),
-            ("Prodotti di build esportati", dev + "/Xcode/Products",
-             "Binari esportati dalle compilazioni.",
-             "Vanno ricompilati se ti servono.", .redownload),
-            ("Documentazione scaricata", dev + "/Xcode/DocumentationCache",
-             "Copia locale della documentazione Apple consultata da Xcode.",
-             "Xcode la riscarica quando apri la documentazione.", .redownload),
-            ("Indice della documentazione", dev + "/Xcode/DocumentationIndex",
-             "Indice di ricerca della documentazione di Xcode.",
-             "Xcode lo ricostruisce alla prima ricerca nella documentazione.", .safe),
-            ("Log dei dispositivi iOS", dev + "/Xcode/iOS Device Logs",
-             "Log e report di crash copiati da iPhone e iPad collegati.",
-             "Perdi i report di crash non ancora esaminati.", .redownload),
-            ("Log dei dispositivi watchOS", dev + "/Xcode/watchOS Device Logs",
-             "Log e report di crash copiati da Apple Watch abbinati.",
-             "Perdi i report di crash non ancora esaminati.", .redownload),
-            ("File temporanei dei simulatori", dev + "/CoreSimulator/Temp",
-             "File temporanei di CoreSimulator rimasti da avvii precedenti.",
-             "Nessuna: vengono ricreati quando servono.", .safe),
-            ("Assistente al codice", dev + "/Xcode/CodingAssistant",
-             "Cache e modelli locali dell'assistente al codice di Xcode.",
-             "Xcode li riscarica quando serve.", .redownload),
+            (String(localized: "Cache modulo e indice di Xcode"), home + "/Library/Caches/com.apple.dt.Xcode",
+             String(localized: "Indice del codice, cache dei moduli precompilati e anteprime."),
+             String(localized: "Xcode ricostruisce l'indice alla prossima apertura del progetto: l'autocompletamento è lento per qualche minuto."), .safe),
+            (String(localized: "Anteprime SwiftUI"), dev + "/Xcode/UserData/Previews",
+             String(localized: "Cache delle anteprime live di SwiftUI."),
+             String(localized: "La prima anteprima dopo la pulizia richiede una ricompilazione."), .safe),
+            (String(localized: "Cache Swift Package Manager"), home + "/Library/Caches/org.swift.swiftpm",
+             String(localized: "Copie dei pacchetti Swift scaricati, condivise tra i progetti."),
+             String(localized: "Al prossimo build i pacchetti vengono riscaricati dai repository: serve la rete."), .redownload),
+            (String(localized: "Cache CocoaPods"), home + "/Library/Caches/CocoaPods",
+             String(localized: "Archivi delle pod scaricate."),
+             String(localized: "Il prossimo `pod install` riscarica le dipendenze."), .redownload),
+            (String(localized: "Specifiche CocoaPods"), home + "/.cocoapods/repos",
+             String(localized: "Copia locale dell'intero indice delle pod pubbliche."),
+             String(localized: "Il prossimo `pod install` riscarica l'indice: parecchi minuti la prima volta."), .redownload),
+            (String(localized: "Log dei dispositivi"), dev + "/Xcode/DeviceLogs",
+             String(localized: "Log e report di crash raccolti dai dispositivi collegati."),
+             String(localized: "Perdi i report di crash non ancora esaminati."), .redownload),
+            (String(localized: "Prodotti di build esportati"), dev + "/Xcode/Products",
+             String(localized: "Binari esportati dalle compilazioni."),
+             String(localized: "Vanno ricompilati se ti servono."), .redownload),
+            (String(localized: "Documentazione scaricata"), dev + "/Xcode/DocumentationCache",
+             String(localized: "Copia locale della documentazione Apple consultata da Xcode."),
+             String(localized: "Xcode la riscarica quando apri la documentazione."), .redownload),
+            (String(localized: "Indice della documentazione"), dev + "/Xcode/DocumentationIndex",
+             String(localized: "Indice di ricerca della documentazione di Xcode."),
+             String(localized: "Xcode lo ricostruisce alla prima ricerca nella documentazione."), .safe),
+            (String(localized: "Log dei dispositivi iOS"), dev + "/Xcode/iOS Device Logs",
+             String(localized: "Log e report di crash copiati da iPhone e iPad collegati."),
+             String(localized: "Perdi i report di crash non ancora esaminati."), .redownload),
+            (String(localized: "Log dei dispositivi watchOS"), dev + "/Xcode/watchOS Device Logs",
+             String(localized: "Log e report di crash copiati da Apple Watch abbinati."),
+             String(localized: "Perdi i report di crash non ancora esaminati."), .redownload),
+            (String(localized: "File temporanei dei simulatori"), dev + "/CoreSimulator/Temp",
+             String(localized: "File temporanei di CoreSimulator rimasti da avvii precedenti."),
+             String(localized: "Nessuna: vengono ricreati quando servono."), .safe),
+            (String(localized: "Assistente al codice"), dev + "/Xcode/CodingAssistant",
+             String(localized: "Cache e modelli locali dell'assistente al codice di Xcode."),
+             String(localized: "Xcode li riscarica quando serve."), .redownload),
         ]
         // Indice e anteprime vengono riscritti continuamente mentre Xcode è
         // aperto: eliminarli sotto i suoi piedi lo lascia in uno stato confuso.
@@ -129,13 +129,13 @@ enum XcodeScanner {
             if size >= 100_000_000 {
                 let cmd = "rm -rf " + Shell.shellQuote(dyld) + "/*"
                 items.append(CleanupItem(
-                    title: "Cache dyld dei simulatori",
-                    detail: "Cache delle librerie condivise generata per ogni runtime di simulatore installato. Vive fuori dalla cartella utente, quindi Finder e Impostazioni non la mostrano.",
-                    consequence: "Si rigenera da sola: il primo avvio di ogni simulatore dopo la pulizia richiede uno o due minuti in più.",
+                    title: String(localized: "Cache dyld dei simulatori"),
+                    detail: String(localized: "Cache delle librerie condivise generata per ogni runtime di simulatore installato. Vive fuori dalla cartella utente, quindi Finder e Impostazioni non la mostrano."),
+                    consequence: String(localized: "Si rigenera da sola: il primo avvio di ogni simulatore dopo la pulizia richiede uno o due minuti in più."),
                     action: .privileged(shellCommand: cmd, displayPaths: [dyld]),
                     risk: .safe, size: size, perPathSize: [dyld: size],
                     lastUsed: ScanSupport.modificationDate(dyld),
-                    warning: "Richiede la password di amministratore: la cartella è di proprietà del sistema."))
+                    warning: String(localized: "Richiede la password di amministratore: la cartella è di proprietà del sistema.")))
             }
         }
 
@@ -146,12 +146,12 @@ enum XcodeScanner {
             if size >= 100_000_000 {
                 let cmd = "rm -rf " + Shell.shellQuote(clt)
                 items.append(CleanupItem(
-                    title: "Command Line Tools separati",
-                    detail: "Copia autonoma dei compilatori a riga di comando. Hai anche Xcode installato, che li contiene già: sono due copie della stessa toolchain.",
-                    consequence: "Va eseguito `sudo xcode-select -s /Applications/Xcode.app` per puntare gli strumenti a Xcode. Alcuni installer (Homebrew su sistemi nuovi) si aspettano questa cartella e chiederebbero di reinstallarla.",
+                    title: String(localized: "Command Line Tools separati"),
+                    detail: String(localized: "Copia autonoma dei compilatori a riga di comando. Hai anche Xcode installato, che li contiene già: sono due copie della stessa toolchain."),
+                    consequence: String(localized: "Va eseguito `sudo xcode-select -s /Applications/Xcode.app` per puntare gli strumenti a Xcode. Alcuni installer (Homebrew su sistemi nuovi) si aspettano questa cartella e chiederebbero di reinstallarla."),
                     action: .privileged(shellCommand: cmd, displayPaths: [clt]),
                     risk: .redownload, size: size, perPathSize: [clt: size],
-                    warning: "Elimina solo se compili con Xcode. Dopo, esegui: sudo xcode-select -s /Applications/Xcode.app"))
+                    warning: String(localized: "Elimina solo se compili con Xcode. Dopo, esegui: sudo xcode-select -s /Applications/Xcode.app")))
             }
         }
 
@@ -339,9 +339,9 @@ enum SimulatorScanner {
             let total = sizes.values.reduce(0, +)
             if total >= 1_000_000 {
                 items.append(CleanupItem(
-                    title: "Residui dei simulatori iOS",
-                    detail: "Xcode non è installato ma i dispositivi simulati e le loro cache sono rimasti sul disco. Senza Xcode non sono avviabili né gestibili.",
-                    consequence: "Nessuna: sono file inerti. Reinstallando Xcode i simulatori vengono ricreati da zero.",
+                    title: String(localized: "Residui dei simulatori iOS"),
+                    detail: String(localized: "Xcode non è installato ma i dispositivi simulati e le loro cache sono rimasti sul disco. Senza Xcode non sono avviabili né gestibili."),
+                    consequence: String(localized: "Nessuna: sono file inerti. Reinstallando Xcode i simulatori vengono ricreati da zero."),
                     action: .removePaths(dirs),
                     risk: .safe, size: total, perPathSize: sizes,
                     lastUsed: dirs.compactMap(ScanSupport.modificationDate).max()))
@@ -356,9 +356,9 @@ enum SimulatorScanner {
             let paths = empty.map(\.path)
             let total = empty.reduce(0) { $0 + $1.size }
             items.append(CleanupItem(
-                title: "\(empty.count) simulatori mai usati",
-                detail: "Dispositivi creati automaticamente da Xcode e mai avviati: \(Set(empty.map(\.name)).sorted().prefix(6).joined(separator: ", "))\(Set(empty.map(\.name)).count > 6 ? "…" : ""). Occupano poco singolarmente ma sono \(empty.count).",
-                consequence: "Xcode li ricrea automaticamente quando servono, oppure li ricrei da Window → Devices and Simulators.",
+                title: String(localized: "\(empty.count) simulatori mai usati"),
+                detail: String(localized: "Dispositivi creati automaticamente da Xcode e mai avviati: \(Set(empty.map(\.name)).sorted().prefix(6).joined(separator: ", "))\(Set(empty.map(\.name)).count > 6 ? "…" : ""). Occupano poco singolarmente ma sono \(empty.count)."),
+                consequence: String(localized: "Xcode li ricrea automaticamente quando servono, oppure li ricrei da Window → Devices and Simulators."),
                 action: .removePaths(paths), risk: .safe, size: total,
                 perPathSize: Dictionary(uniqueKeysWithValues: empty.map { ($0.path, $0.size) })))
         }
@@ -368,9 +368,9 @@ enum SimulatorScanner {
             let unavailable = !device.isAvailable
             items.append(CleanupItem(
                 title: "Simulatore \(device.name) (\(device.runtime))\(unavailable ? " — runtime non più installato" : "")",
-                detail: "Dispositivo con dati: app installate, database, foto e impostazioni accumulate durante i test."
-                    + (unavailable ? " Il runtime di questo simulatore non è più installato, quindi il dispositivo non è avviabile." : ""),
-                consequence: "Il dispositivo scompare da Xcode. Al prossimo avvio ne crei uno nuovo e le app di test vanno reinstallate.",
+                detail: String(localized: "Dispositivo con dati: app installate, database, foto e impostazioni accumulate durante i test.")
+                    + (unavailable ? String(localized: " Il runtime di questo simulatore non è più installato, quindi il dispositivo non è avviabile.") : ""),
+                consequence: String(localized: "Il dispositivo scompare da Xcode. Al prossimo avvio ne crei uno nuovo e le app di test vanno reinstallate."),
                 action: .simctlDeleteDevice(udid: device.udid),
                 risk: unavailable ? .safe : .redownload,
                 size: device.size,
@@ -381,9 +381,9 @@ enum SimulatorScanner {
 
             if !unavailable {
                 items.append(CleanupItem(
-                    title: "Azzera contenuto di \(device.name) (\(device.runtime))",
-                    detail: "Riporta il simulatore allo stato di fabbrica mantenendolo nell'elenco di Xcode. Alternativa all'eliminazione: recupera lo stesso spazio ma conserva il dispositivo.",
-                    consequence: "Il dispositivo resta disponibile ma vuoto: le app di test vanno reinstallate al prossimo avvio.",
+                    title: String(localized: "Azzera contenuto di \(device.name) (\(device.runtime))"),
+                    detail: String(localized: "Riporta il simulatore allo stato di fabbrica mantenendolo nell'elenco di Xcode. Alternativa all'eliminazione: recupera lo stesso spazio ma conserva il dispositivo."),
+                    consequence: String(localized: "Il dispositivo resta disponibile ma vuoto: le app di test vanno reinstallate al prossimo avvio."),
                     action: .simctlEraseDevice(udid: device.udid),
                     risk: .redownload, size: device.size,
                     perPathSize: [device.path: device.size],

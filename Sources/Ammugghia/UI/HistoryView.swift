@@ -5,12 +5,14 @@ import Charts
 /// finito nel Cestino si può rimettere al suo posto da qui.
 struct HistoryView: View {
     @EnvironmentObject var model: AppModel
-    @State private var origin: String = "Tutte"
+    /// Stringa vuota = tutte le provenienze: il filtro non deve dipendere da
+    /// una parola che cambia con la lingua.
+    @State private var origin: String = ""
 
-    private var origins: [String] { ["Tutte"] + Array(Set(model.history.map(\.origin))).sorted() }
+    private var origins: [String] { [""] + Array(Set(model.history.map(\.origin))).sorted() }
 
     private var filtered: [HistoryEntry] {
-        origin == "Tutte" ? model.history : model.history.filter { $0.origin == origin }
+        origin.isEmpty ? model.history : model.history.filter { $0.origin == origin }
     }
 
     /// Spazio liberato per mese, per il grafico.
@@ -35,7 +37,9 @@ struct HistoryView: View {
                     Text("Cronologia").font(.title2.bold())
                     Spacer()
                     Picker("Provenienza", selection: $origin) {
-                        ForEach(origins, id: \.self) { Text($0).tag($0) }
+                        ForEach(origins, id: \.self) { value in
+                            Text(value.isEmpty ? String(localized: "Tutte") : value).tag(value)
+                        }
                     }
                     .fixedSize()
                     Button("Mostra il registro") {

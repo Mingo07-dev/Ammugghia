@@ -9,9 +9,9 @@ struct StartupView: View {
     @State private var pending: (item: StartupItem, enable: Bool)?
 
     private let sections: [(StartupItem.Domain, String, String)] = [
-        (.userAgent, "Solo per il tuo utente", "~/Library/LaunchAgents"),
-        (.globalAgent, "Per tutti gli utenti", "/Library/LaunchAgents"),
-        (.daemon, "Servizi di sistema (richiedono la password)", "/Library/LaunchDaemons"),
+        (.userAgent, String(localized: "Solo per il tuo utente"), "~/Library/LaunchAgents"),
+        (.globalAgent, String(localized: "Per tutti gli utenti"), "/Library/LaunchAgents"),
+        (.daemon, String(localized: "Servizi di sistema (richiedono la password)"), "/Library/LaunchDaemons"),
     ]
 
     var body: some View {
@@ -76,7 +76,7 @@ struct StartupView: View {
             get: { pending != nil }, set: { if !$0 { pending = nil } }
         ), titleVisibility: .visible) {
             if let pending {
-                Button(pending.enable ? "Riattiva" : "Disattiva", role: pending.enable ? nil : .destructive) {
+                Button(pending.enable ? String(localized: "Riattiva") : String(localized: "Disattiva"), role: pending.enable ? nil : .destructive) {
                     model.setStartup(pending.item, enabled: pending.enable)
                 }
                 Button("Annulla", role: .cancel) {}
@@ -88,7 +88,9 @@ struct StartupView: View {
 
     private var dialogTitle: String {
         guard let pending else { return "" }
-        return "\(pending.enable ? "Riattivare" : "Disattivare") «\(pending.item.displayName)»?"
+        return pending.enable
+            ? String(localized: "Riattivare «\(pending.item.displayName)»?")
+            : String(localized: "Disattivare «\(pending.item.displayName)»?")
     }
 
     private var dialogMessage: String {
@@ -98,11 +100,11 @@ struct StartupView: View {
             .map { (["launchctl"] + $0).joined(separator: " ") }
             .joined(separator: "\n")
         let effect = pending.enable
-            ? "Il servizio torna ad avviarsi come prima e viene caricato subito."
-            : "Il servizio viene fermato e non si avvierà più finché non lo riattivi. "
-              + "\(item.ownerName.map { "«\($0)»" } ?? "L'app che lo usa") potrebbe smettere di aggiornarsi, sincronizzare o funzionare del tutto."
-        let admin = item.domain.needsAdmin ? "\n\nServe la password di amministratore." : ""
-        return effect + "\n\nComandi eseguiti:\n" + commands + admin
+            ? String(localized: "Il servizio torna ad avviarsi come prima e viene caricato subito.")
+            : String(localized: "Il servizio viene fermato e non si avvierà più finché non lo riattivi. ")
+              + String(localized: "\(item.ownerName.map { "«\($0)»" } ?? "L'app che lo usa") potrebbe smettere di aggiornarsi, sincronizzare o funzionare del tutto.")
+        let admin = item.domain.needsAdmin ? String(localized: "\n\nServe la password di amministratore.") : ""
+        return effect + String(localized: "\n\nComandi eseguiti:\n") + commands + admin
     }
 }
 
@@ -151,7 +153,7 @@ struct StartupRow: View {
                 .toggleStyle(.switch)
                 .labelsHidden()
                 .disabled(item.isApple)
-                .help(item.isApple ? "Servizio di macOS: non modificabile." : (item.isDisabled ? "Riattiva" : "Disattiva"))
+                .help(item.isApple ? String(localized: "Servizio di macOS: non modificabile.") : (item.isDisabled ? String(localized: "Riattiva") : String(localized: "Disattiva")))
         }
         .padding(.vertical, 3)
     }
@@ -159,10 +161,10 @@ struct StartupRow: View {
     private var badges: [String] {
         var result: [String] = []
         if item.isDisabled { result.append("disattivato") }
-        if item.isLoaded { result.append("in esecuzione") }
+        if item.isLoaded { result.append(String(localized: "in esecuzione")) }
         if item.runAtLoad { result.append("all'avvio") }
-        if item.keepAlive { result.append("sempre attivo") }
-        if let interval = item.interval { result.append("ogni \(max(1, interval / 60)) min") }
+        if item.keepAlive { result.append(String(localized: "sempre attivo")) }
+        if let interval = item.interval { result.append(String(localized: "ogni \(max(1, interval / 60)) min")) }
         return result
     }
 }

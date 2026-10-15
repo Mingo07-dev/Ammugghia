@@ -34,7 +34,7 @@ struct OverviewView: View {
                 if model.didScan {
                     // Recuperabile, diviso per costo dell'errore.
                     VStack(alignment: .leading, spacing: 10) {
-                        SectionTitle("Spazio recuperabile", subtitle: "Diviso per quanto costa sbagliare")
+                        SectionTitle("Spazio recuperabile", subtitle: String(localized: "Diviso per quanto costa sbagliare"))
                         HStack(spacing: 12) {
                             ForEach(RiskLevel.allCases) { risk in
                                 RiskCard(risk: risk, size: byRisk[risk] ?? 0)
@@ -56,7 +56,7 @@ struct OverviewView: View {
                     if !model.notes.isEmpty {
                         VStack(alignment: .leading, spacing: 10) {
                             SectionTitle("Cosa vale la pena sapere",
-                                         subtitle: "Osservazioni ricavate dalla configurazione del tuo Mac")
+                                         subtitle: String(localized: "Osservazioni ricavate dalla configurazione del tuo Mac"))
                             ForEach(Array(model.notes.enumerated()), id: \.offset) { _, note in
                                 HStack(alignment: .top, spacing: 9) {
                                     Image(systemName: "lightbulb.fill")
@@ -73,7 +73,7 @@ struct OverviewView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 10) {
-                        SectionTitle("Per categoria", subtitle: "Seleziona una categoria nella barra laterale per i dettagli")
+                        SectionTitle("Per categoria", subtitle: String(localized: "Seleziona una categoria nella barra laterale per i dettagli"))
                         ForEach(model.categories) { category in
                             CategorySummaryRow(category: category)
                         }

@@ -54,7 +54,7 @@ struct DuplicatesView: View {
                 Text(model.duplicateProgress).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                 Button("Annulla") { model.cancelDuplicates() }
             } else {
-                Button(model.duplicatesDidRun ? "Cerca di nuovo" : "Cerca i duplicati") {
+                Button(model.duplicatesDidRun ? String(localized: "Cerca di nuovo") : String(localized: "Cerca i duplicati")) {
                     model.findDuplicates()
                 }
                 .buttonStyle(.borderedProminent)
@@ -137,7 +137,7 @@ struct DuplicatesView: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = true
-        panel.prompt = "Aggiungi"
+        panel.prompt = String(localized: "Aggiungi")
         guard panel.runModal() == .OK else { return }
         for url in panel.urls where !model.duplicateRoots.contains(url.path) {
             model.duplicateExtraRoots.append(url.path)

@@ -93,7 +93,7 @@ final class DiskIndexStore {
         loadIfNeeded()
         let start = Date()
 
-        let reason = forceFull ? "analisi da zero richiesta" : fullScanReason()
+        let reason = forceFull ? String(localized: "analisi da zero richiesta") : fullScanReason()
         if let reason {
             guard allowFull else { return nil }
             return fullScan(reason: reason, start: start, progress: progress)
@@ -160,7 +160,7 @@ final class DiskIndexStore {
             // l'indice viene rifatto da zero.
             if let mismatch = verifySample(excludingTrees: rescannedTrees, directories: rescannedDirs) {
                 guard allowFull else { return nil }
-                return fullScan(reason: "verifica a campione non superata (\(mismatch))",
+                return fullScan(reason: String(localized: "verifica a campione non superata (\(mismatch))"),
                                 start: start, progress: progress)
             }
 
@@ -176,31 +176,31 @@ final class DiskIndexStore {
 
     /// Motivo per cui l'indice salvato non è una base affidabile, oppure `nil`.
     private func fullScanReason() -> String? {
-        guard let header, header.complete else { return "nessuna analisi completa precedente" }
+        guard let header, header.complete else { return String(localized: "nessuna analisi completa precedente") }
         guard header.roots.map(\.path) == roots, trees.count == roots.count else {
-            return "cartelle da analizzare cambiate"
+            return String(localized: "cartelle da analizzare cambiate")
         }
         if Date().timeIntervalSince1970 - header.createdAt > DiskIndexStore.maxAge {
-            return "ultima analisi completa più vecchia di un giorno"
+            return String(localized: "ultima analisi completa più vecchia di un giorno")
         }
         if header.osVersion != ProcessInfo.processInfo.operatingSystemVersionString {
-            return "macOS è stato aggiornato"
+            return String(localized: "macOS è stato aggiornato")
         }
         if header.exclusions != exclusions().mapFingerprint {
-            return "le esclusioni della mappa sono cambiate"
+            return String(localized: "le esclusioni della mappa sono cambiate")
         }
         if header.fullDiskAccess != DiskIndexStore.hasFullDiskAccess() {
-            return "i permessi di accesso al disco sono cambiati"
+            return String(localized: "i permessi di accesso al disco sono cambiati")
         }
         for root in header.roots {
             guard let device = BulkEnumerator.device(of: root.path), device == root.device else {
-                return "il volume di \(root.path) è cambiato"
+                return String(localized: "il volume di \(root.path) è cambiato")
             }
             if DiskIndexStore.volumeUUID(root.path) != root.volumeUUID {
-                return "il volume di \(root.path) è cambiato"
+                return String(localized: "il volume di \(root.path) è cambiato")
             }
             if ChangeTracker.databaseUUID(device: device) != root.eventsUUID {
-                return "la storia delle modifiche del volume è stata azzerata"
+                return String(localized: "la storia delle modifiche del volume è stata azzerata")
             }
         }
         return nil
@@ -292,7 +292,7 @@ final class DiskIndexStore {
         guard header?.complete == true else { return nil }
         guard let path else {
             return zip(roots, trees).map { root, tree in
-                Entry(path: root, name: root == ScanSupport.home ? "Cartella utente" : root,
+                Entry(path: root, name: root == ScanSupport.home ? String(localized: "Cartella utente") : root,
                       size: tree.totalBytes, files: tree.totalFiles, modified: tree.modified,
                       kind: .directory, unreadable: tree.unreadable)
             }.sorted { $0.size > $1.size }

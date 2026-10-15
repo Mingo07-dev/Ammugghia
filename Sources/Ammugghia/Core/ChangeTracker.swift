@@ -55,12 +55,12 @@ enum ChangeTracker {
                 continue
             }
             let fatal: [(Int, String)] = [
-                (kFSEventStreamEventFlagKernelDropped, "eventi persi dal kernel"),
-                (kFSEventStreamEventFlagUserDropped, "eventi persi dal demone"),
-                (kFSEventStreamEventFlagEventIdsWrapped, "numerazione degli eventi ricominciata"),
-                (kFSEventStreamEventFlagRootChanged, "una cartella analizzata è stata spostata"),
-                (kFSEventStreamEventFlagMount, "un volume è stato montato"),
-                (kFSEventStreamEventFlagUnmount, "un volume è stato smontato"),
+                (kFSEventStreamEventFlagKernelDropped, String(localized: "eventi persi dal kernel")),
+                (kFSEventStreamEventFlagUserDropped, String(localized: "eventi persi dal demone")),
+                (kFSEventStreamEventFlagEventIdsWrapped, String(localized: "numerazione degli eventi ricominciata")),
+                (kFSEventStreamEventFlagRootChanged, String(localized: "una cartella analizzata è stata spostata")),
+                (kFSEventStreamEventFlagMount, String(localized: "un volume è stato montato")),
+                (kFSEventStreamEventFlagUnmount, String(localized: "un volume è stato smontato")),
             ]
             if let hit = fatal.first(where: { flag & $0.0 != 0 }) {
                 collector.failure = collector.failure ?? hit.1
@@ -95,7 +95,7 @@ enum ChangeTracker {
                                              | kFSEventStreamCreateFlagWatchRoot)
         guard let stream = FSEventStreamCreate(nil, callback, &context, roots as CFArray,
                                                FSEventStreamEventId(eventID), 0, flags) else {
-            return .mustRescan(reason: "impossibile leggere la storia delle modifiche")
+            return .mustRescan(reason: String(localized: "impossibile leggere la storia delle modifiche"))
         }
         let queue = DispatchQueue(label: "it.ammugghia.fsevents")
         FSEventStreamSetDispatchQueue(stream, queue)
@@ -105,7 +105,7 @@ enum ChangeTracker {
             FSEventStreamRelease(stream)
         }
         guard FSEventStreamStart(stream) else {
-            return .mustRescan(reason: "impossibile leggere la storia delle modifiche")
+            return .mustRescan(reason: String(localized: "impossibile leggere la storia delle modifiche"))
         }
         let answered = collector.done.wait(timeout: .now() + timeout) == .success
         FSEventStreamFlushSync(stream)
@@ -114,7 +114,7 @@ enum ChangeTracker {
 
         collector.lock.lock()
         defer { collector.lock.unlock() }
-        if !answered { return .mustRescan(reason: "la storia delle modifiche non ha risposto in tempo") }
+        if !answered { return .mustRescan(reason: String(localized: "la storia delle modifiche non ha risposto in tempo")) }
         if let failure = collector.failure { return .mustRescan(reason: failure) }
         return .changes(directories: collector.directories, recursive: collector.recursive)
     }

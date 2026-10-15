@@ -41,7 +41,7 @@ struct ConfirmSheet: View {
     }
 
     /// La parola da digitare quando in gioco ci sono dati non recuperabili.
-    private let requiredWord = "ELIMINA"
+    private let requiredWord = String(localized: "ELIMINA")
 
     private var needsTypedConfirmation: Bool {
         !isDryRun && !userDataItems.isEmpty && model.removalMode == .permanent
@@ -63,15 +63,15 @@ struct ConfirmSheet: View {
                     Image(systemName: isDryRun ? "eyeglasses" : "exclamationmark.triangle.fill")
                         .font(.title2)
                         .foregroundStyle(isDryRun ? .blue : .orange)
-                    Text(isDryRun ? "Simulazione" : "Conferma la pulizia").font(.title2.bold())
+                    Text(isDryRun ? String(localized: "Simulazione") : String(localized: "Conferma la pulizia")).font(.title2.bold())
                     Spacer()
                     Text(ByteFormat.string(total))
                         .font(.title3.bold().monospacedDigit())
                         .foregroundStyle(.tint)
                 }
-                Text(isDryRun
-                     ? "Verranno eseguiti tutti i controlli di sicurezza e registrato ciò che accadrebbe. Nessun file verrà modificato."
-                     : "\(items.count) operazion\(items.count == 1 ? "e" : "i") su \(allPaths.count) percors\(allPaths.count == 1 ? "o" : "i"). Modalità: **\(model.removalMode.label)** — \(model.removalMode.caveat)")
+                Text(markdown: isDryRun
+                     ? String(localized: "Verranno eseguiti tutti i controlli di sicurezza e registrato ciò che accadrebbe. Nessun file verrà modificato.")
+                     : String(localized: "\(Plural.of(items.count, "operazione", "operazioni")) su \(Plural.of(allPaths.count, "percorso", "percorsi")). Modalità: **\(model.removalMode.label)** — \(model.removalMode.caveat)"))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -88,9 +88,11 @@ struct ConfirmSheet: View {
                         WarningPanel(
                             color: .red,
                             icon: "exclamationmark.octagon.fill",
-                            title: "\(userDataItems.count) operazion\(userDataItems.count == 1 ? "e" : "i") coinvolge dati non recuperabili",
+                            title: userDataItems.count == 1
+                                ? String(localized: "1 operazione coinvolge dati non recuperabili")
+                                : String(localized: "\(userDataItems.count) operazioni coinvolgono dati non recuperabili"),
                             body: userDataItems.map { "• \($0.title)" }.joined(separator: "\n")
-                                + "\n\nQuesti elementi non si rigenerano da soli. Se non sei sicuro, deselezionali e procedi con il resto."
+                                + String(localized: "\n\nQuesti elementi non si rigenerano da soli. Se non sei sicuro, deselezionali e procedi con il resto.")
                         )
                     }
 
@@ -98,9 +100,11 @@ struct ConfirmSheet: View {
                         WarningPanel(
                             color: .blue,
                             icon: "lock.fill",
-                            title: "\(adminItems.count) operazion\(adminItems.count == 1 ? "e" : "i") richiede la password di amministratore",
+                            title: adminItems.count == 1
+                                ? String(localized: "1 operazione richiede la password di amministratore")
+                                : String(localized: "\(adminItems.count) operazioni richiedono la password di amministratore"),
                             body: adminItems.map { "• \($0.title)\n  \($0.action.commandDescription)" }.joined(separator: "\n")
-                                + "\n\nIl comando esatto è riportato qui sopra: macOS chiederà la password una volta per ciascuno."
+                                + String(localized: "\n\nIl comando esatto è riportato qui sopra: macOS chiederà la password una volta per ciascuno.")
                         )
                     }
 
@@ -170,7 +174,7 @@ struct ConfirmSheet: View {
                     Spacer()
                     Button("Annulla") { dismiss() }
                         .keyboardShortcut(.cancelAction)
-                    Button(isDryRun ? "Esegui la simulazione" : "Procedi") {
+                    Button(isDryRun ? String(localized: "Esegui la simulazione") : String(localized: "Procedi")) {
                         model.execute(items: items, dryRun: isDryRun)
                     }
                     .buttonStyle(.borderedProminent)
@@ -202,12 +206,11 @@ struct RunningAppsPanel: View {
             Image(systemName: "app.badge.checkmark").foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 4) {
                 Text(bundleIDs.count == 1
-                     ? "\(names) è aperta"
-                     : "\(Plural.of(bundleIDs.count, "app aperta", "app aperte")): \(names)")
+                     ? String(localized: "\(names) è aperta")
+                     : String(localized: "\(Plural.of(bundleIDs.count, "app aperta", "app aperte")): \(names)"))
                     .font(.callout.bold())
-                Text("Le app aperte riscrivono la propria cache mentre la si elimina. "
-                     + "Finché restano aperte, \(Plural.of(blockedItems.count, "questa voce verrà saltata", "queste voci verranno saltate")):\n"
-                     + blockedItems.map { "• \($0.title)" }.joined(separator: "\n"))
+                Text(String(localized: "Le app aperte riscrivono la propria cache mentre la si elimina. Finché restano aperte, \(Plural.of(blockedItems.count, "questa voce verrà saltata", "queste voci verranno saltate")):")
+                     + "\n" + blockedItems.map { "• \($0.title)" }.joined(separator: "\n"))
                     .font(.caption)
                     .fixedSize(horizontal: false, vertical: true)
                 Button(Plural.word(bundleIDs.count, "Chiudi l'app", "Chiudi le app")) {
@@ -224,6 +227,18 @@ struct RunningAppsPanel: View {
 
     private var names: String {
         bundleIDs.map { AppRuntime.displayName(bundleID: $0) }.joined(separator: ", ")
+    }
+}
+
+extension Text {
+    /// Testo già tradotto che contiene Markdown (`**grassetto**`). Passato a
+    /// `Text` come `String` verrebbe mostrato con gli asterischi; con una
+    /// `LocalizedStringKey` verrebbe cercato di nuovo fra le traduzioni.
+    init(markdown string: String) {
+        let parsed = (try? AttributedString(markdown: string,
+                                            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
+            ?? AttributedString(string)
+        self.init(parsed)
     }
 }
 
@@ -265,8 +280,8 @@ struct PlanRow: View {
                         expanded.toggle()
                     } label: {
                         Text(expanded
-                             ? "nascondi i percorsi"
-                             : "mostra \(item.action.displayPaths.count) percors\(item.action.displayPaths.count == 1 ? "o" : "i")")
+                             ? String(localized: "nascondi i percorsi")
+                             : String(localized: "mostra \(Plural.of(item.action.displayPaths.count, "percorso", "percorsi"))"))
                             .font(.caption2)
                     }
                     .buttonStyle(.plain)

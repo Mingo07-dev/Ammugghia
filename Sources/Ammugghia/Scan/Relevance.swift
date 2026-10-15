@@ -22,7 +22,7 @@ enum ToolPresence: Equatable {
         switch self {
         case .installed: return nil
         case .residual: return "residui"
-        case .absent: return "non installato"
+        case .absent: return String(localized: "non installato")
         }
     }
 }
@@ -48,7 +48,7 @@ enum Relevance {
         case .orphans:
             let found = OrphanScanner.find()
             return found.orphans.isEmpty && found.unreadable.isEmpty
-                ? .absent(detail: "Nessun residuo di app disinstallate.")
+                ? .absent(detail: String(localized: "Nessun residuo di app disinstallate."))
                 : .installed
         case .browsers, .appCaches, .system, .largeFiles:
             // Sempre pertinenti: sono aree del sistema, non programmi.
@@ -70,9 +70,9 @@ enum Relevance {
             ScanSupport.home + "/Library/Developer/CoreSimulator",
         ].filter(ScanSupport.exists)
         if !leftovers.isEmpty {
-            return .residual(detail: "Xcode non risulta installato, ma sono rimaste \(Plural.of(leftovers.count, "cartella", "cartelle")) di supporto: sono residui eliminabili.")
+            return .residual(detail: String(localized: "Xcode non risulta installato, ma sono rimaste \(Plural.of(leftovers.count, "cartella", "cartelle")) di supporto: sono residui eliminabili."))
         }
-        return .absent(detail: "Xcode non è installato e non ha lasciato file.")
+        return .absent(detail: String(localized: "Xcode non è installato e non ha lasciato file."))
     }
 
     static func simulators() -> ToolPresence {
@@ -84,9 +84,9 @@ enum Relevance {
         if hasXcode && hasDevices { return .installed }
         if hasXcode { return .installed }   // Xcode c'è: la scheda serve comunque
         if hasDevices || ScanSupport.exists("/Library/Developer/CoreSimulator") {
-            return .residual(detail: "Xcode non risulta installato, ma i simulatori e le loro cache sono ancora sul disco. Senza Xcode non sono avviabili: si possono rimuovere.")
+            return .residual(detail: String(localized: "Xcode non risulta installato, ma i simulatori e le loro cache sono ancora sul disco. Senza Xcode non sono avviabili: si possono rimuovere."))
         }
-        return .absent(detail: "Nessun simulatore iOS installato.")
+        return .absent(detail: String(localized: "Nessun simulatore iOS installato."))
     }
 
     static func android() -> ToolPresence {
@@ -102,9 +102,9 @@ enum Relevance {
             ScanSupport.home + "/Library/Application Support/Google/AndroidStudio",
         ].filter(ScanSupport.exists)
         if !leftovers.isEmpty {
-            return .residual(detail: "Android Studio e l'SDK non risultano installati, ma restano \(Plural.of(leftovers.count, "cartella", "cartelle")) fra emulatori, cache Gradle e configurazione: residui eliminabili.")
+            return .residual(detail: String(localized: "Android Studio e l'SDK non risultano installati, ma restano \(Plural.of(leftovers.count, "cartella", "cartelle")) fra emulatori, cache Gradle e configurazione: residui eliminabili."))
         }
-        return .absent(detail: "Nessun ambiente di sviluppo Android installato.")
+        return .absent(detail: String(localized: "Nessun ambiente di sviluppo Android installato."))
     }
 
     static func docker() -> ToolPresence {
@@ -115,9 +115,9 @@ enum Relevance {
         let leftovers = dockerLeftoverPaths()
         if !leftovers.isEmpty {
             let size = Shell.diskSizes(leftovers).values.reduce(0, +)
-            return .residual(detail: "Docker non risulta installato, ma restano \(ByteFormat.string(size)) fra disco virtuale e dati: residui di una disinstallazione incompleta.")
+            return .residual(detail: String(localized: "Docker non risulta installato, ma restano \(ByteFormat.string(size)) fra disco virtuale e dati: residui di una disinstallazione incompleta."))
         }
-        return .absent(detail: "Docker non è installato.")
+        return .absent(detail: String(localized: "Docker non è installato."))
     }
 
     static func wallpapers() -> ToolPresence {
@@ -127,7 +127,7 @@ enum Relevance {
            !ScanSupport.children(of: videos).filter({ $0.hasSuffix(".mov") }).isEmpty {
             return .installed
         }
-        return .absent(detail: "Nessuno sfondo dinamico scaricato.")
+        return .absent(detail: String(localized: "Nessuno sfondo dinamico scaricato."))
     }
 
     static func packageManagers() -> ToolPresence {
@@ -138,12 +138,12 @@ enum Relevance {
             ScanSupport.home + "/Library/Caches/Homebrew",
         ]
         if markers.contains(where: ScanSupport.exists) { return .installed }
-        return .absent(detail: "Nessun gestore di pacchetti con cache locale rilevato.")
+        return .absent(detail: String(localized: "Nessun gestore di pacchetti con cache locale rilevato."))
     }
 
     static func projectArtifacts() -> ToolPresence {
         if !ProjectArtifactScanner.searchRoots.isEmpty { return .installed }
-        return .absent(detail: "Nessuna cartella di progetti nelle posizioni consuete.")
+        return .absent(detail: String(localized: "Nessuna cartella di progetti nelle posizioni consuete."))
     }
 
     // MARK: Utilità

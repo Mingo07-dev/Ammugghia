@@ -16,20 +16,20 @@ enum RiskLevel: Int, Comparable, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .safe: return "Sicuro"
-        case .redownload: return "Da riscaricare"
-        case .userData: return "Dati utente"
+        case .safe: return String(localized: "Sicuro")
+        case .redownload: return String(localized: "Da riscaricare")
+        case .userData: return String(localized: "Dati utente")
         }
     }
 
     var explanation: String {
         switch self {
         case .safe:
-            return "Cache rigenerata automaticamente. L'unica conseguenza è che la prossima operazione sarà più lenta."
+            return String(localized: "Cache rigenerata automaticamente. L'unica conseguenza è che la prossima operazione sarà più lenta.")
         case .redownload:
-            return "Contenuto valido ma ricostruibile: dopo l'eliminazione va riscaricato o ricompilato. Consumo di banda e tempo."
+            return String(localized: "Contenuto valido ma ricostruibile: dopo l'eliminazione va riscaricato o ricompilato. Consumo di banda e tempo.")
         case .userData:
-            return "Contiene dati tuoi o non recuperabili automaticamente. Non viene mai selezionato da solo e richiede una conferma scritta."
+            return String(localized: "Contiene dati tuoi o non recuperabili automaticamente. Non viene mai selezionato da solo e richiede una conferma scritta.")
         }
     }
 
@@ -101,7 +101,7 @@ enum CleanupAction {
     var commandDescription: String {
         switch self {
         case .removePaths, .removeProjectArtifacts, .removeApp:
-            return "eliminazione file"
+            return String(localized: "eliminazione file")
         case .simctlDeleteDevice(let u):
             return "xcrun simctl delete \(u)"
         case .simctlEraseDevice(let u):
@@ -115,9 +115,9 @@ enum CleanupAction {
         case .dockerPrune(let kind):
             return kind.command
         case .revealOnly:
-            return "solo visualizzazione — nessuna eliminazione"
+            return String(localized: "solo visualizzazione — nessuna eliminazione")
         case .removeAgedFiles(_, let days, let files):
-            return "eliminazione di \(Plural.of(files.count, "file", "file")) non usati da più di \(days) giorni"
+            return String(localized: "eliminazione di \(Plural.of(files.count, "file", "file")) non usati da più di \(days) giorni")
         }
     }
 }
@@ -189,7 +189,7 @@ final class CleanupItem: Identifiable, ObservableObject, Hashable {
     /// Categoria o scheda da cui proviene l'elemento. Serve a raggruppare il
     /// riepilogo di conferma per provenienza invece di mostrare un elenco
     /// piatto. Assegnata dal modello dopo l'analisi.
-    var origin: String = "Pulizia"
+    var origin: String = String(localized: "Pulizia")
 
     init(title: String,
          detail: String,
@@ -349,13 +349,13 @@ final class VersionGroup: Identifiable, ObservableObject {
     var remainingCount: Int { entries.count - markedForRemoval.count }
 
     var suggestion: String {
-        guard entries.count > 1 else { return "Una sola versione installata: niente da consolidare." }
+        guard entries.count > 1 else { return String(localized: "Una sola versione installata: niente da consolidare.") }
         let keep = entries.first
         let extra = entries.dropFirst()
         let extraSize = extra.reduce(0) { $0 + $1.size }
         let formatted = ByteFormat.string(extraSize)
         let newest = keep?.label ?? "?"
-        return "\(entries.count) versioni installate. Tenendo solo \(newest) recuperi \(formatted)."
+        return String(localized: "\(entries.count) versioni installate. Tenendo solo \(newest) recuperi \(formatted).")
     }
 
     /// Confronto di versioni numeriche a segmenti: "26.10" > "26.9".
@@ -384,9 +384,9 @@ enum MatchConfidence: Int, Comparable {
 
     var label: String {
         switch self {
-        case .exact: return "Corrispondenza esatta"
+        case .exact: return String(localized: "Corrispondenza esatta")
         case .prefix: return "Sotto-identificatore"
-        case .name: return "Corrispondenza sul nome"
+        case .name: return String(localized: "Corrispondenza sul nome")
         }
     }
 
@@ -394,7 +394,7 @@ enum MatchConfidence: Int, Comparable {
         switch self {
         case .exact, .prefix: return nil
         case .name:
-            return "Trovato confrontando il nome dell'app, non l'identificatore: verifica che appartenga davvero a questa applicazione."
+            return String(localized: "Trovato confrontando il nome dell'app, non l'identificatore: verifica che appartenga davvero a questa applicazione.")
         }
     }
 
@@ -502,13 +502,17 @@ enum ByteFormat {
 /// regola meccanica utilizzabile qui e le stringhe tipo «1 voci» si notano.
 enum Plural {
     /// `Plural.of(1, "cartella", "cartelle")` → "1 cartella"
-    static func of(_ count: Int, _ singular: String, _ plural: String) -> String {
-        "\(count) \(count == 1 ? singular : plural)"
+    ///
+    /// Le due forme sono `LocalizationValue`: il compilatore le estrae come
+    /// chiavi di traduzione. Italiano e inglese hanno la stessa regola (uno /
+    /// tutti gli altri), quindi basta tradurre le due parole.
+    static func of(_ count: Int, _ singular: String.LocalizationValue, _ plural: String.LocalizationValue) -> String {
+        "\(count.formatted()) \(word(count, singular, plural))"
     }
 
     /// Solo il sostantivo concordato, senza il numero.
-    static func word(_ count: Int, _ singular: String, _ plural: String) -> String {
-        count == 1 ? singular : plural
+    static func word(_ count: Int, _ singular: String.LocalizationValue, _ plural: String.LocalizationValue) -> String {
+        count == 1 ? String(localized: singular) : String(localized: plural)
     }
 }
 
@@ -517,12 +521,13 @@ enum DateFormat {
         let f = DateFormatter()
         f.dateStyle = .medium
         f.timeStyle = .none
-        f.locale = Locale(identifier: "it_IT")
+        // La lingua dell'app, non più l'italiano fisso.
+        f.locale = Locale.autoupdatingCurrent
         return f
     }()
 
     static func string(_ date: Date?) -> String {
-        guard let date else { return "mai / sconosciuto" }
+        guard let date else { return String(localized: "mai / sconosciuto") }
         return formatter.string(from: date)
     }
 
@@ -533,18 +538,20 @@ enum DateFormat {
     /// per altri dall'ultima modifica del file. Scrivere «usato» in entrambi i
     /// casi sarebbe impreciso.
     static func relative(_ date: Date?) -> String {
-        guard let date else { return "attività sconosciuta" }
+        guard let date else { return String(localized: "attività sconosciuta") }
         let days = Int(Date().timeIntervalSince(date) / 86_400)
         switch days {
-        case ..<1: return "ultima attività: oggi"
-        case 1: return "ultima attività: ieri"
-        case 2..<30: return "ultima attività: \(days) giorni fa"
+        case ..<1: return String(localized: "ultima attività: oggi")
+        case 1: return String(localized: "ultima attività: ieri")
+        case 2..<30: return String(localized: "ultima attività: \(days) giorni fa")
         case 30..<365:
             let months = max(1, days / 30)
-            return "ultima attività: \(months) mes\(months == 1 ? "e" : "i") fa"
+            return months == 1 ? String(localized: "ultima attività: 1 mese fa")
+                               : String(localized: "ultima attività: \(months) mesi fa")
         default:
             let years = max(1, days / 365)
-            return "ultima attività: \(years) ann\(years == 1 ? "o" : "i") fa"
+            return years == 1 ? String(localized: "ultima attività: 1 anno fa")
+                              : String(localized: "ultima attività: \(years) anni fa")
         }
     }
 }

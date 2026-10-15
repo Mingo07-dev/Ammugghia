@@ -12,10 +12,10 @@ struct ExclusionRule: Codable, Hashable, Identifiable {
 
         var label: String {
             switch self {
-            case .cleanup: return "Pulizia"
-            case .largeFiles: return "File grandi"
-            case .duplicates: return "Duplicati"
-            case .map: return "Mappa"
+            case .cleanup: return String(localized: "Pulizia")
+            case .largeFiles: return String(localized: "File grandi")
+            case .duplicates: return String(localized: "Duplicati")
+            case .map: return String(localized: "Mappa")
             }
         }
     }

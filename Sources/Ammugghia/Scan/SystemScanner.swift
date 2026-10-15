@@ -21,18 +21,18 @@ enum SystemScanner {
                 }()
                 var warning: String?
                 if let pending, !isStale {
-                    warning = "C'è un aggiornamento in attesa (\(pending)) e questa cartella è recente: "
-                            + "potrebbe contenerne il download. Eliminandola l'aggiornamento va riscaricato. "
-                            + "Meglio installare prima l'aggiornamento."
+                    warning = String(localized: "C'è un aggiornamento in attesa (\(pending)) e questa cartella è recente: ")
+                            + String(localized: "potrebbe contenerne il download. Eliminandola l'aggiornamento va riscaricato. ")
+                            + String(localized: "Meglio installare prima l'aggiornamento.")
                 } else if let pending {
-                    warning = "C'è un aggiornamento in attesa (\(pending)) ma questa cartella risale a "
-                            + "\(DateFormat.string(installedDate)), quindi è il residuo di un'installazione già completata."
+                    warning = String(localized: "C'è un aggiornamento in attesa (\(pending)) ma questa cartella risale a ")
+                            + String(localized: "\(DateFormat.string(installedDate)), quindi è il residuo di un'installazione già completata.")
                 }
                 let cmd = "rm -rf " + Shell.shellQuote(installData)
                 items.append(CleanupItem(
-                    title: "Installer di macOS residuo",
-                    detail: "Copia del programma di installazione di macOS lasciata sul disco dopo un aggiornamento di sistema. Non è visibile nel Finder e le Impostazioni la contano fra i «dati di sistema».\n\nCartella creata il \(DateFormat.string(installedDate)). Sistema attualmente installato: \(currentSystemVersion()).",
-                    consequence: "Nessuna, se l'aggiornamento a cui si riferisce è già stato installato. Se invece è un download in attesa, l'aggiornamento va riscaricato.",
+                    title: String(localized: "Installer di macOS residuo"),
+                    detail: String(localized: "Copia del programma di installazione di macOS lasciata sul disco dopo un aggiornamento di sistema. Non è visibile nel Finder e le Impostazioni la contano fra i «dati di sistema».\n\nCartella creata il \(DateFormat.string(installedDate)). Sistema attualmente installato: \(currentSystemVersion())."),
+                    consequence: String(localized: "Nessuna, se l'aggiornamento a cui si riferisce è già stato installato. Se invece è un download in attesa, l'aggiornamento va riscaricato."),
                     action: .privileged(shellCommand: cmd, displayPaths: [installData]),
                     risk: .safe, size: size, perPathSize: [installData: size],
                     lastUsed: installedDate, warning: warning))
@@ -59,9 +59,9 @@ enum SystemScanner {
                 let size = sizes[kid] ?? 0
                 guard size >= 200_000_000 else { continue }
                 items.append(CleanupItem(
-                    title: "Cache di \(friendlyName(name))",
-                    detail: "Cartella di cache dell'applicazione «\(name)».",
-                    consequence: "L'applicazione ricostruisce la propria cache al prossimo avvio. Alcune app perdono contenuti scaricati per l'uso offline.",
+                    title: String(localized: "Cache di \(friendlyName(name))"),
+                    detail: String(localized: "Cartella di cache dell'applicazione «\(name)»."),
+                    consequence: String(localized: "L'applicazione ricostruisce la propria cache al prossimo avvio. Alcune app perdono contenuti scaricati per l'uso offline."),
                     action: .removePaths([kid]), risk: .safe, size: size,
                     perPathSize: [kid: size], lastUsed: ScanSupport.modificationDate(kid)))
             }
@@ -69,29 +69,29 @@ enum SystemScanner {
 
         // Stato delle finestre e log.
         let misc: [(String, [String], String, String, RiskLevel)] = [
-            ("Stato salvato delle applicazioni", [home + "/Library/Saved Application State"],
-             "Posizione delle finestre e documenti riaperti automaticamente da ciascuna app.",
-             "Le app si riaprono con le finestre in posizione predefinita invece di ripristinare la sessione precedente.", .safe),
-            ("Log delle applicazioni", [home + "/Library/Logs"],
-             "Log diagnostici scritti dalle applicazioni.",
-             "Perdi le informazioni utili a diagnosticare problemi già avvenuti.", .safe),
-            ("Cache anteprime QuickLook", [home + "/Library/Caches/com.apple.QuickLook.thumbnailcache"],
-             "Miniature generate per l'anteprima dei file nel Finder.",
-             "Il Finder rigenera le miniature scorrendo le cartelle.", .safe),
-            ("Allegati Mail scaricati", [home + "/Library/Containers/com.apple.mail/Data/Library/Mail Downloads"],
-             "Allegati aperti da Mail e salvati in una cartella temporanea.",
-             "Gli allegati restano sul server e si riscaricano aprendo di nuovo il messaggio.", .safe),
-            ("Cache dei servizi di sistema",
+            (String(localized: "Stato salvato delle applicazioni"), [home + "/Library/Saved Application State"],
+             String(localized: "Posizione delle finestre e documenti riaperti automaticamente da ciascuna app."),
+             String(localized: "Le app si riaprono con le finestre in posizione predefinita invece di ripristinare la sessione precedente."), .safe),
+            (String(localized: "Log delle applicazioni"), [home + "/Library/Logs"],
+             String(localized: "Log diagnostici scritti dalle applicazioni."),
+             String(localized: "Perdi le informazioni utili a diagnosticare problemi già avvenuti."), .safe),
+            (String(localized: "Cache anteprime QuickLook"), [home + "/Library/Caches/com.apple.QuickLook.thumbnailcache"],
+             String(localized: "Miniature generate per l'anteprima dei file nel Finder."),
+             String(localized: "Il Finder rigenera le miniature scorrendo le cartelle."), .safe),
+            (String(localized: "Allegati Mail scaricati"), [home + "/Library/Containers/com.apple.mail/Data/Library/Mail Downloads"],
+             String(localized: "Allegati aperti da Mail e salvati in una cartella temporanea."),
+             String(localized: "Gli allegati restano sul server e si riscaricano aprendo di nuovo il messaggio."), .safe),
+            (String(localized: "Cache dei servizi di sistema"),
              systemServiceCaches.map { home + "/Library/Caches/" + $0 }
                 + [home + "/Library/Containers/com.apple.mediaanalysisd/Data/Library/Caches"],
-             "Cache di Mappe e posizione (GeoServices), App Store e Apple Music (AppleMediaServices), Aiuto di macOS, suggerimenti di Spotlight e analisi delle foto.",
-             "macOS le ricostruisce in background: Mappe e Spotlight possono essere un po' più lenti per qualche minuto.", .safe),
-            ("Modelli di Apple Intelligence (cache)", [home + "/Library/Caches/com.apple.e5rt.e5bundlecache"],
-             "Versioni compilate dei modelli di Apple Intelligence per questo Mac.",
-             "macOS le ricompila al prossimo utilizzo delle funzioni di Apple Intelligence: la prima richiesta è più lenta.", .redownload),
-            ("Cache di iOS/iPadOS in Finder", [home + "/Library/Caches/com.apple.iTunes", home + "/Library/iTunes/iPhone Software Updates", home + "/Library/iTunes/iPad Software Updates"],
-             "File .ipsw degli aggiornamenti iOS scaricati per il ripristino dei dispositivi.",
-             "Vengono riscaricati al prossimo ripristino di un dispositivo (diversi GB).", .redownload),
+             String(localized: "Cache di Mappe e posizione (GeoServices), App Store e Apple Music (AppleMediaServices), Aiuto di macOS, suggerimenti di Spotlight e analisi delle foto."),
+             String(localized: "macOS le ricostruisce in background: Mappe e Spotlight possono essere un po' più lenti per qualche minuto."), .safe),
+            (String(localized: "Modelli di Apple Intelligence (cache)"), [home + "/Library/Caches/com.apple.e5rt.e5bundlecache"],
+             String(localized: "Versioni compilate dei modelli di Apple Intelligence per questo Mac."),
+             String(localized: "macOS le ricompila al prossimo utilizzo delle funzioni di Apple Intelligence: la prima richiesta è più lenta."), .redownload),
+            (String(localized: "Cache di iOS/iPadOS in Finder"), [home + "/Library/Caches/com.apple.iTunes", home + "/Library/iTunes/iPhone Software Updates", home + "/Library/iTunes/iPad Software Updates"],
+             String(localized: "File .ipsw degli aggiornamenti iOS scaricati per il ripristino dei dispositivi."),
+             String(localized: "Vengono riscaricati al prossimo ripristino di un dispositivo (diversi GB)."), .redownload),
         ]
         for (title, paths, detail, consequence, risk) in misc {
             if let item = ScanSupport.item(title: title, detail: detail,
@@ -111,12 +111,12 @@ enum SystemScanner {
                 let deviceName = ScanSupport.plistValue(backup + "/Info.plist", key: "Device Name")
                     ?? (backup as NSString).lastPathComponent
                 items.append(CleanupItem(
-                    title: "Backup di «\(deviceName)»",
-                    detail: "Backup locale completo di un dispositivo iOS: foto, messaggi, dati delle app.",
-                    consequence: "IRREVERSIBILE. Se il dispositivo si guasta o viene smarrito non puoi ripristinarlo da questo backup. Verifica di avere un backup su iCloud prima di procedere.",
+                    title: String(localized: "Backup di «\(deviceName)»"),
+                    detail: String(localized: "Backup locale completo di un dispositivo iOS: foto, messaggi, dati delle app."),
+                    consequence: String(localized: "IRREVERSIBILE. Se il dispositivo si guasta o viene smarrito non puoi ripristinarlo da questo backup. Verifica di avere un backup su iCloud prima di procedere."),
                     action: .removePaths([backup]), risk: .userData, size: size,
                     perPathSize: [backup: size], lastUsed: ScanSupport.modificationDate(backup),
-                    warning: "Questa cartella è normalmente protetta. Viene mostrata solo per informazione: valuta con attenzione prima di selezionarla."))
+                    warning: String(localized: "Questa cartella è normalmente protetta. Viene mostrata solo per informazione: valuta con attenzione prima di selezionarla.")))
             }
         }
 
@@ -129,9 +129,9 @@ enum SystemScanner {
                 let total = sizes.values.reduce(0, +)
                 if total >= 10_000_000 {
                     items.append(CleanupItem(
-                        title: "Svuota il Cestino (\(kids.count) element\(kids.count == 1 ? "o" : "i"))",
-                        detail: "Contenuto del Cestino. Finché resta qui, occupa spazio sul disco.",
-                        consequence: "IRREVERSIBILE: i file nel Cestino vengono eliminati definitivamente.",
+                        title: String(localized: "Svuota il Cestino (\(Plural.of(kids.count, "elemento", "elementi")))"),
+                        detail: String(localized: "Contenuto del Cestino. Finché resta qui, occupa spazio sul disco."),
+                        consequence: String(localized: "IRREVERSIBILE: i file nel Cestino vengono eliminati definitivamente."),
                         action: .removePaths(kids), risk: .userData, size: total,
                         perPathSize: sizes, lastUsed: ScanSupport.modificationDate(trash)))
                 }
@@ -164,9 +164,9 @@ enum SystemScanner {
         let sizes = Shell.diskSizes(paths)
         return paths.prefix(30).map { path in
             CleanupItem(
-                title: "Download interrotto: \((path as NSString).lastPathComponent)",
-                detail: "File lasciato da un download mai completato in \((path as NSString).deletingLastPathComponent).",
-                consequence: "Questo software non elimina file nella cartella Download: usa «Mostra nel Finder» e decidi tu.",
+                title: String(localized: "Download interrotto: \((path as NSString).lastPathComponent)"),
+                detail: String(localized: "File lasciato da un download mai completato in \((path as NSString).deletingLastPathComponent)."),
+                consequence: String(localized: "Questo software non elimina file nella cartella Download: usa «Mostra nel Finder» e decidi tu."),
                 action: .revealOnly([path]), risk: .userData, size: sizes[path] ?? 0,
                 perPathSize: [path: sizes[path] ?? 0],
                 lastUsed: ScanSupport.modificationDate(path), preselect: false)
@@ -184,12 +184,12 @@ enum SystemScanner {
             guard total >= 10_000_000 else { continue }
             let isTemp = index == 0
             items.append(CleanupItem(
-                title: isTemp ? "File temporanei vecchi" : "Cache temporanee vecchie",
+                title: isTemp ? String(localized: "File temporanei vecchi") : String(localized: "Cache temporanee vecchie"),
                 detail: (isTemp
-                    ? "File temporanei che le app lasciano nella cartella riservata al tuo utente in /var/folders, e che macOS non sempre rimuove."
-                    : "Cache per utente che macOS e le app tengono in /var/folders.")
-                    + "\n\nSolo file singoli non modificati né letti da più di \(days) giorni. Database, preferenze, file di blocco e cartelle di sistema restano esclusi. Ogni file viene ricontrollato al momento dell'eliminazione.",
-                consequence: "Nessuna per le app chiuse. Un'app che tiene aperto un file da più di una settimana continua a usarlo finché non lo chiude. Lo spazio si libera subito solo con «Elimina definitivamente».",
+                    ? String(localized: "File temporanei che le app lasciano nella cartella riservata al tuo utente in /var/folders, e che macOS non sempre rimuove.")
+                    : String(localized: "Cache per utente che macOS e le app tengono in /var/folders."))
+                    + String(localized: "\n\nSolo file singoli non modificati né letti da più di \(days) giorni. Database, preferenze, file di blocco e cartelle di sistema restano esclusi. Ogni file viene ricontrollato al momento dell'eliminazione."),
+                consequence: String(localized: "Nessuna per le app chiuse. Un'app che tiene aperto un file da più di una settimana continua a usarlo finché non lo chiude. Lo spazio si libera subito solo con «Elimina definitivamente»."),
                 action: .removeAgedFiles(root: root, olderThanDays: days, files: files),
                 risk: .safe, size: total, perPathSize: [root: total],
                 // Area nuova e poco visibile: l'utente la sceglie leggendo la nota.
@@ -231,8 +231,8 @@ enum SystemScanner {
         let lines = r.stdout.split(separator: "\n")
             .filter { $0.contains("com.apple.TimeMachine") }
         guard !lines.isEmpty else { return nil }
-        return "\(lines.count) snapshot locali di Time Machine presenti. Non vengono eliminati da questo software: "
-             + "macOS li rimuove automaticamente quando lo spazio serve. Per forzarne la rimozione: "
+        return String(localized: "\(lines.count) snapshot locali di Time Machine presenti. Non vengono eliminati da questo software: ")
+             + String(localized: "macOS li rimuove automaticamente quando lo spazio serve. Per forzarne la rimozione: ")
              + "sudo tmutil thinlocalsnapshots / 10000000000 4"
     }
 
@@ -253,7 +253,7 @@ enum SystemScanner {
                     .trimmingCharacters(in: .whitespaces)
             }
         }
-        return "aggiornamento disponibile"
+        return String(localized: "aggiornamento disponibile")
     }
 
     /// Nomi tecnici in qualcosa di leggibile: «com.spotify.client» → «Spotify».
@@ -340,7 +340,7 @@ enum WallpaperScanner {
         var map: [String: String] = [:]
         for asset in assets {
             guard let id = asset["id"] as? String else { continue }
-            map[id] = asset["accessibilityLabel"] as? String ?? "sfondo dinamico"
+            map[id] = asset["accessibilityLabel"] as? String ?? String(localized: "sfondo dinamico")
         }
         return map
     }
@@ -360,39 +360,40 @@ enum WallpaperScanner {
         // L'avvertimento che vale l'intera categoria: se uno dei due slot usa
         // ancora gli aerial, cancellare è inutile perché si riscaricano.
         var stillInUse: [String] = []
-        if config.desktopUsesAerials { stillInUse.append("lo sfondo del desktop") }
-        if config.screensaverUsesAerials { stillInUse.append("il salvaschermo") }
+        if config.desktopUsesAerials { stillInUse.append(String(localized: "lo sfondo del desktop")) }
+        if config.screensaverUsesAerials { stillInUse.append(String(localized: "il salvaschermo")) }
 
         let shuffleNote: String = {
             var parts: [String] = []
             if let f = config.desktopShuffle { parts.append("desktop: \(shuffleLabel(f))") }
             if let f = config.screensaverShuffle { parts.append("salvaschermo: \(shuffleLabel(f))") }
-            return parts.isEmpty ? "" : " Rotazione impostata su — " + parts.joined(separator: ", ") + "."
+            return parts.isEmpty ? "" : String(localized: " Rotazione impostata su — ") + parts.joined(separator: ", ") + "."
         }()
 
         let warning: String? = stillInUse.isEmpty ? nil :
-            "Attenzione: \(stillInUse.joined(separator: " e ")) usa\(stillInUse.count > 1 ? "no" : "") ancora "
-            + "gli sfondi dinamici.\(shuffleNote) Se elimini i video ora, macOS li riscarica automaticamente "
-            + "e in poche settimane la cartella torna come prima. Cambia prima l'impostazione in "
-            + "Impostazioni di Sistema → Sfondo e → Salvaschermo, scegliendo un'immagine statica."
+            (stillInUse.count > 1
+                ? String(localized: "Attenzione: lo sfondo del desktop e il salvaschermo usano ancora gli sfondi dinamici.")
+                : String(localized: "Attenzione: \(stillInUse.joined()) usa ancora gli sfondi dinamici."))
+            + shuffleNote
+            + String(localized: " Se elimini i video ora, macOS li riscarica automaticamente e in poche settimane la cartella torna come prima. Cambia prima l'impostazione in Impostazioni di Sistema → Sfondo e → Salvaschermo, scegliendo un'immagine statica.")
 
         for file in files {
             let id = ((file as NSString).lastPathComponent as NSString).deletingPathExtension
             let size = sizes[file] ?? 0
-            let name = names[id] ?? "sfondo dinamico"
+            let name = names[id] ?? String(localized: "sfondo dinamico")
             let isActive = config.activeAssetIDs.contains(id)
             items.append(CleanupItem(
-                title: "Sfondo dinamico «\(name)»" + (isActive ? " — attualmente selezionato" : ""),
-                detail: "Video 4K scaricato da Apple per lo sfondo dinamico o il salvaschermo."
-                    + (isActive ? " Questo è l'elemento indicato come attivo nella configurazione." : ""),
+                title: String(localized: "Sfondo dinamico «\(name)»") + (isActive ? String(localized: " — attualmente selezionato") : ""),
+                detail: String(localized: "Video 4K scaricato da Apple per lo sfondo dinamico o il salvaschermo.")
+                    + (isActive ? String(localized: " Questo è l'elemento indicato come attivo nella configurazione.") : ""),
                 consequence: isActive
-                    ? "È lo sfondo attivo: macOS lo riscarica subito, quindi non recuperi spazio in modo stabile."
-                    : "Nessuna, se né lo sfondo né il salvaschermo usano gli sfondi dinamici. Altrimenti viene riscaricato.",
+                    ? String(localized: "È lo sfondo attivo: macOS lo riscarica subito, quindi non recuperi spazio in modo stabile.")
+                    : String(localized: "Nessuna, se né lo sfondo né il salvaschermo usano gli sfondi dinamici. Altrimenti viene riscaricato."),
                 action: .removePaths([file]),
                 risk: isActive ? .redownload : .safe,
                 size: size, perPathSize: [file: size],
                 lastUsed: ScanSupport.modificationDate(file),
-                warning: isActive ? "Risulta selezionato nella configurazione attuale." : warning,
+                warning: isActive ? String(localized: "Risulta selezionato nella configurazione attuale.") : warning,
                 preselect: false))
         }
 
@@ -401,10 +402,10 @@ enum WallpaperScanner {
 
     static func shuffleLabel(_ id: String) -> String {
         switch id {
-        case "shuffle_continuously": return "continua"
-        case "shuffle_every_12_hours": return "ogni 12 ore"
-        case "shuffle_daily": return "ogni giorno"
-        case "shuffle_never": return "nessuna rotazione"
+        case "shuffle_continuously": return String(localized: "continua")
+        case "shuffle_every_12_hours": return String(localized: "ogni 12 ore")
+        case "shuffle_daily": return String(localized: "ogni giorno")
+        case "shuffle_never": return String(localized: "nessuna rotazione")
         default: return id.replacingOccurrences(of: "shuffle_", with: "")
                           .replacingOccurrences(of: "_", with: " ")
         }
@@ -415,11 +416,11 @@ enum WallpaperScanner {
         let config = readConfig()
         if config.desktopUsesAerials || config.screensaverUsesAerials {
             var who: [String] = []
-            if config.desktopUsesAerials { who.append("sfondo del desktop") }
+            if config.desktopUsesAerials { who.append(String(localized: "sfondo del desktop")) }
             if config.screensaverUsesAerials { who.append("salvaschermo") }
-            return "In uso da: \(who.joined(separator: " e ")). Cancellare i video adesso è inefficace: vanno prima cambiate le impostazioni."
+            return String(localized: "In uso da: \(who.joined(separator: " e ")). Cancellare i video adesso è inefficace: vanno prima cambiate le impostazioni.")
         }
-        return "Né lo sfondo né il salvaschermo usano più gli sfondi dinamici: i video scaricati sono eliminabili in sicurezza e non torneranno."
+        return String(localized: "Né lo sfondo né il salvaschermo usano più gli sfondi dinamici: i video scaricati sono eliminabili in sicurezza e non torneranno.")
     }
 }
 
@@ -488,31 +489,31 @@ enum DockerScanner {
 
         if u.containers > 1_000_000 {
             items.append(CleanupItem(
-                title: "Container fermi",
-                detail: "Livelli di scrittura dei container non più in esecuzione. Non include i volumi.",
-                consequence: "I container fermi vengono rimossi. Se li riavviavi con `docker start`, va rifatto `docker compose up`. I dati nei volumi restano.",
+                title: String(localized: "Container fermi"),
+                detail: String(localized: "Livelli di scrittura dei container non più in esecuzione. Non include i volumi."),
+                consequence: String(localized: "I container fermi vengono rimossi. Se li riavviavi con `docker start`, va rifatto `docker compose up`. I dati nei volumi restano."),
                 action: .dockerPrune(kind: .stoppedContainers),
                 risk: .redownload, size: u.containers, preselect: false))
         }
 
         if u.images > 1_000_000 {
             items.append(CleanupItem(
-                title: "Immagini non utilizzate",
-                detail: "Immagini Docker a cui nessun container in esecuzione fa riferimento.\n\nEsegue `docker image prune -a -f`.",
-                consequence: "Le immagini vanno riscaricate al prossimo `docker compose up` (dipende dalla dimensione: spesso centinaia di MB). I volumi con i dati NON vengono toccati.",
+                title: String(localized: "Immagini non utilizzate"),
+                detail: String(localized: "Immagini Docker a cui nessun container in esecuzione fa riferimento.\n\nEsegue `docker image prune -a -f`."),
+                consequence: String(localized: "Le immagini vanno riscaricate al prossimo `docker compose up` (dipende dalla dimensione: spesso centinaia di MB). I volumi con i dati NON vengono toccati."),
                 action: .dockerPrune(kind: .unusedImages),
                 risk: .redownload, size: u.images,
                 warning: u.containers > 0
-                    ? "Include le immagini usate da container fermi: se elimini le immagini, quei container non riparteranno finché non le riscarichi."
+                    ? String(localized: "Include le immagini usate da container fermi: se elimini le immagini, quei container non riparteranno finché non le riscarichi.")
                     : nil,
                 preselect: false))
         }
 
         if u.buildCache > 1_000_000 {
             items.append(CleanupItem(
-                title: "Cache di build Docker",
-                detail: "Livelli intermedi prodotti dalle build delle immagini.",
-                consequence: "La prossima `docker build` non riusa i livelli in cache: più lenta una volta sola.",
+                title: String(localized: "Cache di build Docker"),
+                detail: String(localized: "Livelli intermedi prodotti dalle build delle immagini."),
+                consequence: String(localized: "La prossima `docker build` non riusa i livelli in cache: più lenta una volta sola."),
                 action: .dockerPrune(kind: .buildCache),
                 risk: .safe, size: u.buildCache))
         }
@@ -531,13 +532,13 @@ enum DockerScanner {
         guard total >= 1_000_000 else { return [] }
 
         return [CleanupItem(
-            title: "Residui di Docker Desktop",
-            detail: "Docker non è più installato, ma sono rimasti il disco virtuale della macchina Linux e i dati di supporto. Il disco virtuale contiene le immagini scaricate e **tutti i volumi** creati quando Docker era in uso.",
-            consequence: "IRREVERSIBILE: se in quei volumi c'erano database o dati di applicazioni (per esempio uno stack avviato con docker compose), spariscono. Non sono recuperabili reinstallando Docker.",
+            title: String(localized: "Residui di Docker Desktop"),
+            detail: String(localized: "Docker non è più installato, ma sono rimasti il disco virtuale della macchina Linux e i dati di supporto. Il disco virtuale contiene le immagini scaricate e **tutti i volumi** creati quando Docker era in uso."),
+            consequence: String(localized: "IRREVERSIBILE: se in quei volumi c'erano database o dati di applicazioni (per esempio uno stack avviato con docker compose), spariscono. Non sono recuperabili reinstallando Docker."),
             action: .removePaths(paths),
             risk: .userData, size: total, perPathSize: sizes,
             lastUsed: paths.compactMap(ScanSupport.modificationDate).max(),
-            warning: "Prima di procedere, assicurati che nei volumi Docker non ci fosse niente che ti serve: una volta eliminato il disco virtuale non c'è modo di rileggerlo.",
+            warning: String(localized: "Prima di procedere, assicurati che nei volumi Docker non ci fosse niente che ti serve: una volta eliminato il disco virtuale non c'è modo di rileggerlo."),
             preselect: false)]
     }
 
@@ -545,19 +546,19 @@ enum DockerScanner {
     static func summary() -> String {
         let u = usage()
         if case .residual(let detail) = Relevance.docker() { return detail }
-        guard u.installed else { return "Docker non è installato." }
+        guard u.installed else { return String(localized: "Docker non è installato.") }
         guard u.daemonRunning else {
-            return "Docker è installato ma il demone non è in esecuzione. Avvia Docker Desktop per analizzare immagini e cache. "
-                 + "Se non lo usi, il disco virtuale resta comunque su disco in ~/Library/Containers/com.docker.docker."
+            return String(localized: "Docker è installato ma il demone non è in esecuzione. Avvia Docker Desktop per analizzare immagini e cache. ")
+                 + String(localized: "Se non lo usi, il disco virtuale resta comunque su disco in ~/Library/Containers/com.docker.docker.")
         }
-        var s = "Immagini \(ByteFormat.string(u.images)) · container fermi \(ByteFormat.string(u.containers)) · "
-              + "cache di build \(ByteFormat.string(u.buildCache)) · volumi \(ByteFormat.string(u.volumes))."
+        var s = String(localized: "Immagini \(ByteFormat.string(u.images)) · container fermi \(ByteFormat.string(u.containers)) · ")
+              + String(localized: "cache di build \(ByteFormat.string(u.buildCache)) · volumi \(ByteFormat.string(u.volumes)).")
         if !u.volumeNames.isEmpty {
-            s += "\n\nI \(u.volumeNames.count) volumi (\(u.volumeNames.prefix(4).joined(separator: ", "))"
-               + "\(u.volumeNames.count > 4 ? "…" : "")) contengono database e stato delle applicazioni e "
-               + "NON vengono mai eliminati da questo software: `docker volume prune` e l'opzione "
-               + "`--volumes` non sono implementati di proposito. Per rimuoverne uno, usa il comando "
-               + "Docker a mano dopo aver fatto un backup."
+            s += String(localized: "\n\nI \(u.volumeNames.count) volumi (\(u.volumeNames.prefix(4).joined(separator: ", "))")
+               + String(localized: "\(u.volumeNames.count > 4 ? "…" : "")) contengono database e stato delle applicazioni e ")
+               + String(localized: "NON vengono mai eliminati da questo software: `docker volume prune` e l'opzione ")
+               + String(localized: "`--volumes` non sono implementati di proposito. Per rimuoverne uno, usa il comando ")
+               + String(localized: "Docker a mano dopo aver fatto un backup.")
         }
         return s
     }

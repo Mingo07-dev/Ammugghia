@@ -51,13 +51,13 @@ enum AppInventory {
             var reason: String?
             if protectedBundlePrefixes.contains(where: { bundleID.hasPrefix($0) }) {
                 isProtected = true
-                reason = "Applicazione Apple: rimuoverla può compromettere il sistema o gli aggiornamenti."
+                reason = String(localized: "Applicazione Apple: rimuoverla può compromettere il sistema o gli aggiornamenti.")
             } else if protectedNames.contains((path as NSString).lastPathComponent) {
                 isProtected = true
-                reason = "Applicazione essenziale per lo sviluppo o per il sistema."
+                reason = String(localized: "Applicazione essenziale per lo sviluppo o per il sistema.")
             } else if bundleID.isEmpty {
                 isProtected = true
-                reason = "Bundle senza identificatore: impossibile individuare con certezza i file collegati."
+                reason = String(localized: "Bundle senza identificatore: impossibile individuare con certezza i file collegati.")
             }
 
             return AppEntry(
@@ -130,26 +130,26 @@ enum AppInventory {
         }
 
         // Aree utente.
-        search(in: home + "/Library/Application Support", kind: "Dati di supporto", userData: true)
-        search(in: home + "/Library/Caches", kind: "Cache")
-        search(in: home + "/Library/Preferences", kind: "Preferenze")
-        search(in: home + "/Library/Preferences/ByHost", kind: "Preferenze per host")
-        search(in: home + "/Library/Containers", kind: "Container sandbox", userData: true)
-        search(in: home + "/Library/Group Containers", kind: "Container condiviso", userData: true)
-        search(in: home + "/Library/Saved Application State", kind: "Stato finestre")
-        search(in: home + "/Library/Logs", kind: "Log")
-        search(in: home + "/Library/WebKit", kind: "Dati WebKit")
-        search(in: home + "/Library/HTTPStorages", kind: "Cookie e storage HTTP")
-        search(in: home + "/Library/Cookies", kind: "Cookie")
-        search(in: home + "/Library/LaunchAgents", kind: "Avvio automatico")
-        search(in: home + "/Library/Application Scripts", kind: "Script dell'app")
+        search(in: home + "/Library/Application Support", kind: String(localized: "Dati di supporto"), userData: true)
+        search(in: home + "/Library/Caches", kind: String(localized: "Cache"))
+        search(in: home + "/Library/Preferences", kind: String(localized: "Preferenze"))
+        search(in: home + "/Library/Preferences/ByHost", kind: String(localized: "Preferenze per host"))
+        search(in: home + "/Library/Containers", kind: String(localized: "Container sandbox"), userData: true)
+        search(in: home + "/Library/Group Containers", kind: String(localized: "Container condiviso"), userData: true)
+        search(in: home + "/Library/Saved Application State", kind: String(localized: "Stato finestre"))
+        search(in: home + "/Library/Logs", kind: String(localized: "Log"))
+        search(in: home + "/Library/WebKit", kind: String(localized: "Dati WebKit"))
+        search(in: home + "/Library/HTTPStorages", kind: String(localized: "Cookie e storage HTTP"))
+        search(in: home + "/Library/Cookies", kind: String(localized: "Cookie"))
+        search(in: home + "/Library/LaunchAgents", kind: String(localized: "Avvio automatico"))
+        search(in: home + "/Library/Application Scripts", kind: String(localized: "Script dell'app"))
 
         // Aree di sistema: richiedono privilegi.
-        search(in: "/Library/Application Support", kind: "Dati di supporto (sistema)", admin: true, userData: true)
-        search(in: "/Library/LaunchAgents", kind: "Avvio automatico (sistema)", admin: true)
-        search(in: "/Library/LaunchDaemons", kind: "Servizio in background", admin: true)
-        search(in: "/Library/PrivilegedHelperTools", kind: "Helper privilegiato", admin: true)
-        search(in: "/Library/Caches", kind: "Cache (sistema)", admin: true)
+        search(in: "/Library/Application Support", kind: String(localized: "Dati di supporto (sistema)"), admin: true, userData: true)
+        search(in: "/Library/LaunchAgents", kind: String(localized: "Avvio automatico (sistema)"), admin: true)
+        search(in: "/Library/LaunchDaemons", kind: String(localized: "Servizio in background"), admin: true)
+        search(in: "/Library/PrivilegedHelperTools", kind: String(localized: "Helper privilegiato"), admin: true)
+        search(in: "/Library/Caches", kind: String(localized: "Cache (sistema)"), admin: true)
         // `/Library/Preferences` NON viene cercata di proposito: contiene le
         // preferenze di sistema, e per tenerla fuori dall'allowlist di
         // PathGuard accetto di non ripulire i rari plist che un'app di terze
@@ -213,7 +213,7 @@ enum AppInventory {
         // L'origine viene impostata qui e non dal chiamante, così il riepilogo
         // raggruppa correttamente anche il piano costruito dal pulsante
         // «Disinstalla ora», che non passa dalle selezioni globali.
-        defer { for item in items { item.origin = "Disinstalla app · \(app.name)" } }
+        defer { for item in items { item.origin = String(localized: "Disinstalla app · \(app.name)") } }
         let selected = app.selectedRelated
         let userPaths = selected.filter { !$0.needsAdmin }.map(\.path)
         let adminFiles = selected.filter(\.needsAdmin)
@@ -225,12 +225,14 @@ enum AppInventory {
         let hasUserData = userDataCount > 0
 
         items.append(CleanupItem(
-            title: "Disinstalla \(app.name) \(app.version)",
-            detail: "Bundle dell'applicazione\(userPaths.isEmpty ? "" : " più \(userPaths.count) element\(userPaths.count == 1 ? "o" : "i") collegat\(userPaths.count == 1 ? "o" : "i")")."
-                + (hasUserData ? "\n\nATTENZIONE: \(userDataCount) delle cartelle selezionate contiene dati dell'applicazione (documenti, database o impostazioni), non solo cache." : ""),
+            title: String(localized: "Disinstalla \(app.name) \(app.version)"),
+            detail: (userPaths.isEmpty
+                ? String(localized: "Bundle dell'applicazione.")
+                : String(localized: "Bundle dell'applicazione più \(Plural.of(userPaths.count, "elemento collegato", "elementi collegati"))."))
+                + (hasUserData ? String(localized: "\n\nATTENZIONE: \(userDataCount) delle cartelle selezionate contiene dati dell'applicazione (documenti, database o impostazioni), non solo cache.") : ""),
             consequence: hasUserData
-                ? "L'app viene rimossa insieme ai suoi dati. Reinstallandola ripartirà da zero: accessi, preferenze e contenuti locali andranno rifatti."
-                : "L'app viene rimossa. Reinstallandola ripartirà con le impostazioni predefinite.",
+                ? String(localized: "L'app viene rimossa insieme ai suoi dati. Reinstallandola ripartirà da zero: accessi, preferenze e contenuti locali andranno rifatti.")
+                : String(localized: "L'app viene rimossa. Reinstallandola ripartirà con le impostazioni predefinite."),
             action: .removeApp(appPath: app.path, related: userPaths),
             risk: hasUserData ? .userData : .redownload,
             size: app.size + selected.filter { !$0.needsAdmin }.reduce(0) { $0 + $1.size },
@@ -241,15 +243,15 @@ enum AppInventory {
             let paths = adminFiles.map(\.path)
             let cmd = "rm -rf " + paths.map(Shell.shellQuote).joined(separator: " ")
             items.append(CleanupItem(
-                title: "\(app.name): componenti di sistema (\(adminFiles.count))",
-                detail: "Servizi in background, helper privilegiati e dati installati fuori dalla cartella utente:\n"
+                title: String(localized: "\(app.name): componenti di sistema (\(adminFiles.count))"),
+                detail: String(localized: "Servizi in background, helper privilegiati e dati installati fuori dalla cartella utente:\n")
                     + adminFiles.map { "• \($0.kind): \($0.path)" }.joined(separator: "\n"),
-                consequence: "Rimuove anche i servizi che l'app aveva installato a livello di sistema. Se non li elimini, restano attivi a vuoto dopo la disinstallazione.",
+                consequence: String(localized: "Rimuove anche i servizi che l'app aveva installato a livello di sistema. Se non li elimini, restano attivi a vuoto dopo la disinstallazione."),
                 action: .privileged(shellCommand: cmd, displayPaths: paths),
                 risk: .redownload,
                 size: adminFiles.reduce(0) { $0 + $1.size },
                 perPathSize: Dictionary(uniqueKeysWithValues: adminFiles.map { ($0.path, $0.size) }),
-                warning: "Richiede la password di amministratore."))
+                warning: String(localized: "Richiede la password di amministratore.")))
         }
 
         return items

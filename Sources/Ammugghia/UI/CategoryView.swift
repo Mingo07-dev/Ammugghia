@@ -59,7 +59,7 @@ struct CategoryView: View {
                     } else if case .absent(let detail) = category.presence {
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: "info.circle").foregroundStyle(.secondary)
-                            Text(detail + " La scheda è visibile perché hai attivato «Mostra tutte le categorie».")
+                            Text(detail + String(localized: " La scheda è visibile perché hai attivato «Mostra tutte le categorie»."))
                                 .font(.callout).foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -130,7 +130,7 @@ struct ItemRow: View {
     private var problems: [String] { PathGuard.preflight(item) }
     private var isBlocked: Bool {
         // Un percorso già assente non è un problema: è solo lavoro già fatto.
-        !problems.filter { !$0.contains("non esiste") }.isEmpty
+        !PathGuard.preflight(item, ignoringMissing: true).isEmpty
     }
 
     var body: some View {
@@ -185,7 +185,7 @@ struct ItemRow: View {
                             .font(.callout.monospacedDigit())
                     }
 
-                    Text(item.detail)
+                    Text(markdown: item.detail)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -199,7 +199,7 @@ struct ItemRow: View {
                         Button {
                             item.isExpanded.toggle()
                         } label: {
-                            Label(item.isExpanded ? "Nascondi dettagli" : "Cosa verrà eliminato",
+                            Label(item.isExpanded ? String(localized: "Nascondi dettagli") : String(localized: "Cosa verrà eliminato"),
                                   systemImage: item.isExpanded ? "chevron.up" : "chevron.down")
                                 .font(.caption2)
                         }
@@ -260,8 +260,8 @@ struct ItemDetails: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
 
-            DetailBlock(label: "Conseguenza dell'eliminazione", text: item.consequence)
-            DetailBlock(label: "Operazione eseguita", text: item.action.commandDescription, monospaced: true)
+            DetailBlock(label: String(localized: "Conseguenza dell'eliminazione"), text: item.consequence)
+            DetailBlock(label: String(localized: "Operazione eseguita"), text: item.action.commandDescription, monospaced: true)
 
             if !item.action.displayPaths.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
@@ -301,7 +301,7 @@ struct ItemDetails: View {
             }
 
             if item.lastUsed != nil {
-                DetailBlock(label: "Ultimo utilizzo",
+                DetailBlock(label: String(localized: "Ultimo utilizzo"),
                             text: "\(DateFormat.string(item.lastUsed)) — \(DateFormat.relative(item.lastUsed))")
             }
         }
