@@ -2,13 +2,19 @@
 # Compila Ammugghia e assembla un bundle .app avviabile con doppio clic.
 # Uso: ./build.sh [--install]
 #   --install  copia l'app in /Applications al posto di ./dist
+# Variabili:
+#   AMMUGGHIA_VERSION  versione da scrivere nell'app (predefinita: ultimo tag git)
+#   UNIVERSAL=1        binario per Apple Silicon e Intel (usato da release.sh)
 set -euo pipefail
 
 cd "$(dirname "$0")"
 
 APP_NAME="Ammugghia"
 BUNDLE_ID="it.ammugghia"
-VERSION="1.0"
+# La versione viene dal tag git, così app, DMG e Release coincidono sempre.
+VERSION="${AMMUGGHIA_VERSION:-$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')}"
+VERSION="${VERSION:-0.0.0}"
+BUILD_NUMBER="$(git rev-list --count HEAD 2>/dev/null || echo 1)"
 
 # L'icona è disegnata da uno script Swift: si rigenera solo se manca o se il
 # disegno è stato modificato dopo l'ultima generazione.
@@ -19,10 +25,15 @@ if [[ ! -f "$ICON" || "Tools/MakeIcon.swift" -nt "$ICON" ]]; then
     iconutil -c icns Resources/Ammugghia.iconset -o "$ICON"
 fi
 
-echo "▸ Compilazione in modalità release…"
-swift build -c release
+ARCHS=()
+if [[ "${UNIVERSAL:-0}" == "1" ]]; then
+    # macOS 14 gira anche su Mac Intel: chi scarica il DMG può averne uno.
+    ARCHS=(--arch arm64 --arch x86_64)
+fi
+echo "▸ Compilazione in modalità release${ARCHS:+ (universale)}…"
+swift build -c release ${ARCHS[@]+"${ARCHS[@]}"}
 
-BIN="$(swift build -c release --show-bin-path)/$APP_NAME"
+BIN="$(swift build -c release ${ARCHS[@]+"${ARCHS[@]}"} --show-bin-path)/$APP_NAME"
 if [[ ! -x "$BIN" ]]; then
     echo "✗ Eseguibile non trovato in $BIN" >&2
     exit 1
@@ -52,7 +63,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleDevelopmentRegion</key> <string>it</string>
     <key>CFBundleLocalizations</key>     <array><string>it</string><string>en</string></array>
     <key>CFBundleShortVersionString</key><string>$VERSION</string>
-    <key>CFBundleVersion</key>           <string>$VERSION</string>
+    <key>CFBundleVersion</key>           <string>$BUILD_NUMBER</string>
     <key>CFBundlePackageType</key>       <string>APPL</string>
     <key>LSMinimumSystemVersion</key>    <string>14.0</string>
     <key>NSHighResolutionCapable</key>   <true/>
