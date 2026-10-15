@@ -56,6 +56,8 @@ che cos'è e che cosa succede dopo averlo eliminato, e lascia a te la decisione.
   il proprio livello di affidabilità.
 - **Tutto in locale.** Nessuna rete, nessuna telemetria, nessun account. Nessun dato lascia
   il Mac.
+- **In italiano e in inglese.** Segue la lingua del Mac, oppure quella scelta per la singola
+  app nelle Impostazioni di Sistema.
 - **Nativa e senza dipendenze.** SwiftUI e Swift Package Manager, senza codice di terze
   parti.
 
@@ -296,8 +298,11 @@ Segnalazioni e pull request sono benvenute, in italiano o in inglese.
 - Ogni elemento nuovo deve spiegare la propria `consequence` e mostrare i percorsi esatti.
 - Preferisci lo strumento ufficiale all'eliminazione diretta dei file.
 - I messaggi di commit seguono [Conventional Commits](https://www.conventionalcommits.org/it/).
-- L'interfaccia è in italiano: i testi rivolti all'utente restano in italiano, con singolare
-  e plurale gestiti.
+- L'interfaccia è in italiano e in inglese. L'italiano è la lingua di partenza: i nuovi testi
+  rivolti all'utente passano da `String(localized:)` (o da un testo letterale SwiftUI), e la
+  traduzione inglese va in `Resources/Localization/en.lproj/Localizable.strings`.
+  `Tools/check-localization.sh` elenca le traduzioni mancanti, e la CI fallisce se ne manca
+  una.
 
 ## Ringraziamenti
 

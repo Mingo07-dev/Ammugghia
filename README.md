@@ -54,6 +54,8 @@ each item is and what happens after it is gone, and then lets you decide.
 - **Complete uninstaller.** Finds everything an app left behind: support data, caches,
   containers, launch agents and privileged helpers. Each match has a confidence level.
 - **100% local.** No network, no telemetry, no account. Nothing ever leaves your Mac.
+- **English and Italian.** Follows your Mac's language, or the per-app language you choose in
+  System Settings.
 - **Native and dependency-free.** SwiftUI and Swift Package Manager, with no third-party
   code.
 
@@ -288,7 +290,10 @@ Issues and pull requests are welcome, in English or Italian.
 - Every new item must explain its `consequence` and show its exact paths.
 - Prefer the official tool over deleting files directly.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/).
-- The UI is in Italian. Keep user-facing text in Italian and handle singular and plural.
+- The UI is available in Italian and English. Italian is the source language: new user-facing
+  strings go through `String(localized:)` (or a SwiftUI literal), and their English
+  translation goes into `Resources/Localization/en.lproj/Localizable.strings`.
+  `Tools/check-localization.sh` lists missing translations; CI fails if any is missing.
 
 ## Acknowledgements
 

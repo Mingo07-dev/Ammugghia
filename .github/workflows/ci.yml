@@ -30,3 +30,6 @@ jobs:
 
       - name: Safety self-test
         run: '"$(swift build -c release --show-bin-path)/Ammugghia" --selftest'
+
+      - name: English translations complete
+        run: Tools/check-localization.sh
