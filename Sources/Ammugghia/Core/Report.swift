@@ -109,7 +109,14 @@ enum Report {
                 : (settling ? String(localized: "solo spazio in assestamento (file aperto o appena scritto)") : String(localized: "NON SPIEGATA"))
             if now[path] != disk && !settling { unexplained.append(path) }
             print("  ≠ \(path) — \(verdict)")
-            if now[path] != disk { print(String(localized: "      indice: \(now[path]?.prefix(80) ?? "assente")\n      disco:  \(disk?.prefix(80) ?? "assente")")) }
+            if now[path] != disk {
+                // String esplicite: i compilatori meno recenti non accettano un
+                // Substring interpolato in una LocalizationValue.
+                let missing = String(localized: "assente")
+                let indexed = now[path].map { String($0.prefix(80)) } ?? missing
+                let onDisk = disk.map { String($0.prefix(80)) } ?? missing
+                print(String(localized: "      indice: \(indexed)\n      disco:  \(onDisk)"))
+            }
         }
         print(unexplained.isEmpty
               ? String(localized: "Nessuna differenza strutturale: solo modifiche in corso o spazio in assestamento.")

@@ -828,6 +828,7 @@
 "app aperte" = "open apps";
 "archivio Mail" = "Mail archive";
 "area riservata della cartella utente (%@)" = "reserved area of your home folder (%@)";
+"assente" = "missing";
 "attività sconosciuta" = "activity unknown";
 "avvio non riuscito: %@" = "could not launch: %@";
 "avvio: i servizi di macOS non sono modificabili" = "startup: macOS services cannot be changed";
