@@ -99,6 +99,8 @@ che cos'è e che cosa succede dopo averlo eliminato, e lascia a te la decisione.
 
 ## Mappa del disco
 
+<p align="center"><img src="docs/images/disk-map.png" width="760" alt="Mappa del disco: treemap di /Applicazioni con dimensione e numero di file della cartella selezionata"></p>
+
 Una treemap di tutto il Mac (cartella utente, Applicazioni, Libreria, Homebrew), con ogni
 area proporzionale allo spazio che occupa. Doppio clic per entrare in una cartella. Il
 pannello laterale mostra dimensione, numero di file e ultima attività, e porta alla voce di
@@ -340,7 +342,9 @@ mantenere e si modifica cambiando qualche coordinata.
 
 ## Contribuire
 
-Segnalazioni e pull request sono benvenute, in italiano o in inglese.
+Segnalazioni e pull request sono benvenute, in italiano o in inglese: vedi
+[CONTRIBUTING.md](CONTRIBUTING.md). Se trovi qualcosa che elimina ciò che non dovrebbe,
+segnalalo in privato come descritto in [SECURITY.md](SECURITY.md).
 
 - Esegui `Ammugghia --selftest` prima di ogni pull request. Uno scanner che tocca un'area
   nuova richiede casi nuovi in `Core/SelfTest.swift`.

@@ -97,6 +97,8 @@ each item is and what happens after it is gone, and then lets you decide.
 
 ## Disk map
 
+<p align="center"><img src="docs/images/disk-map.png" width="760" alt="Disk map: a treemap of /Applications with the selected folder's size and file count"></p>
+
 A treemap of your whole Mac (home folder, Applications, Library, Homebrew), with each
 area proportional to the space it takes. Double-click to drill down. The side panel shows
 size, file count and last activity, and jumps to the cleanup item for that folder. The map
@@ -332,7 +334,9 @@ coordinates.
 
 ## Contributing
 
-Issues and pull requests are welcome, in English or Italian.
+Issues and pull requests are welcome, in English or Italian: see
+[CONTRIBUTING.md](CONTRIBUTING.md). Found something that deletes what it shouldn't? Please
+report it privately, as described in [SECURITY.md](SECURITY.md).
 
 - Run `Ammugghia --selftest` before every pull request. A scanner that touches a new area
   needs new test cases in `Core/SelfTest.swift`.
