@@ -139,14 +139,19 @@ struct DiskMapView: View {
     }
 
     private var legend: some View {
-        HStack(spacing: 14) {
-            ForEach(MapPalette.Kind.allCases, id: \.self) { kind in
-                HStack(spacing: 5) {
-                    RoundedRectangle(cornerRadius: 2).fill(kind.color).frame(width: 10, height: 10)
-                    Text(kind.label).font(.caption2).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 6) {
+            // Griglia adattiva: in una riga sola, con le etichette inglesi più
+            // lunghe, le parole andavano a capo a metà («Develop-ment»).
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 12, alignment: .leading)],
+                      alignment: .leading, spacing: 4) {
+                ForEach(MapPalette.Kind.allCases, id: \.self) { kind in
+                    HStack(spacing: 5) {
+                        RoundedRectangle(cornerRadius: 2).fill(kind.color).frame(width: 10, height: 10)
+                        Text(kind.label).font(.caption2).foregroundStyle(.secondary)
+                            .lineLimit(1).fixedSize()
+                    }
                 }
             }
-            Spacer()
             Text("Doppio clic per entrare · i colori più chiari sono fermi da oltre un anno")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
@@ -406,7 +411,7 @@ struct DiskMapDetail: View {
                         .textSelection(.enabled)
                     Text(ByteFormat.string(entry.size)).font(.title2.bold().monospacedDigit())
                     if entry.files > 0 {
-                        Text(Plural.of(entry.files, "file", "file")).font(.callout).foregroundStyle(.secondary)
+                        Text(Plural.files(entry.files)).font(.callout).foregroundStyle(.secondary)
                     }
                     if entry.modified > 0 {
                         Text(DateFormat.relative(Date(timeIntervalSince1970: Double(entry.modified))))

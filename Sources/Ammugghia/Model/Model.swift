@@ -117,7 +117,7 @@ enum CleanupAction {
         case .revealOnly:
             return String(localized: "solo visualizzazione — nessuna eliminazione")
         case .removeAgedFiles(_, let days, let files):
-            return String(localized: "eliminazione di \(Plural.of(files.count, "file", "file")) non usati da più di \(days) giorni")
+            return String(localized: "eliminazione di \(Plural.files(files.count)) non usati da più di \(days) giorni")
         }
     }
 }
@@ -508,6 +508,15 @@ enum Plural {
     /// tutti gli altri), quindi basta tradurre le due parole.
     static func of(_ count: Int, _ singular: String.LocalizationValue, _ plural: String.LocalizationValue) -> String {
         "\(count.formatted()) \(word(count, singular, plural))"
+    }
+
+    /// «file» è uguale al singolare e al plurale in italiano, quindi le due
+    /// chiavi coinciderebbero e l'inglese non potrebbe distinguere «file» da
+    /// «files». Chiavi esplicite, con l'italiano come valore predefinito.
+    static func files(_ count: Int) -> String {
+        "\(count.formatted()) " + (count == 1
+            ? String(localized: "plural.file.one", defaultValue: "file")
+            : String(localized: "plural.file.other", defaultValue: "file"))
     }
 
     /// Solo il sostantivo concordato, senza il numero.

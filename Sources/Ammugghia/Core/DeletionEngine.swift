@@ -350,8 +350,8 @@ final class DeletionEngine {
         if removed == 0 && errors.isEmpty {
             return skip(item, String(localized: "nessun file è più eliminabile: sono stati usati o rimossi dopo l'analisi"))
         }
-        var message = dryRun ? String(localized: "\(Plural.of(removed, "file", "file")) da rimuovere")
-            : mode == .trash ? String(localized: "\(Plural.of(removed, "file", "file")) nel Cestino")
+        var message = dryRun ? String(localized: "\(Plural.files(removed)) da rimuovere")
+            : mode == .trash ? String(localized: "\(Plural.files(removed)) nel Cestino")
             : String(localized: "\(Plural.of(removed, "file eliminato", "file eliminati"))")
         if skipped > 0 { message += String(localized: ", \(skipped) saltati perché usati di recente o esclusi") }
         if !errors.isEmpty { message += ", \(Plural.of(errors.count, "errore", "errori")): " + (errors.first ?? "") }
