@@ -10,6 +10,7 @@
 che si fa con un foglio di carta prima di buttarlo. Vuol dire anche raccattare, sistemare,
 come in <i>ammugghiari a tovagghia</i>: raccogliere la tovaglia a fine pasto.</sub>
 
+[![Latest release](https://img.shields.io/github/v/release/Mingo07-dev/Ammugghia)](https://github.com/Mingo07-dev/Ammugghia/releases/latest)
 [![CI](https://github.com/Mingo07-dev/Ammugghia/actions/workflows/ci.yml/badge.svg)](https://github.com/Mingo07-dev/Ammugghia/actions/workflows/ci.yml)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white)
 ![Swift 5.9](https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white)
@@ -17,6 +18,8 @@ come in <i>ammugghiari a tovagghia</i>: raccogliere la tovaglia a fine pasto.</s
 ![Dipendenze: nessuna](https://img.shields.io/badge/dipendenze-nessuna-brightgreen)
 ![Nessuna rete](https://img.shields.io/badge/rete-nessuna-success)
 [![Licenza: MIT](https://img.shields.io/badge/licenza-MIT-blue)](LICENSE)
+
+**[⬇ Scarica per macOS](https://github.com/Mingo07-dev/Ammugghia/releases/latest)** · firmata e notarizzata · macOS 14+
 
 [English](README.md) · **Italiano**
 
@@ -229,7 +232,18 @@ Se un solo controllo non passa, la build non va usata. La CI lo esegue a ogni pu
 
 ## Installazione
 
-Requisiti: **macOS 14 Sonoma o successivo**, e Xcode oppure gli strumenti a riga di comando.
+Richiede **macOS 14 Sonoma o successivo**, su Apple silicon o Intel.
+
+### Scaricarla
+
+Scarica l'ultimo `Ammugghia-x.y.z.dmg` dalla
+**[pagina delle Release](https://github.com/Mingo07-dev/Ammugghia/releases/latest)**, aprilo e
+trascina Ammugghia in Applicazioni. L'app è firmata con un Developer ID e notarizzata da Apple,
+quindi si apre con un normale doppio clic. Ogni Release riporta anche l'impronta SHA-256 del DMG.
+
+### Compilarla dai sorgenti
+
+Serve Xcode oppure gli strumenti a riga di comando.
 
 ```bash
 git clone https://github.com/Mingo07-dev/Ammugghia.git
@@ -238,7 +252,7 @@ cd Ammugghia
 ./build.sh --install    # installa in /Applications e avvia
 ```
 
-L'app ha una firma ad-hoc: al primo avvio usa clic destro → **Apri**.
+Una build fatta così ha una firma ad-hoc ed è pensata solo per il tuo Mac.
 
 ### Accesso completo al disco
 

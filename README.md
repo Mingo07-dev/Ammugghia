@@ -10,6 +10,7 @@
 what you do to a sheet of paper right before throwing it away. It also means to gather up
 and tidy, as in <i>ammugghiari a tovagghia</i>: folding up the tablecloth after a meal.</sub>
 
+[![Latest release](https://img.shields.io/github/v/release/Mingo07-dev/Ammugghia)](https://github.com/Mingo07-dev/Ammugghia/releases/latest)
 [![CI](https://github.com/Mingo07-dev/Ammugghia/actions/workflows/ci.yml/badge.svg)](https://github.com/Mingo07-dev/Ammugghia/actions/workflows/ci.yml)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white)
 ![Swift 5.9](https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white)
@@ -17,6 +18,8 @@ and tidy, as in <i>ammugghiari a tovagghia</i>: folding up the tablecloth after 
 ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)
 ![No network](https://img.shields.io/badge/network-none-success)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+**[⬇ Download for macOS](https://github.com/Mingo07-dev/Ammugghia/releases/latest)** · signed and notarized · macOS 14+
 
 **English** · [Italiano](README.it.md)
 
@@ -222,7 +225,18 @@ If a single check fails, the build must not be used. CI runs it on every push.
 
 ## Installation
 
-Requirements: **macOS 14 Sonoma or later**, and Xcode or the Command Line Tools.
+Requires **macOS 14 Sonoma or later**, on Apple silicon or Intel.
+
+### Download
+
+Get the latest `Ammugghia-x.y.z.dmg` from the
+**[Releases page](https://github.com/Mingo07-dev/Ammugghia/releases/latest)**, open it and drag
+Ammugghia to Applications. The app is signed with a Developer ID and notarized by Apple, so it
+opens with a normal double-click. Each release also lists the DMG's SHA-256 checksum.
+
+### Build from source
+
+Requires Xcode or the Command Line Tools.
 
 ```bash
 git clone https://github.com/Mingo07-dev/Ammugghia.git
@@ -231,7 +245,7 @@ cd Ammugghia
 ./build.sh --install    # installs to /Applications and launches it
 ```
 
-The app is signed ad hoc. On first launch, right-click it and choose **Open**.
+A build made this way is signed ad hoc and only meant for your own Mac.
 
 ### Full Disk Access
 
