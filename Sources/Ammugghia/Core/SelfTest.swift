@@ -65,6 +65,8 @@ enum SelfTest {
                   shouldPass: true, why: String(localized: "dispositivo simulato")),
             .init(path: home + "/.gradle/caches", shouldPass: true, why: String(localized: "cache Gradle")),
             .init(path: home + "/.npm/_cacache", shouldPass: true, why: String(localized: "cache npm")),
+            .init(path: home + "/Library/Application Scripts/com.esempio.app", shouldPass: true,
+                  why: String(localized: "script di un'app sandbox (solo dalla disinstallazione)")),
             .init(path: home + "/Library/Android/sdk/ndk/28.0", shouldPass: true, why: String(localized: "NDK Android")),
             .init(path: "/Library/Developer/CoreSimulator/Caches/dyld",
                   shouldPass: true, why: String(localized: "cache dyld dei simulatori")),
@@ -552,6 +554,17 @@ enum SelfTest {
         let aside = (try? fm.contentsOfDirectory(atPath: tmp))?.contains { $0.hasPrefix("history-v1.invalid-") } ?? false
         check(damagedIsEmpty && aside,
               String(localized: "cronologia: un file illeggibile viene messo da parte, non sovrascritto"))
+
+        // Disinstallazione: un bundle di root (app del Mac App Store) chiede la
+        // password invece di fallire, e un rifiuto di PathGuard non va mai
+        // spacciato per «già rimosso» (codici d'errore che coincidono per caso).
+        let systemApp = ["/System/Applications/Calculator.app", "/System/Applications/TextEdit.app"]
+            .first { fm.fileExists(atPath: $0) }
+        check(systemApp.map(PathGuard.bundleNeedsAdmin) == true && !PathGuard.bundleNeedsAdmin(sandbox),
+              String(localized: "disinstallazione: un'app di proprietà di root richiede la password, una cartella tua no"))
+        let refusal = engine.friendlyFileError(PathGuard.Violation.outsideAllowlist("/x"), path: "/x")
+        check(refusal == PathGuard.Violation.outsideAllowlist("/x").localizedDescription,
+              String(localized: "disinstallazione: un rifiuto di PathGuard mostra il suo motivo, non «già rimosso»"))
 
         failures += engineFailures
 

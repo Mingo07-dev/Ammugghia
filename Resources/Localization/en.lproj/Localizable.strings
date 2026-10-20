@@ -132,6 +132,7 @@
 "Applicazione Apple: rimuoverla può compromettere il sistema o gli aggiornamenti." = "Apple application: removing it can compromise the system or updates.";
 "Applicazione e %@ rimossi" = "Application and %@ removed";
 "Applicazione essenziale per lo sviluppo o per il sistema." = "Application essential for development or for the system.";
+"Applicazione rimossa; non rimossi: " = "Application removed; not removed: ";
 "Applicazioni" = "Applications";
 "Applicazioni installate due volte" = "Applications installed twice";
 "Apri" = "Open";
@@ -482,6 +483,7 @@
 "Java Development Kit" = "Java Development Kit";
 "Keras li riscarica al prossimo caricamento del modello." = "Keras downloads them again the next time the model is loaded.";
 "L'analizzatore ricostruisce l'indice all'apertura del progetto." = "The analyzer rebuilds its index when the project is opened.";
+"L'app appartiene al sistema (succede con quelle del Mac App Store): per rimuoverla macOS chiederà la password di amministratore, come fa il Finder." = "The app is owned by the system (as Mac App Store apps are): to remove it, macOS will ask for your administrator password, just like Finder does.";
 "L'app che lo usa" = "The app that uses it";
 "L'app viene rimossa insieme ai suoi dati. Reinstallandola ripartirà da zero: accessi, preferenze e contenuti locali andranno rifatti." = "The app is removed together with its data. If you reinstall it, it starts from scratch: logins, preferences and local content must be set up again.";
 "L'app viene rimossa. Reinstallandola ripartirà con le impostazioni predefinite." = "The app is removed. If you reinstall it, it starts with default settings.";
@@ -724,6 +726,7 @@
 "SDK Android, emulatori e cache Gradle. Il NDK e le immagini di sistema sono i componenti più grossi e servono solo in casi specifici." = "Android SDK, emulators and Gradle caches. The NDK and system images are the largest components and are only needed in specific cases.";
 "SDK Flutter" = "Flutter SDK";
 "SIMULAZIONE  %@" = "SIMULATION  %@";
+"SIMULAZIONE  applicazione (con password): %@ (%@)" = "SIMULATION  application (with password): %@ (%@)";
 "SIMULAZIONE  applicazione: %@ (%@)" = "SIMULATION  application: %@ (%@)";
 "SIMULAZIONE  cestino %@ (%@)" = "SIMULATION  trash %@ (%@)";
 "SIMULAZIONE  dati collegati: %@ (%@)" = "SIMULATION  related data: %@ (%@)";
@@ -865,6 +868,7 @@
 "altro file" = "other file";
 "analisi da zero richiesta" = "full rebuild requested";
 "annullato: password non inserita" = "cancelled: password not entered";
+"annullato: password non inserita. L'app e i suoi dati sono rimasti al loro posto." = "cancelled: password not entered. The app and its data were left in place.";
 "app" = "app";
 "app aperta" = "open app";
 "app aperte" = "open apps";
@@ -883,7 +887,7 @@
 "binari di sistema" = "system binaries";
 "build che contiene un .git: è un repository, non un output" = "build containing a .git: it is a repository, not output";
 "build che contiene un proprio package.json: è un progetto" = "build containing its own package.json: it is a project";
-"bundle applicazione: %@" = "application bundle: %@";
+"bundle applicazione: %@. I dati collegati non sono stati toccati." = "application bundle: %@. Related data was not touched.";
 "cache Gradle" = "Gradle cache";
 "cache di build %@ · volumi %@." = "build cache %@ · volumes %@.";
 "cache dyld dei simulatori" = "simulator dyld cache";
@@ -941,6 +945,8 @@
 "disattivato" = "disabled";
 "dischi esterni e volumi montati" = "external disks and mounted volumes";
 "disco esterno" = "external disk";
+"disinstallazione: un rifiuto di PathGuard mostra il suo motivo, non «già rimosso»" = "uninstall: a PathGuard refusal shows its reason, not “already removed”";
+"disinstallazione: un'app di proprietà di root richiede la password, una cartella tua no" = "uninstall: an app owned by root requires the password, a folder of yours does not";
 "dispositivo simulato" = "simulated device";
 "docker non installato" = "docker not installed";
 "dopo l'eliminazione il file non esiste più" = "after the deletion the file no longer exists";
@@ -985,6 +991,7 @@
 "gruppo" = "group";
 "i permessi di accesso al disco sono cambiati" = "disk access permissions changed";
 "iCloud Drive" = "iCloud Drive";
+"il bundle è ancora al suo posto" = "the bundle is still in place";
 "il file dell'app aperta è intatto" = "the open app's file is intact";
 "il file temporaneo vecchio viene eliminato" = "the old temporary file is deleted";
 "il motore rifiuta un percorso sostituito dopo l'analisi" = "the engine refuses a path replaced after the analysis";
@@ -1061,6 +1068,7 @@
 "percorso" = "path";
 "percorso relativo" = "relative path";
 "permesso negato. Concedi «Accesso completo al disco» a Ammugghia in " = "permission denied. Grant Full Disk Access to Ammugghia in ";
+"permesso negato: macOS protegge le app installate. Concedi «Gestione app» ad Ammugghia in Impostazioni di Sistema → Privacy e sicurezza, oppure trascina l'app nel Cestino dal Finder." = "permission denied: macOS protects installed apps. Grant App Management to Ammugghia in System Settings → Privacy & Security, or drag the app to the Trash in Finder.";
 "plural.file.one" = "file";
 "plural.file.other" = "files";
 "portachiavi di sistema" = "system keychains";
@@ -1097,6 +1105,7 @@
 "salvaschermo: %@" = "screen saver: %@";
 "sconosciuta" = "unknown";
 "sconosciuto" = "unknown";
+"script di un'app sandbox (solo dalla disinstallazione)" = "a sandboxed app's scripts (only from the uninstaller)";
 "selezionata" = "selected";
 "selezionate" = "selected";
 "selezionato da xcode-select" = "selected by xcode-select";

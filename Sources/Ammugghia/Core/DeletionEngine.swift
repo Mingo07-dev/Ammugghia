@@ -381,8 +381,47 @@ final class DeletionEngine {
         var freed: Int64 = 0
         var errors: [String] = []
 
-        // Prima i dati collegati, poi il bundle: se qualcosa va storto a metà
-        // l'app resta al suo posto e la situazione è più facile da capire.
+        // Prima il bundle, poi i dati collegati. Se l'app non si può rimuovere
+        // (password annullata, permessi) i dati restano intatti: un'app
+        // rimossa con qualche residuo si ripulisce dopo, un'app ancora
+        // installata ma senza i suoi dati riparte da zero senza motivo.
+        let appSize = item.perPathSize[appPath] ?? Shell.diskSize(appPath)
+        let needsAdmin = PathGuard.bundleNeedsAdmin(appPath)
+        if dryRun {
+            note(needsAdmin
+                 ? String(localized: "SIMULAZIONE  applicazione (con password): \(appPath) (\(ByteFormat.string(appSize)))")
+                 : String(localized: "SIMULAZIONE  applicazione: \(appPath) (\(ByteFormat.string(appSize)))"))
+            freed += appSize
+        } else if needsAdmin {
+            switch removeBundleAsAdmin(appPath, mode: mode, expected: item.identities[appPath]) {
+            case .done:
+                freed += appSize
+                note(String(localized: "OK  applicazione \(appPath) (\(ByteFormat.string(appSize)))"))
+            case .cancelled:
+                return skip(item, String(localized: "annullato: password non inserita. L'app e i suoi dati sono rimasti al loro posto."))
+            case .failed(let why):
+                note(String(localized: "ERRORE applicazione \(appPath) — \(why)"))
+                return fail(item, String(localized: "bundle applicazione: \(why). I dati collegati non sono stati toccati."))
+            }
+        } else {
+            do {
+                switch mode {
+                case .trash:
+                    var out: NSURL?
+                    try fileManager.trashItem(at: URL(fileURLWithPath: appPath), resultingItemURL: &out)
+                    if let out, let moved = out.path { trashedNow[appPath] = moved }
+                case .permanent:
+                    try fileManager.removeItem(atPath: appPath)
+                }
+                freed += appSize
+                note(String(localized: "OK  applicazione \(appPath) (\(ByteFormat.string(appSize)))"))
+            } catch {
+                let msg = friendlyFileError(error, path: appPath)
+                note(String(localized: "ERRORE applicazione \(appPath) — \(msg)"))
+                return fail(item, String(localized: "bundle applicazione: \(msg). I dati collegati non sono stati toccati."))
+            }
+        }
+
         for path in related {
             if activeExclusions.blocksDeletion(of: path) {
                 note(String(localized: "SALTATO dati collegati \(path) — rientra nelle esclusioni impostate dall'utente"))
@@ -415,34 +454,51 @@ final class DeletionEngine {
             }
         }
 
-        let appSize = item.perPathSize[appPath] ?? Shell.diskSize(appPath)
-        if dryRun {
-            note(String(localized: "SIMULAZIONE  applicazione: \(appPath) (\(ByteFormat.string(appSize)))"))
-            freed += appSize
-        } else {
-            do {
-                switch mode {
-                case .trash:
-                    var out: NSURL?
-                    try fileManager.trashItem(at: URL(fileURLWithPath: appPath), resultingItemURL: &out)
-                    if let out, let moved = out.path { trashedNow[appPath] = moved }
-                case .permanent:
-                    try fileManager.removeItem(atPath: appPath)
-                }
-                freed += appSize
-                note(String(localized: "OK  applicazione \(appPath) (\(ByteFormat.string(appSize)))"))
-            } catch {
-                let msg = friendlyFileError(error, path: appPath)
-                errors.append(String(localized: "bundle applicazione: \(msg)"))
-                note(String(localized: "ERRORE applicazione \(appPath) — \(msg)"))
-            }
-        }
-
         return DeletionOutcome(title: item.title, succeeded: errors.isEmpty, skipped: false,
                                message: errors.isEmpty
                                 ? String(localized: "Applicazione e \(Plural.of(related.count, "elemento collegato", "elementi collegati")) rimossi")
-                                : errors.joined(separator: "; "),
+                                : String(localized: "Applicazione rimossa; non rimossi: ") + errors.joined(separator: "; "),
                                freed: freed)
+    }
+
+    private enum AdminRemoval { case done, cancelled, failed(String) }
+
+    /// Rimozione di un bundle che appartiene a `root` (app del Mac App Store):
+    /// stesso effetto del Finder, che in questo caso chiede la password.
+    /// Nel Cestino il bundle resta di proprietà di `root`: si svuota come
+    /// qualunque altro elemento, ma rimetterlo al suo posto richiede il Finder.
+    private func removeBundleAsAdmin(_ appPath: String, mode: RemovalMode,
+                                     expected: FileIdentity?) -> AdminRemoval {
+        // Ricontrollo subito prima della password: deve essere ancora lo
+        // stesso bundle, nello stesso posto.
+        do { try PathGuard.validateApp(appPath, expected: expected) } catch {
+            return .failed(error.localizedDescription)
+        }
+        let command: String
+        var destination: String?
+        switch mode {
+        case .trash:
+            let trash = ScanSupport.home + "/.Trash"
+            let name = (appPath as NSString).lastPathComponent
+            var target = trash + "/" + name
+            if FileManager.default.fileExists(atPath: target) {
+                let stamp = Int(Date().timeIntervalSince1970)
+                target = trash + "/" + (name as NSString).deletingPathExtension + " \(stamp).app"
+            }
+            destination = target
+            command = "/bin/mv -n " + Shell.shellQuote(appPath) + " " + Shell.shellQuote(target)
+        case .permanent:
+            command = "/bin/rm -rf " + Shell.shellQuote(appPath)
+        }
+        let r = Shell.runAsAdmin(command)
+        noteResult(r, "sudo \(command)")
+        if !r.ok && r.stderr.contains("-128") { return .cancelled }
+        // L'esito vero è sul disco: il bundle non deve più esserci.
+        guard r.ok, !FileManager.default.fileExists(atPath: appPath) else {
+            return .failed(r.ok ? String(localized: "il bundle è ancora al suo posto") : shortError(r.stderr))
+        }
+        if let destination { trashedNow[appPath] = destination }
+        return .done
     }
 
     private func runSimctl(_ item: CleanupItem,
@@ -525,8 +581,16 @@ final class DeletionEngine {
     /// Traduce gli errori di FileManager in indicazioni utili, in particolare
     /// il caso "Accesso completo al disco" che su macOS recenti è la causa
     /// più frequente di fallimento.
-    private func friendlyFileError(_ error: Error, path: String) -> String {
+    func friendlyFileError(_ error: Error, path: String) -> String {
+        // Solo gli errori di sistema si traducono per codice: un rifiuto di
+        // PathGuard ha codici propri che coincidono per caso con quelli di
+        // Cocoa (il suo 4 è «fuori dalle aree consentite», per Cocoa è «file
+        // inesistente») e va mostrato con il suo messaggio.
         let ns = error as NSError
+        guard ns.domain == NSCocoaErrorDomain else { return error.localizedDescription }
+        if path.hasSuffix(".app"), ns.code == NSFileWriteNoPermissionError {
+            return String(localized: "permesso negato: macOS protegge le app installate. Concedi «Gestione app» ad Ammugghia in Impostazioni di Sistema → Privacy e sicurezza, oppure trascina l'app nel Cestino dal Finder.")
+        }
         switch ns.code {
         case NSFileWriteNoPermissionError, NSFileReadNoPermissionError:
             return String(localized: "permesso negato. Concedi «Accesso completo al disco» a Ammugghia in ")

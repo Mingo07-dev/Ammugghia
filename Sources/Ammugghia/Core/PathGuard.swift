@@ -129,6 +129,9 @@ enum PathGuard {
             home + "/Library/Group Containers",
             home + "/Library/Application Support",
             home + "/Library/Saved Application State",
+            // Script che l'utente installa per un'app sandbox (NSUserScriptTask):
+            // proposti solo dalla disinstallazione, come dati dell'app.
+            home + "/Library/Application Scripts",
             home + "/Library/Logs",
             home + "/Library/WebKit",
             home + "/Library/HTTPStorages",
@@ -376,6 +379,16 @@ enum PathGuard {
         }
         try validateIdentity(path, expected: expected)
         try validateNoMountPoint(path)
+    }
+
+    /// Un bundle che appartiene a un altro utente (tipicamente `root`, come le
+    /// app del Mac App Store) non si può spostare né eliminare senza privilegi:
+    /// per rinominare una cartella serve il permesso di scrittura sulla
+    /// cartella stessa, non solo su `/Applications`.
+    static func bundleNeedsAdmin(_ path: String) -> Bool {
+        var info = stat()
+        guard lstat(path, &info) == 0 else { return false }
+        return info.st_uid != getuid()
     }
 
     /// Artefatto di build dentro un progetto. Doppia condizione: il nome

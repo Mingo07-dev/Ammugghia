@@ -87,8 +87,11 @@ enum CleanupAction {
     }
 
     var needsAdmin: Bool {
-        if case .privileged = self { return true }
-        return false
+        switch self {
+        case .privileged: return true
+        case .removeApp(let app, _): return PathGuard.bundleNeedsAdmin(app)
+        default: return false
+        }
     }
 
     /// Gli elementi informativi non sono selezionabili né eseguibili.

@@ -142,7 +142,7 @@ enum AppInventory {
         search(in: home + "/Library/HTTPStorages", kind: String(localized: "Cookie e storage HTTP"))
         search(in: home + "/Library/Cookies", kind: String(localized: "Cookie"))
         search(in: home + "/Library/LaunchAgents", kind: String(localized: "Avvio automatico"))
-        search(in: home + "/Library/Application Scripts", kind: String(localized: "Script dell'app"))
+        search(in: home + "/Library/Application Scripts", kind: String(localized: "Script dell'app"), userData: true)
 
         // Aree di sistema: richiedono privilegi.
         search(in: "/Library/Application Support", kind: String(localized: "Dati di supporto (sistema)"), admin: true, userData: true)
@@ -237,7 +237,10 @@ enum AppInventory {
             risk: hasUserData ? .userData : .redownload,
             size: app.size + selected.filter { !$0.needsAdmin }.reduce(0) { $0 + $1.size },
             perPathSize: sizes,
-            lastUsed: app.lastUsed))
+            lastUsed: app.lastUsed,
+            warning: PathGuard.bundleNeedsAdmin(app.path)
+                ? String(localized: "L'app appartiene al sistema (succede con quelle del Mac App Store): per rimuoverla macOS chiederà la password di amministratore, come fa il Finder.")
+                : nil))
 
         if !adminFiles.isEmpty {
             let paths = adminFiles.map(\.path)
