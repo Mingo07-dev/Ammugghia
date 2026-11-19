@@ -448,7 +448,6 @@ final class AppEntry: Identifiable, ObservableObject {
     @Published var didScanRelated: Bool = false
     /// La casella richiesta: attiva per impostazione predefinita.
     @Published var removeRelatedData: Bool = true
-    @Published var backupUserData: Bool = true
     /// Inclusione nel piano di pulizia. Sta qui, sull'applicazione, e non nel
     /// modello globale: così cambiando app e tornando indietro la scelta è
     /// ancora quella fatta, e si possono accodare più app nello stesso piano.

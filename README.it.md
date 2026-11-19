@@ -317,7 +317,7 @@ Sources/Ammugghia/
   Model/   Model.swift            tipi, livelli di rischio, azioni
            AppModel.swift         stato dell'interfaccia, orchestrazione
   Core/    PathGuard.swift        il cancello di sicurezza
-           DeletionEngine.swift   esecuzione, backup, registro
+           DeletionEngine.swift   esecuzione, registro
            Shell.swift            processi esterni, misura delle dimensioni
            SelfTest.swift         verifica delle protezioni
            Report.swift           analisi da terminale

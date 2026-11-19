@@ -309,7 +309,7 @@ Sources/Ammugghia/
   Model/   Model.swift            types, risk levels, actions
            AppModel.swift         UI state, orchestration
   Core/    PathGuard.swift        the safety gate
-           DeletionEngine.swift   execution, backups, log
+           DeletionEngine.swift   execution, log
            Shell.swift            external processes, size measurement
            SelfTest.swift         protection checks
            Report.swift           terminal analysis

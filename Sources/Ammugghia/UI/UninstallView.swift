@@ -138,7 +138,6 @@ struct AppDetailView: View {
     @ObservedObject var app: AppEntry
     @EnvironmentObject var model: AppModel
 
-    private var userDataFiles: [RelatedFile] { app.related.filter(\.holdsUserData) }
     private var lowConfidence: [RelatedFile] { app.related.filter { $0.confidence == .name } }
 
     var body: some View {
@@ -201,21 +200,6 @@ struct AppDetailView: View {
                                 Text("Attiva per impostazione predefinita. Disattivandola viene rimossa solo l'applicazione, lasciando intatti dati e preferenze: utile se pensi di reinstallarla.")
                                     .font(.caption).foregroundStyle(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-
-                        if app.removeRelatedData && !userDataFiles.isEmpty {
-                            Toggle(isOn: Binding(
-                                get: { app.backupUserData },
-                                set: { app.backupUserData = $0; model.objectWillChange.send() }
-                            )) {
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text("Crea un archivio dei dati prima di eliminarli")
-                                        .font(.callout.weight(.medium))
-                                    Text("Salva \(userDataFiles.count == 1 ? String(localized: "la cartella") : String(localized: "le \(userDataFiles.count) cartelle")) con dati dell'applicazione in un file .zip in ~/Documents/Ammugghia Backup, così puoi \(Plural.word(userDataFiles.count, "recuperarla", "recuperarle")) se ti accorgi di averne bisogno.")
-                                        .font(.caption).foregroundStyle(.secondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
                             }
                         }
 

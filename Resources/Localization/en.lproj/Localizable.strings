@@ -63,7 +63,6 @@
 "%@: %@ di %@" = "%@: %@ of %@";
 "%@: componenti di sistema (%lld)" = "%@: system components (%lld)";
 "%@: il programma di riferimento non è installato e non ha lasciato residui." = "%@: the related program is not installed and left nothing behind.";
-"%@: in esecuzione reale verrebbe creato un archivio di " = "%@: a real run would create an archive of ";
 "%lld" = "%lld";
 "%lld copie da %@" = "%lld copies of %@";
 "%lld nascoste (non installate)" = "%lld hidden (not installed)";
@@ -154,8 +153,6 @@
 "Avvio automatico" = "Launch at login";
 "Avvio automatico (sistema)" = "Launch at login (system)";
 "Azzera contenuto di %@ (%@)" = "Erase contents of %@ (%@)";
-"BACKUP FALLITO  %@" = "BACKUP FAILED  %@";
-"Backup creato in %@" = "Backup created at %@";
 "Backup di «%@»" = "Backup of “%@”";
 "Backup locale completo di un dispositivo iOS: foto, messaggi, dati delle app." = "Full local backup of an iOS device: photos, messages, app data.";
 "Binari esportati dalle compilazioni." = "Binaries exported from builds.";
@@ -285,7 +282,6 @@
 "Crash dell'emulatore" = "Emulator crashes";
 "Crate Rust scaricati." = "Downloaded Rust crates.";
 "Crea la mappa" = "Create the map";
-"Crea un archivio dei dati prima di eliminarli" = "Create an archive of the data before deleting it";
 "Creata dall'autotest." = "Created by the self-test.";
 "Creati dall'autotest." = "Created by the self-test.";
 "Creato dall'autotest." = "Created by the self-test.";
@@ -735,7 +731,6 @@
 "SIMULAZIONE  xcrun %@" = "SIMULATION  xcrun %@";
 "Safari è protetto dal sistema: se l'eliminazione non riesce, concedi «Accesso completo al disco» a Ammugghia." = "Safari is protected by the system: if the deletion fails, grant Full Disk Access to Ammugghia.";
 "Saltate" = "Skipped";
-"Salva %@ con dati dell'applicazione in un file .zip in ~/Documents/Ammugghia Backup, così puoi %@ se ti accorgi di averne bisogno." = "Saves %@ with application data to a .zip file in ~/Documents/Ammugghia Backup, so you can %@ if you find you need it.";
 "Salvato anche in %@" = "Also saved to %@";
 "Script dell'app" = "App scripts";
 "Scrivania" = "Desktop";
@@ -1017,13 +1012,11 @@
 "l'elemento viene saltato se l'app richiesta è aperta" = "the item is skipped if the required app is open";
 "l'eliminazione reale riporta esito positivo" = "the real deletion reports success";
 "l'identità viene registrata alla creazione dell'elemento" = "the identity is recorded when the item is created";
-"la cartella" = "the folder";
 "la cartella Documenti è intatta" = "the Documents folder is intact";
 "la simulazione riporta esito positivo" = "the simulation reports success";
 "la storia delle modifiche del volume è stata azzerata" = "the volume's change history was reset";
 "la storia delle modifiche non ha risposto in tempo" = "the change history did not answer in time";
 "launchd non risulta aggiornato per %@: stato invariato." = "launchd does not report an update for %@: state unchanged.";
-"le %lld cartelle" = "the %lld folders";
 "le esclusioni della mappa sono cambiate" = "the map exclusions changed";
 "libreria Foto" = "Photos library";
 "lo scanner esclude file recenti, database, cartelle di sistema e collegamenti" = "the scanner excludes recent files, databases, system folders and links";
@@ -1043,7 +1036,6 @@
 "mostra %@" = "show %@";
 "nascondi i percorsi" = "hide paths";
 "nel Cestino" = "in the Trash";
-"nessun dato da archiviare" = "no data to archive";
 "nessun file è più eliminabile: sono stati usati o rimossi dopo l'analisi" = "no file can be deleted any more: they were used or removed after the analysis";
 "nessuna analisi completa precedente" = "no previous full scan";
 "nessuna rotazione" = "no rotation";
@@ -1082,8 +1074,6 @@
 "queste voci verranno saltate" = "these items will be skipped";
 "radice del disco" = "root of the disk";
 "radice delle cartelle temporanee di tutti gli utenti" = "root of all users' temporary folders";
-"recuperarla" = "recover it";
-"recuperarle" = "recover them";
 "residui" = "leftovers";
 "residui: app installata e sue estensioni non sono orfane" = "leftovers: an installed app and its extensions are not orphaned";
 "residui: estensione di un'app registrata fuori da /Applications non è orfana" = "leftovers: an extension of an app registered outside /Applications is not orphaned";
@@ -1117,7 +1107,6 @@
 "solo spazio in assestamento (file aperto o appena scritto)" = "allocated space still settling only (file open or just written)";
 "solo visualizzazione — nessuna eliminazione" = "view only — nothing is deleted";
 "strumento «%@» non trovato nel sistema" = "tool “%@” not found on this system";
-"strumento «ditto» non disponibile" = "tool “ditto” not available";
 "su un volume diverso" = "on a different volume";
 "target accanto a Cargo.toml" = "target next to Cargo.toml";
 "target accanto al solo package.json: manifest non corrispondente" = "target next to package.json only: manifest does not match";
