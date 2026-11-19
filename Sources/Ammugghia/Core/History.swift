@@ -2,7 +2,7 @@ import Foundation
 
 /// Una voce della cronologia: un'operazione eseguita davvero, non simulata.
 struct HistoryEntry: Codable, Identifiable, Hashable {
-    enum Kind: String, Codable { case cleanup, startup }
+    enum Kind: String, Codable { case cleanup, startup, command }
 
     var id = UUID()
     let date: Date

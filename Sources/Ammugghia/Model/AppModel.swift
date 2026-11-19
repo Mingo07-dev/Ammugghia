@@ -17,6 +17,7 @@ enum SidebarSection: Hashable {
     case diskMap
     case duplicates
     case startup
+    case cliTools
     case history
     case uninstall
     case log
@@ -147,6 +148,61 @@ final class AppModel: ObservableObject {
         }
     }
 
+    // MARK: Strumenti da riga di comando
+
+    @Published var cliSnapshot = CLIInventory.Snapshot()
+    @Published var isLoadingCLI = false
+    @Published var cliDidLoad = false
+    /// Il comando in esecuzione adesso, se ce n'è uno.
+    @Published var cliRunning: String?
+    @Published var cliMessage: String?
+
+    func loadCLITools() {
+        guard !isLoadingCLI, cliRunning == nil else { return }
+        isLoadingCLI = true
+        Task.detached(priority: .userInitiated) {
+            let snapshot = CLIInventory.load()
+            await MainActor.run {
+                self.cliSnapshot = snapshot
+                self.cliDidLoad = true
+                self.isLoadingCLI = false
+            }
+        }
+    }
+
+    /// Esegue un comando già confermato dall'utente, fuori dal thread
+    /// principale, lo registra nel registro e nella cronologia e rilegge
+    /// l'inventario.
+    func runCLI(_ command: CLICommand, title: String) {
+        guard cliRunning == nil else { return }
+        cliRunning = command.display
+        cliMessage = nil
+        Task.detached(priority: .userInitiated) {
+            let result = Shell.run(command.executable, command.arguments, timeout: 600,
+                                   environment: CLIInventory.environment())
+            let snapshot = CLIInventory.load()
+            await MainActor.run {
+                let lastLine = (result.stderr.isEmpty ? result.stdout : result.stderr)
+                    .split(separator: "\n").last.map(String.init) ?? ""
+                let message = result.ok
+                    ? String(localized: "Completato")
+                    : String(localized: "Non riuscito: \(lastLine.prefix(300)). Se serve la password o un input, esegui il comando nel Terminale.")
+                let engine = self.engine
+                engine.record(String(localized: "COMANDO  \(command.display)"))
+                engine.record(result.ok ? String(localized: "OK comando — \(message)") : String(localized: "ERRORE comando — \(message)"))
+                HistoryStore.shared.append([HistoryEntry(
+                    date: Date(), kind: .command, origin: String(localized: "Strumenti da riga di comando"),
+                    title: title, paths: [], freed: 0, succeeded: result.ok, skipped: false,
+                    message: message, mode: command.display, trashed: [:])])
+                self.loadHistory()
+                self.logLines = engine.log
+                self.cliMessage = "\(title): \(message)"
+                self.cliSnapshot = snapshot
+                self.cliRunning = nil
+            }
+        }
+    }
+
     // MARK: Duplicati
 
     @Published var duplicateGroups: [DuplicateGroup] = []
@@ -266,6 +322,8 @@ final class AppModel: ObservableObject {
                 explanation: String(localized: "Modelli scaricati da Ollama, Hugging Face, LM Studio, PyTorch, Whisper e Keras, uno per voce con la data dell'ultima attività. Spesso sono la voce più pesante di un Mac da sviluppo, in cartelle nascoste.\n\nPer Ollama si usa il comando ufficiale `ollama rm`. Un modello eliminato va riscaricato se ti serve di nuovo.")),
             CleanupCategory(id: .orphans, name: String(localized: "Residui di app"), symbol: "app.dashed",
                 explanation: String(localized: "File lasciati da applicazioni che non risultano più installate: container sandbox, preferenze, cache, stato delle finestre.\n\nUn'app è considerata rimossa solo se nessuna app con quell'identificatore è presente, registrata nel sistema o in esecuzione, nemmeno come estensione di un'altra. Si raccolgono solo i file il cui nome è esattamente l'identificatore. Nessuna voce è preselezionata.")),
+            CleanupCategory(id: .brokenLinks, name: String(localized: "Collegamenti e percorsi rotti"), symbol: "link",
+                explanation: String(localized: "Collegamenti simbolici rotti nelle cartelle dei comandi (Homebrew, /usr/local, ~/.local/bin, ~/bin) e file di /etc/paths.d che aggiungono al PATH solo cartelle inesistenti.\n\nNon occupano spazio: sporcano il PATH e gli elenchi dei comandi. Si propone solo ciò che si dimostra rotto: collegamenti la cui destinazione non esiste, file con tutte le cartelle assenti. Nessuna voce è preselezionata.")),
             CleanupCategory(id: .system, name: String(localized: "Sistema"), symbol: "gearshape.fill",
                 explanation: String(localized: "Residui e cache che macOS contabilizza come «dati di sistema» senza mostrarli da nessuna parte: l'installer rimasto dopo un aggiornamento, i log, lo stato delle finestre, i backup dei dispositivi iOS.")),
             CleanupCategory(id: .wallpapers, name: String(localized: "Sfondi dinamici"), symbol: "photo.fill",
@@ -321,7 +379,8 @@ final class AppModel: ObservableObject {
         case .browsers:         return BrowserScanner.scan
         case .appCaches:        return AppCacheScanner.scan
         case .aiModels:         return AIModelScanner.scan
-        case .orphans:          return OrphanScanner.scan
+        case .orphans:          return { OrphanScanner.scan() + SystemLeftoverScanner.scan() + DotfolderScanner.scan() }
+        case .brokenLinks:      return BrokenLinkScanner.scan
         case .system:           return SystemScanner.scan
         case .wallpapers:       return WallpaperScanner.scan
         case .docker:           return DockerScanner.scan
@@ -579,6 +638,9 @@ final class AppModel: ObservableObject {
                     })
                     self.loadHistory()
                     OrphanScanner.invalidate()
+                    SystemLeftoverScanner.invalidate()
+                    DotfolderScanner.invalidate()
+                    PackageReceipts.invalidate()
                     // Le dimensioni non sono più attendibili dopo
                     // l'eliminazione: meglio invitare a rianalizzare che
                     // mostrare numeri sbagliati.

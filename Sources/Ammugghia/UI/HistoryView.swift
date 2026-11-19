@@ -143,6 +143,7 @@ struct HistoryRow: View {
 
     private var icon: String {
         if entry.kind == .startup { return "power.circle" }
+        if entry.kind == .command { return "terminal" }
         if entry.skipped { return "minus.circle" }
         return entry.succeeded ? "checkmark.circle.fill" : "xmark.circle.fill"
     }

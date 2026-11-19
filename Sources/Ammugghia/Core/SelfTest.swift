@@ -566,6 +566,149 @@ enum SelfTest {
         check(refusal == PathGuard.Violation.outsideAllowlist("/x").localizedDescription,
               String(localized: "disinstallazione: un rifiuto di PathGuard mostra il suo motivo, non «già rimosso»"))
 
+        // Collegamenti e percorsi rotti: validatore dedicato, con cartelle di
+        // prova al posto di quelle di sistema.
+        let staleBin = tmp + "/stale/bin"
+        let staleHome = tmp + "/stale/paths.d"
+        try? fm.createDirectory(atPath: staleBin, withIntermediateDirectories: true)
+        try? fm.createDirectory(atPath: staleHome, withIntermediateDirectories: true)
+        let brokenLink = staleBin + "/rotto"
+        let liveLink = staleBin + "/vivo"
+        let plainFile = staleBin + "/normale"
+        try? fm.createSymbolicLink(atPath: brokenLink, withDestinationPath: "../Cellar/non-esiste/bin/x")
+        try? fm.createSymbolicLink(atPath: liveLink, withDestinationPath: sandbox)
+        fm.createFile(atPath: plainFile, contents: Data("x".utf8))
+        func staleVerdict(_ path: String, links: [String]? = nil) -> Bool {
+            (try? PathGuard.validateStaleEntry(path, linkDirectories: links ?? [staleBin],
+                                               pathsDirectories: [staleHome])) != nil
+        }
+        check(staleVerdict(brokenLink), String(localized: "collegamenti rotti: un collegamento con destinazione assente è accettato"))
+        check(!staleVerdict(liveLink), String(localized: "collegamenti rotti: un collegamento che funziona è rifiutato"))
+        check(!staleVerdict(plainFile), String(localized: "collegamenti rotti: un file normale è rifiutato"))
+        check(!staleVerdict(brokenLink, links: ["/opt/homebrew/bin"]), String(localized: "collegamenti rotti: fuori dalle cartelle ammesse è rifiutato"))
+        check(!staleVerdict(staleBin + "/../bin/rotto"), String(localized: "collegamenti rotti: un percorso con «..» è rifiutato"))
+        check((try? PathGuard.validateStaleEntry("/etc/hosts")) == nil, String(localized: "collegamenti rotti: con le cartelle reali, /etc/hosts è rifiutato"))
+        let staleItem = CleanupItem(title: "t", detail: "", consequence: "", action: .removeStaleEntries([brokenLink]), risk: .safe, size: 0)
+        check(!PathGuard.preflight(staleItem).isEmpty, String(localized: "collegamenti rotti: preflight rifiuta una cartella non ammessa"))
+        check(!PathGuard.staleEntryNeedsAdmin(brokenLink), String(localized: "collegamenti rotti: in una cartella tua non serve la password"))
+
+        let deadPaths = staleHome + "/vecchio"
+        let livePaths = staleHome + "/vivo"
+        let systemPaths = staleHome + "/sistema"
+        fm.createFile(atPath: deadPaths, contents: Data("/opt/non-esiste-\(UUID().uuidString)\n".utf8))
+        fm.createFile(atPath: livePaths, contents: Data("\(tmp)\n".utf8))
+        fm.createFile(atPath: systemPaths, contents: Data("/System/Cryptexes/non-esiste\n".utf8))
+        check(staleVerdict(deadPaths), String(localized: "paths.d: un file con tutte le cartelle assenti è accettato"))
+        check(!staleVerdict(livePaths), String(localized: "paths.d: un file con una cartella esistente è rifiutato"))
+        check(!staleVerdict(systemPaths), String(localized: "paths.d: un file che elenca cartelle di sistema è rifiutato"))
+
+        // Ricevute: l'id finisce in un comando con privilegi.
+        check(PackageReceipts.isForgettable("com.vendor.app-1_x.pkg"), String(localized: "ricevute: un identificatore normale è valido"))
+        check(!["", "a b", "x;rm -rf /", "$(id)", "a'b", "-fai"].contains(where: PackageReceipts.isValidID),
+              String(localized: "ricevute: spazi, punto e virgola, apici, sostituzioni e opzioni sono rifiutati"))
+        check(PackageReceipts.isValidID("com.apple.pkg.X") && !PackageReceipts.isForgettable("com.apple.pkg.X")
+              && !PackageReceipts.isForgettable("COM.APPLE.x"), String(localized: "ricevute: com.apple.* non si dimentica mai"))
+        check(PackageReceipts.forgetCommand(["com.vendor.a"]) == "/usr/sbin/pkgutil --forget 'com.vendor.a'"
+              && PackageReceipts.forgetCommand(["com.vendor.a", "x y"]) == nil
+              && PackageReceipts.forgetCommand([]) == nil,
+              String(localized: "ricevute: il comando si costruisce solo con identificatori validi"))
+        let receiptItem = CleanupItem(title: "t", detail: "", consequence: "", action: .forgetReceipts(["com.apple.x"]), risk: .safe, size: 0)
+        check(!PathGuard.preflight(receiptItem).isEmpty && receiptItem.action.needsAdmin,
+              String(localized: "ricevute: preflight rifiuta un id Apple e l'azione richiede la password"))
+
+        // Servizi orfani, driver, cartelle nascoste, runtime.
+        let trash = SystemLeftoverScanner.trashCommand(paths: ["/Library/LaunchDaemons/a b.plist"], bootouts: ["system/com.x.y"])
+        check(trash.contains("'" + home + "/.Trash/Ammugghia ") && trash.contains("'/Library/LaunchDaemons/a b.plist'")
+              && trash.contains("/bin/launchctl bootout 'system/com.x.y'") && trash.contains("/usr/sbin/chown -R \(getuid())"),
+              String(localized: "servizi orfani: il comando usa percorsi assoluti e quotati e restituisce la proprietà"))
+        check(SystemLeftoverScanner.vendorPrefix(of: "com.Vendor.Audio.Driver") == "com.vendor" && SystemLeftoverScanner.vendorPrefix(of: "solo") == nil,
+              String(localized: "driver: il produttore sono le prime due componenti dell'identificatore"))
+        let longAgo = Date().addingTimeInterval(-30 * 86_400)
+        check(DotfolderScanner.isAbandoned(toolPresent: false, lastUsed: longAgo)
+              && !DotfolderScanner.isAbandoned(toolPresent: true, lastUsed: longAgo)
+              && !DotfolderScanner.isAbandoned(toolPresent: false, lastUsed: Date())
+              && !DotfolderScanner.isAbandoned(toolPresent: false, lastUsed: nil),
+              String(localized: "cartelle nascoste: servono assenza dello strumento e 14 giorni senza uso"))
+        let runtimeID = "com.apple.CoreSimulator.SimRuntime.iOS-27-2-iPhone19-4"
+        check(SimulatorScanner.deviceFamily(identifier: runtimeID, supportedDevices: ["iPhone Duo"]) == "iPhone Duo"
+              && SimulatorScanner.deviceFamily(identifier: "com.apple.CoreSimulator.SimRuntime.iOS-27-2", supportedDevices: ["iPhone 18"]) == nil,
+              String(localized: "runtime: la famiglia di dispositivi c'è solo con un suffisso dopo la versione"))
+
+        // Strumenti da riga di comando.
+        let brewJSON = """
+        {"formulae":[{"name":"node","full_name":"node","versions":{"stable":"2"},"outdated":true,
+          "installed":[{"version":"1","installed_on_request":true,"runtime_dependencies":[{"full_name":"icu4c"}]}]},
+         {"name":"icu4c","full_name":"icu4c","versions":{"stable":"1"},"outdated":false,
+          "installed":[{"version":"1","installed_on_request":false,"runtime_dependencies":[]}]}],"casks":[]}
+        """
+        let npmList = ScanSupport.jsonObject(fromString: "{\"dependencies\":{\"pkg\":{\"version\":\"1.0\"}}}")
+        let npmOutdated = ScanSupport.jsonObject(fromString: "{\"pkg\":{\"latest\":\"2.0\"}}")
+        let parsed = CLIInventory.linkNodeDependents(
+            CLIInventory.parseBrew(ScanSupport.jsonObject(fromString: brewJSON))
+            + CLIInventory.parseNpm(list: npmList, outdated: npmOutdated))
+        let snapshot = CLIInventory.Snapshot(tools: parsed, brewPath: "/opt/homebrew/bin/brew", npmPath: "/opt/homebrew/bin/npm")
+        let icu = parsed.first { $0.name == "icu4c" }
+        let node = parsed.first { $0.name == "node" }
+        let pkg = parsed.first { $0.name == "pkg" }
+        check(icu?.neededBy == ["node"] && node?.neededBy == ["npm: pkg"] && node?.isOutdated == true && pkg?.isOutdated == true,
+              String(localized: "strumenti: «necessario a» si calcola dalle dipendenze, e node serve agli strumenti npm"))
+        check(icu.flatMap { CLIInventory.uninstall($0, in: snapshot) } == nil
+              && node.flatMap { CLIInventory.upgrade($0, in: snapshot) }?.display == "brew upgrade node"
+              && pkg.flatMap { CLIInventory.upgrade($0, in: snapshot) }?.display == "npm install -g pkg@latest",
+              String(localized: "strumenti: non si rimuove ciò che serve ad altri, e i comandi sono quelli attesi"))
+        check(!CLIInventory.isValidName("--force") && !CLIInventory.isValidName("a b")
+              && CLIInventory.isValidName("@scope/pkg") && CLIInventory.isValidName("openssl@3"),
+              String(localized: "strumenti: un nome che sembra un'opzione o ha spazi è rifiutato"))
+
+        // Collegamenti rotti e orfani: nel dubbio si rifiuta.
+        func staleVerdict2(_ link: String, mountPoints: [String]? = nil) -> Bool {
+            (try? PathGuard.validateStaleEntry(link, linkDirectories: [staleBin], pathsDirectories: [staleHome],
+                                               mountPoints: mountPoints ?? [])) != nil
+        }
+        let volumeLink = staleBin + "/su-volume"
+        let noDiskLink = staleBin + "/senza-disco"
+        let mountLink = staleBin + "/su-mount"
+        try? fm.createSymbolicLink(atPath: volumeLink, withDestinationPath: "/Volumes/Disco/gone")
+        try? fm.createSymbolicLink(atPath: noDiskLink, withDestinationPath: "/zz-ammugghia-assente/gone")
+        try? fm.createSymbolicLink(atPath: mountLink, withDestinationPath: tmp + "/mnt/x/gone")
+        check(!staleVerdict2(volumeLink), String(localized: "collegamenti rotti: una destinazione sotto /Volumes è rifiutata"))
+        check(!staleVerdict2(noDiskLink), String(localized: "collegamenti rotti: una destinazione con la cartella di primo livello assente è rifiutata"))
+        check(staleVerdict2(mountLink) && !staleVerdict2(mountLink, mountPoints: [tmp + "/mnt"]),
+              String(localized: "collegamenti rotti: una destinazione sotto un punto di montaggio è rifiutata"))
+        func pathsFileVerdict(_ name: String, _ content: String) -> Bool {
+            let path = staleHome + "/" + name
+            fm.createFile(atPath: path, contents: Data(content.utf8))
+            return (try? PathGuard.validateStaleEntry(path, linkDirectories: [staleBin], pathsDirectories: [staleHome])) != nil
+        }
+        check(pathsFileVerdict("90-mio", "/Users/zz-ammugghia-assente\n")
+              && !pathsFileVerdict("10-cryptex", "/usr/zz-ammugghia-assente\n")
+              && !pathsFileVerdict("100-rvictl", "/usr/zz-ammugghia-assente\n")
+              && !pathsFileVerdict("91-mio", "/usr/local/gone\n")
+              && !pathsFileVerdict("92-mio", "/private/x\n"),
+              String(localized: "collegamenti rotti: i file paths.d di macOS e gli elenchi su /usr/local o /private sono rifiutati"))
+        let swiftBin = tmp + "/stale/altri-bin"
+        try? fm.createDirectory(atPath: swiftBin, withIntermediateDirectories: true)
+        fm.createFile(atPath: swiftBin + "/zz-ammugghia-tool", contents: Data("#!/bin/sh\n".utf8),
+                      attributes: [.posixPermissions: 0o755])
+        check(DotfolderScanner.binaryExists("zz-ammugghia-tool", directories: [swiftBin])
+              && !DotfolderScanner.binaryExists("zz-ammugghia-assente", directories: [swiftBin]),
+              String(localized: "cartelle di punto: un programma si cerca anche nelle cartelle dei binari extra"))
+        check(!StartupScanner.isOrphanProgram("relativo/prog") && !StartupScanner.isOrphanProgram("/Volumes/D/prog")
+              && StartupScanner.isOrphanProgram("/usr/zz-ammugghia-assente/prog") && !StartupScanner.isOrphanProgram("/bin/sh")
+              && !StartupScanner.isOrphanProgram(nil),
+              String(localized: "orfani: un programma relativo, su /Volumes o esistente non è un orfano"))
+        check(SystemLeftoverScanner.vendorPrefix(of: "io.github.foo.bar") == "io.github.foo"
+              && SystemLeftoverScanner.vendorPrefix(of: "com.apple.x") == nil
+              && SystemLeftoverScanner.vendorPrefix(of: "com.example.x") == nil
+              && SystemLeftoverScanner.vendorPrefix(of: "solo") == nil,
+              String(localized: "residui di sistema: il produttore condiviso richiede tre componenti, Apple e segnaposto sono esclusi"))
+        check(PathGuard.isSystemBundle("/Library/Extensions/Foo.kext") && !PathGuard.isSystemBundle("/Library/Extensions/Foo.kext/Contents")
+              && !PathGuard.isSystemBundle("/Library/Extensions/Foo.app") && !PathGuard.isSystemBundle("/Library/Extensions/.x.kext")
+              && PathGuard.isAppleNamedPathFile("10-cryptex") && !PathGuard.isAppleNamedPathFile("90-mio"),
+              String(localized: "residui di sistema: solo bundle .driver e .kext direttamente nella cartella, e i file paths.d di Apple sono riconosciuti"))
+        check(SimulatorScanner.deviceFamily(identifier: "com.apple.CoreSimulator.SimRuntime.iOS-27-2", supportedDevices: ["iPhone 17"]) == nil,
+              String(localized: "runtime: quello standard non ha una famiglia di dispositivi"))
+
         failures += engineFailures
 
         print(String(repeating: "─", count: 72))

@@ -166,6 +166,9 @@ struct Sidebar: View {
                 NavigationLink(value: SidebarSection.startup) {
                     Label("Elementi d'avvio", systemImage: "power.circle")
                 }
+                NavigationLink(value: SidebarSection.cliTools) {
+                    Label("Strumenti da riga di comando", systemImage: "terminal")
+                }
                 NavigationLink(value: SidebarSection.uninstall) {
                     Label("Disinstalla app", systemImage: "trash.square.fill")
                 }
@@ -240,6 +243,8 @@ struct Detail: View {
                 DuplicatesView()
             case .startup:
                 StartupView()
+            case .cliTools:
+                CLIToolsView()
             case .history:
                 HistoryView()
             case .uninstall:

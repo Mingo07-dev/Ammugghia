@@ -28,14 +28,23 @@ enum DuplicateScanner {
     // MARK: Runtime dei simulatori
 
     static func simulatorRuntimes() -> VersionGroup? {
-        let runtimes = SimulatorScanner.runtimes()
-        guard runtimes.count > 1 else { return nil }
-        let newest = runtimes.first?.version
+        let all = SimulatorScanner.runtimes()
+        // Si confrontano solo runtime della stessa coorte (piattaforma e
+        // famiglia): iOS 27.2 e iOS 27.2 — iPhone Duo sono immagini diverse,
+        // non copie, e watchOS non è una «versione vecchia» di iOS.
+        let cohorts = Dictionary(grouping: all, by: cohortKey)
+            .values.filter { $0.count > 1 }
+        guard !cohorts.isEmpty else { return nil }
+        let runtimes = cohorts.flatMap { $0 }
+        let newestByCohort = cohorts.reduce(into: [String: String]()) { result, cohort in
+            result[cohortKey(cohort[0])] = cohort.map(\.version).max { VersionGroup.compare($0, $1) < 0 }
+        }
 
         let entries = runtimes.map { rt -> VersionEntry in
+            let isNewest = rt.version == newestByCohort[cohortKey(rt)]
             var notes: [String] = []
             if rt.isCurrent { notes.append(String(localized: "corrisponde all'SDK dell'Xcode attivo")) }
-            if rt.version == newest { notes.append(String(localized: "versione più recente installata")) }
+            if isNewest { notes.append(String(localized: "versione più recente installata")) }
             if let used = rt.lastUsed { notes.append(DateFormat.relative(used)) }
             return VersionEntry(
                 label: rt.name,
@@ -46,7 +55,7 @@ enum DuplicateScanner {
                 action: .simctlDeleteRuntime(id: rt.identifier),
                 risk: .redownload,
                 note: notes.isEmpty ? nil : notes.joined(separator: " · "),
-                recommendedToKeep: rt.isCurrent || rt.version == newest)
+                recommendedToKeep: rt.isCurrent || isNewest)
         }
 
         return VersionGroup(
@@ -54,6 +63,10 @@ enum DuplicateScanner {
             symbol: "iphone",
             rationale: String(localized: "Ogni runtime pesa circa 8 GB e serve solo se vuoi testare su quella specifica versione di iOS. Vivono in /System/Library/AssetsV2, quindi non compaiono nel Finder e le Impostazioni li contano fra i «dati di sistema».\n\nSono la voce che più spesso spiega decine di GB inspiegabili su un Mac usato per sviluppo mobile. Tieni la versione dell'Xcode attivo, più eventuali versioni su cui devi davvero garantire compatibilità."),
             entries: entries)
+    }
+
+    private static func cohortKey(_ rt: SimulatorScanner.RuntimeInfo) -> String {
+        "\(rt.platform)|\(rt.deviceFamily ?? "")"
     }
 
     // MARK: Xcode

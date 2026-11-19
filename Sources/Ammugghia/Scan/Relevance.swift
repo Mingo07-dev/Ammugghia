@@ -48,8 +48,10 @@ enum Relevance {
         case .orphans:
             let found = OrphanScanner.find()
             return found.orphans.isEmpty && found.unreadable.isEmpty
+                && SystemLeftoverScanner.scan().isEmpty && DotfolderScanner.scan().isEmpty
                 ? .absent(detail: String(localized: "Nessun residuo di app disinstallate."))
                 : .installed
+        case .brokenLinks: return BrokenLinkScanner.presence()
         case .browsers, .appCaches, .system, .largeFiles:
             // Sempre pertinenti: sono aree del sistema, non programmi.
             return .installed

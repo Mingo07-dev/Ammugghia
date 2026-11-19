@@ -168,11 +168,43 @@ enum SimulatorScanner {
         let identifier: String      // UUID immagine, per simctl runtime delete
         let build: String
         let version: String
+        /// «iOS», «watchOS»…: runtime di piattaforme diverse non si confrontano.
+        let platform: String
         let name: String
         let lastUsed: Date?
         let assetPath: String?
         var size: Int64 = 0
         let isCurrent: Bool
+        /// Famiglia di dispositivi, solo per i runtime dedicati (es. «iPhone Duo»):
+        /// stessa versione di iOS, ma un'immagine diversa da quella standard.
+        var deviceFamily: String? = nil
+    }
+
+    /// L'identificatore di un runtime dedicato ha un suffisso dopo la versione
+    /// (`iOS-27-2-iPhone19-4`); quello standard no (`iOS-27-2`). Solo in quel
+    /// caso la famiglia è l'elenco dei dispositivi che il runtime supporta.
+    static func deviceFamily(identifier: String, supportedDevices: [String]) -> String? {
+        let parts = identifier
+            .replacingOccurrences(of: "com.apple.CoreSimulator.SimRuntime.", with: "")
+            .split(separator: "-").dropFirst()
+        guard parts.contains(where: { Int($0) == nil }), !supportedDevices.isEmpty else { return nil }
+        return supportedDevices.joined(separator: ", ")
+    }
+
+    /// Dispositivi supportati da ogni runtime, per identificatore del runtime
+    /// (non per build, che può coincidere fra runtime diversi), da
+    /// `simctl list runtimes`.
+    private static func supportedDevices() -> [String: [String]] {
+        guard let xcrun = Shell.which("xcrun") else { return [:] }
+        let r = Shell.run(xcrun, ["simctl", "list", "runtimes", "-j"], timeout: 60)
+        guard let root = ScanSupport.jsonObject(fromString: r.stdout) as? [String: Any],
+              let list = root["runtimes"] as? [[String: Any]] else { return [:] }
+        var result: [String: [String]] = [:]
+        for runtime in list {
+            guard let identifier = runtime["identifier"] as? String else { continue }
+            result[identifier] = (runtime["supportedDeviceTypes"] as? [[String: Any]] ?? []).compactMap { $0["name"] as? String }
+        }
+        return result
     }
 
     struct DeviceInfo {
@@ -278,6 +310,7 @@ enum SimulatorScanner {
         // conviene non toccare.
         let activeVersion = activeXcodeSDKVersion()
 
+        let supported = supportedDevices()
         var result: [RuntimeInfo] = []
         for (uuid, raw) in root {
             guard let dict = raw as? [String: Any] else { continue }
@@ -295,8 +328,10 @@ enum SimulatorScanner {
             if let assetPath { size = Shell.diskSize(assetPath) }
             if size == 0, let bytes = dict["sizeBytes"] as? Int64 { size = bytes }
 
+            let family = supported[identifier].flatMap { deviceFamily(identifier: identifier, supportedDevices: $0) }
             let isCurrent: Bool = {
-                guard let activeVersion else { return false }
+                // L'SDK attivo è quello di iOS standard, non di un runtime dedicato.
+                guard let activeVersion, platform == "iOS", family == nil else { return false }
                 return VersionGroup.compare(version, activeVersion) == 0
             }()
 
@@ -304,11 +339,13 @@ enum SimulatorScanner {
                 identifier: uuid,
                 build: build,
                 version: version,
-                name: "\(platform) \(version)",
+                platform: platform,
+                name: family.map { "\(platform) \(version) — \($0)" } ?? "\(platform) \(version)",
                 lastUsed: lastUsedByUUID[uuid],
                 assetPath: assetPath,
                 size: size,
-                isCurrent: isCurrent))
+                isCurrent: isCurrent,
+                deviceFamily: family))
         }
         return result.sorted { VersionGroup.compare($0.version, $1.version) > 0 }
     }
