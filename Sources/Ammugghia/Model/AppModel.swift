@@ -547,20 +547,6 @@ final class AppModel: ObservableObject {
         let mode = removalMode
         let involvedApps = involvedApplications(in: items)
 
-        // Backup dei dati, se richiesto, prima di qualsiasi rimozione.
-        var backupMessages: [String] = []
-        for app in involvedApps where app.backupUserData && app.hasUserDataSelected {
-            let paths = app.selectedRelated.filter(\.holdsUserData).map(\.path)
-            guard !paths.isEmpty else { continue }
-            if dryRun {
-                backupMessages.append(String(localized: "\(app.name): in esecuzione reale verrebbe creato un archivio di ")
-                    + "\(Plural.of(paths.count, "cartella", "cartelle")) in ~/Documents/Ammugghia Backup.")
-            } else {
-                backupMessages.append("\(app.name): " + engine.backup(paths: paths, appName: app.name).message)
-            }
-        }
-        let backupMessage = backupMessages.isEmpty ? nil : backupMessages.joined(separator: "\n")
-
         Task.detached(priority: .userInitiated) { [weak self] in
             guard let self else { return }
             let engine = await self.engine
@@ -575,9 +561,6 @@ final class AppModel: ObservableObject {
                 self.lastFreed = results.filter(\.succeeded).reduce(0) { $0 + $1.freed }
                 self.isExecuting = false
                 self.executionProgress = ""
-                if let backupMessage {
-                    self.logLines.append("BACKUP: " + backupMessage)
-                }
                 self.disk = DiskInfo.current()
                 self.selection = .log
                 if !dryRun && !involvedApps.isEmpty {

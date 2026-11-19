@@ -520,44 +520,6 @@ final class DeletionEngine {
                                freed: r.ok ? item.size : 0)
     }
 
-    // MARK: - Backup
-
-    /// Archivia i dati di un'app prima di eliminarli. Usato quando la casella
-    /// «crea backup» è attiva e sono stati rilevati dati dell'utente.
-    func backup(paths: [String], appName: String) -> (ok: Bool, message: String, archivePath: String?) {
-        guard let ditto = Shell.which("ditto") else {
-            return (false, String(localized: "strumento «ditto» non disponibile"), nil)
-        }
-        let stamp = DateFormatter()
-        stamp.dateFormat = "yyyy-MM-dd-HHmm"
-        let safeName = appName.replacingOccurrences(of: "/", with: "-")
-        let dest = URL(fileURLWithPath: NSHomeDirectory())
-            .appendingPathComponent("Documents/Ammugghia Backup", isDirectory: true)
-        try? fileManager.createDirectory(at: dest, withIntermediateDirectories: true)
-        let archive = dest.appendingPathComponent("\(safeName)-\(stamp.string(from: Date())).zip")
-
-        let existing = paths.filter { fileManager.fileExists(atPath: $0) }
-        guard !existing.isEmpty else { return (true, String(localized: "nessun dato da archiviare"), nil) }
-
-        // Cartella temporanea con la struttura da comprimere.
-        let staging = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("ammugghia-backup-\(UUID().uuidString)", isDirectory: true)
-        try? fileManager.createDirectory(at: staging, withIntermediateDirectories: true)
-        defer { try? fileManager.removeItem(at: staging) }
-
-        for (i, p) in existing.enumerated() {
-            let name = "\(i)-" + (p as NSString).lastPathComponent
-            try? fileManager.copyItem(atPath: p, toPath: staging.appendingPathComponent(name).path)
-        }
-        let r = Shell.run(ditto, ["-c", "-k", "--sequesterRsrc", staging.path, archive.path], timeout: 600)
-        if r.ok {
-            note("BACKUP  \(archive.path)")
-            return (true, String(localized: "Backup creato in \(archive.path)"), archive.path)
-        }
-        note(String(localized: "BACKUP FALLITO  \(shortError(r.stderr))"))
-        return (false, shortError(r.stderr), nil)
-    }
-
     // MARK: - Utilità
 
     private func skip(_ item: CleanupItem, _ why: String) -> DeletionOutcome {
