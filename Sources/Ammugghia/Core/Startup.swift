@@ -48,8 +48,10 @@ struct StartupItem: Identifiable, Hashable {
 
     var id: String { plistPath }
     var isApple: Bool { label.hasPrefix("com.apple.") }
-    /// Il programma da avviare non esiste più: resto di un'app rimossa.
-    var isOrphan: Bool { program != nil && !programExists }
+    /// Il programma da avviare non esiste più: resto di un'app rimossa. Solo se
+    /// si può dimostrare (percorso assoluto, non su un disco che potrebbe
+    /// essere scollegato).
+    var isOrphan: Bool { !programExists && StartupScanner.canProveMissing(program) }
     var displayName: String { ownerName ?? label }
 }
 
@@ -86,8 +88,7 @@ enum StartupScanner {
             for path in ScanSupport.children(of: roots.directory(for: domain)) where path.hasSuffix(".plist") {
                 guard let plist = ScanSupport.plistAsJSON(path) as? [String: Any],
                       let label = plist["Label"] as? String else { continue }
-                let program = (plist["Program"] as? String)
-                    ?? (plist["ProgramArguments"] as? [String])?.first
+                let program = StartupScanner.program(in: plist)
                 let exists = program.map { FileManager.default.fileExists(atPath: $0) } ?? false
                 let overrides = domain == .daemon ? systemOverrides : userOverrides
                 // Senza un'impostazione esplicita vale la chiave `Disabled` del plist.
@@ -118,6 +119,26 @@ enum StartupScanner {
         return items.sorted {
             ($0.domain.sortKey, $0.displayName.lowercased()) < ($1.domain.sortKey, $1.displayName.lowercased())
         }
+    }
+
+    /// Il programma che launchd avvia: `Program`, altrimenti il primo argomento.
+    static func program(in plist: [String: Any]) -> String? {
+        (plist["Program"] as? String) ?? (plist["ProgramArguments"] as? [String])?.first
+    }
+
+    /// Un programma assente è un resto solo se il suo percorso è assoluto e non
+    /// sta su un volume (`/Volumes`) o su un disco di primo livello che
+    /// potrebbe essere scollegato: nel dubbio non è un orfano.
+    static func canProveMissing(_ program: String?) -> Bool {
+        guard let program, program.hasPrefix("/"),
+              program != "/Volumes", !program.hasPrefix("/Volumes/"),
+              let top = program.split(separator: "/").first else { return false }
+        return access("/" + top, F_OK) == 0
+    }
+
+    /// Il programma del plist è davvero sparito.
+    static func isOrphanProgram(_ program: String?) -> Bool {
+        canProveMissing(program) && !FileManager.default.fileExists(atPath: program ?? "")
     }
 
     /// Servizi di macOS, solo da contare: non si modificano.

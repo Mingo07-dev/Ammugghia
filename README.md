@@ -139,6 +139,25 @@ whole file.
 Ammugghia --duplicates   # list duplicate groups; reads files, changes nothing
 ```
 
+## Command-line tools
+
+Programs installed with Homebrew and npm (plus a read-only list of `uv` tools and `rustup`
+toolchains), with their version, whether an update is available, and which other tools need
+them. Update or remove one tool, or run `brew update`, `upgrade`, `autoremove` and `cleanup`.
+A tool that others depend on cannot be removed from here. Every command is shown in full
+before it runs, and logged to the history.
+
+## Broken links and leftovers
+
+- **Broken links and paths:** dangling symlinks in the command folders (Homebrew,
+  `/usr/local`, `~/.local/bin`, `~/bin`) and `/etc/paths.d` files that only add folders that
+  no longer exist.
+- **System leftovers:** orphaned launchd services and helper tools, audio drivers and kernel
+  extensions of vendors that are gone, and installer receipts with no files left. Nothing is
+  preselected.
+- **Hidden folders** of developer tools that are no longer installed (`.vscode`, `.cursor`,
+  `.rustup`, ...), unused for 14 days.
+
 ## Startup items
 
 Everything launchd starts on its own, from `~/Library/LaunchAgents`, `/Library/LaunchAgents`
@@ -325,7 +344,7 @@ coordinates.
 ## Roadmap
 
 - [x] Identity checks, Electron app caches, app leftovers and AI models, disk map with an
-  incremental index, duplicates, startup items, history and exclusions, English UI,
+  incremental index, duplicates, startup items, command-line tools, broken links, history and exclusions, English UI,
   signed and notarized releases, Homebrew tap
 - [ ] Official Homebrew cask, once the project qualifies
 - [ ] More cleanup targets: suggest one in an

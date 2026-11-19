@@ -68,6 +68,17 @@ enum CleanupAction {
     /// dell'utente (`/var/folders/…`). Ogni file viene ricontrollato al
     /// momento dell'esecuzione: se nel frattempo è stato usato, si salta.
     case removeAgedFiles(root: String, olderThanDays: Int, files: [String: AgedFile])
+    /// Collegamenti simbolici rotti nelle cartelle dei comandi e file in
+    /// `/etc/paths.d` che elencano solo cartelle inesistenti. Validati da
+    /// `PathGuard.validateStaleEntry`, che non è quello dei percorsi generici.
+    case removeStaleEntries([String])
+    /// Ricevute del programma d'installazione (`pkgutil --forget`) di
+    /// pacchetti senza più nessun file sul disco.
+    case forgetReceipts([String])
+    /// Servizi launchd di sistema, driver audio e kext orfani. Si registrano i
+    /// dati, non un comando: lo costruisce `SystemLeftoverScanner` al momento
+    /// dell'esecuzione, dopo aver ricontrollato che siano ancora orfani.
+    case removeSystemComponents([SystemComponent])
 
     /// I percorsi che l'utente vedrà nel riepilogo. È la fonte di verità
     /// dell'interfaccia: se un percorso non compare qui, non viene toccato.
@@ -81,6 +92,10 @@ enum CleanupAction {
         // La cartella, non i singoli file: possono essere migliaia, e il
         // riepilogo li riassume nel comando.
         case .removeAgedFiles(let root, _, _): return [root]
+        case .removeStaleEntries(let p): return p
+        case .removeSystemComponents(let components): return components.flatMap(\.paths)
+        // Le ricevute non sono file da mostrare: li elenca il comando.
+        case .forgetReceipts: return []
         case .simctlDeleteDevice, .simctlEraseDevice, .simctlDeleteRuntime,
              .shell, .dockerPrune: return []
         }
@@ -90,6 +105,8 @@ enum CleanupAction {
         switch self {
         case .privileged: return true
         case .removeApp(let app, _): return PathGuard.bundleNeedsAdmin(app)
+        case .removeStaleEntries(let paths): return paths.contains(where: PathGuard.staleEntryNeedsAdmin)
+        case .forgetReceipts, .removeSystemComponents: return true
         default: return false
         }
     }
@@ -121,6 +138,28 @@ enum CleanupAction {
             return String(localized: "solo visualizzazione — nessuna eliminazione")
         case .removeAgedFiles(_, let days, let files):
             return String(localized: "eliminazione di \(Plural.files(files.count)) non usati da più di \(days) giorni")
+        case .removeStaleEntries:
+            return String(localized: "rimozione di collegamenti e percorsi rotti")
+        case .removeSystemComponents(let components):
+            return "sudo: " + SystemLeftoverScanner.command(for: components)
+        case .forgetReceipts(let ids):
+            return PackageReceipts.forgetCommand(ids).map { "sudo: \($0)" } ?? ""
+        }
+    }
+}
+
+/// Un componente di sistema orfano, descritto da dati verificabili.
+enum SystemComponent: Hashable {
+    /// Servizio in `/Library/LaunchDaemons` o `/Library/LaunchAgents`, con il
+    /// suo programma di supporto in `/Library/PrivilegedHelperTools` se c'è.
+    case launchService(label: String, plistPath: String, helperPath: String?)
+    /// Un bundle `.driver` o `.kext` direttamente nella sua cartella.
+    case bundle(path: String)
+
+    var paths: [String] {
+        switch self {
+        case .launchService(_, let plist, let helper): return [plist] + (helper.map { [$0] } ?? [])
+        case .bundle(let path): return [path]
         }
     }
 }
@@ -296,6 +335,7 @@ enum CategoryID: String, CaseIterable, Identifiable {
     case appCaches
     case aiModels
     case orphans
+    case brokenLinks
     case system
     case wallpapers
     case docker

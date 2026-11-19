@@ -22,6 +22,9 @@ enum PathGuard {
         case identityChanged(String)
         case containsMountPoint(String, String)
         case notEligibleTemporary(String, String)
+        case notAStaleEntry(String, String)
+        case invalidReceipt(String)
+        case notASystemLeftover(String, String)
 
         var errorDescription: String? {
             switch self {
@@ -47,6 +50,12 @@ enum PathGuard {
                 return String(localized: "Il percorso è cambiato dopo l'analisi (non è più lo stesso file o cartella): \(p). Rianalizza prima di eliminare.")
             case .notEligibleTemporary(let p, let why):
                 return String(localized: "File temporaneo non eliminabile: \(p) — \(why)")
+            case .notAStaleEntry(let p, let why):
+                return String(localized: "Non è un collegamento o un percorso rotto riconosciuto: \(p) — \(why)")
+            case .notASystemLeftover(let p, let why):
+                return String(localized: "Non è un residuo di sistema riconosciuto: \(p) — \(why)")
+            case .invalidReceipt(let id):
+                return String(localized: "Ricevuta non eliminabile (identificatore non valido o di Apple): \(id)")
             case .containsMountPoint(let p, let mount):
                 return String(localized: "Il percorso contiene un volume montato, rifiutato: \(p) → \(mount)")
             }
@@ -488,7 +497,22 @@ enum PathGuard {
             if path == prefix || path.hasPrefix(prefix + "/") { return true }
         }
         if isAllowedHomeDotDirectory(path) { return true }
-        return false
+        return isSystemBundle(path)
+    }
+
+    /// Driver audio e kext: li propone solo SystemLeftoverScanner, e solo se il
+    /// produttore risulta già rimosso. Ammessi i soli bundle `.driver` / `.kext`
+    /// direttamente dentro la loro cartella, mai un percorso più profondo.
+    static let systemBundleDirectories: [(directory: String, ext: String)] = [
+        ("/Library/Audio/Plug-Ins/HAL", "driver"), ("/Library/Extensions", "kext"),
+    ]
+
+    static func isSystemBundle(_ path: String) -> Bool {
+        let name = (path as NSString).lastPathComponent
+        let parent = (path as NSString).deletingLastPathComponent
+        return !name.hasPrefix(".") && systemBundleDirectories.contains {
+            $0.directory == parent && name.hasSuffix("." + $0.ext) && name.count > $0.ext.count + 1
+        }
     }
 
     /// Prima componente nascosta subito sotto la home, se c'è.
@@ -544,6 +568,135 @@ enum PathGuard {
         }
     }
 
+    // MARK: - Collegamenti e percorsi rotti
+
+    /// Cartelle dei comandi dove un collegamento rotto si può rimuovere.
+    static var staleLinkDirectories: [String] {
+        ["/opt/homebrew/bin", "/opt/homebrew/sbin", "/usr/local/bin", "/usr/local/sbin",
+         home + "/.local/bin", home + "/bin"]
+    }
+
+    static let pathsDirectories: Set<String> = ["/etc/paths.d", "/private/etc/paths.d"]
+
+    /// Cartelle che un file di `/etc/paths.d` non può mai elencare per essere
+    /// considerato obsoleto: sono parti del sistema.
+    private static let systemPathRoots = ["/usr", "/bin", "/sbin", "/System", "/Library/Apple", "/private", "/var"]
+
+    /// Nomi dei file di `/etc/paths.d` che macOS o i suoi strumenti creano da
+    /// soli (`10-cryptex`, `100-rvictl`…): mai proposti.
+    static func isAppleNamedPathFile(_ name: String) -> Bool {
+        let lowered = name.lowercased()
+        return lowered.hasPrefix("10-") || lowered.hasPrefix("100-")
+            || ["apple", "cryptex", "rvictl"].contains(where: lowered.contains)
+    }
+
+    /// I punti di montaggio diversi dalla radice.
+    static func currentMountPoints() -> [String] {
+        (FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: nil, options: []) ?? [])
+            .map { normalize($0.path) }.filter { $0 != "/" }
+    }
+
+    /// Una destinazione assente è prova di rottura solo se il disco che la
+    /// conteneva poteva esserci: sotto `/Volumes`, sotto un altro punto di
+    /// montaggio, o con la cartella di primo livello mancante (disco
+    /// scollegato) non si sa, e nel dubbio si rifiuta.
+    static func staleTargetDoubt(link: String, mountPoints: [String]) -> String? {
+        guard let raw = try? FileManager.default.destinationOfSymbolicLink(atPath: link) else {
+            return String(localized: "destinazione non verificabile")
+        }
+        let absolute = raw.hasPrefix("/") ? raw : (link as NSString).deletingLastPathComponent + "/" + raw
+        var parts: [Substring] = []
+        for part in absolute.split(separator: "/") {
+            if part == "." { continue }
+            if part == ".." { _ = parts.popLast() } else { parts.append(part) }
+        }
+        let target = "/" + parts.joined(separator: "/")
+        let roots = ["/Volumes"] + mountPoints
+        if roots.contains(where: { target == $0 || target.hasPrefix($0 + "/") }) {
+            return String(localized: "la destinazione è su un volume che potrebbe essere scollegato")
+        }
+        guard let top = parts.first, access("/" + top, F_OK) == 0 else {
+            return String(localized: "la cartella di primo livello della destinazione manca (disco scollegato?)")
+        }
+        return nil
+    }
+
+    /// Le cartelle elencate in un file di `/etc/paths.d`, una per riga.
+    /// `nil` se il file non si legge o è troppo grande per essere un elenco.
+    static func listedDirectories(inPathsFile path: String) -> [String]? {
+        guard let data = FileManager.default.contents(atPath: path), data.count <= 8192,
+              let text = String(data: data, encoding: .utf8) else { return nil }
+        return text.split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+
+    /// Validatore dedicato (`validate` rifiuta un collegamento rotto fuori
+    /// dalle aree consentite, ed è giusto così). Accetta solo:
+    /// - un collegamento simbolico la cui destinazione non esiste, direttamente
+    ///   in una delle `staleLinkDirectories`;
+    /// - un file normale direttamente in `/etc/paths.d` le cui cartelle
+    ///   elencate non esistono più.
+    /// Le cartelle ammesse si possono sostituire solo per l'autotest.
+    static func validateStaleEntry(_ raw: String, expected: FileIdentity? = nil,
+                                   linkDirectories: [String] = PathGuard.staleLinkDirectories,
+                                   pathsDirectories: Set<String> = PathGuard.pathsDirectories,
+                                   mountPoints: [String]? = nil) throws {
+        guard raw.hasPrefix("/") else { throw Violation.notAbsolute(raw) }
+        let parts = raw.split(separator: "/", omittingEmptySubsequences: false).dropFirst()
+        guard !parts.contains(where: { $0 == "." || $0 == ".." || $0.isEmpty }) else {
+            throw Violation.notAStaleEntry(raw, String(localized: "percorso non normalizzato"))
+        }
+        let parent = (raw as NSString).deletingLastPathComponent
+
+        var info = stat()
+        guard lstat(raw, &info) == 0 else { throw Violation.doesNotExist(raw) }
+        let kind = info.st_mode & S_IFMT
+
+        if linkDirectories.contains(parent) {
+            guard kind == S_IFLNK else {
+                throw Violation.notAStaleEntry(raw, String(localized: "non è un collegamento simbolico"))
+            }
+            var target = stat()
+            if stat(raw, &target) == 0 {
+                throw Violation.notAStaleEntry(raw, String(localized: "il collegamento funziona: la destinazione esiste"))
+            }
+            guard errno == ENOENT || errno == ENOTDIR else {
+                throw Violation.notAStaleEntry(raw, String(localized: "destinazione non verificabile"))
+            }
+            if let doubt = staleTargetDoubt(link: raw, mountPoints: mountPoints ?? currentMountPoints()) {
+                throw Violation.notAStaleEntry(raw, doubt)
+            }
+        } else if pathsDirectories.contains(parent) {
+            guard kind == S_IFREG else {
+                throw Violation.notAStaleEntry(raw, String(localized: "non è un file normale"))
+            }
+            guard !isAppleNamedPathFile((raw as NSString).lastPathComponent) else {
+                throw Violation.notAStaleEntry(raw, String(localized: "è un file creato da macOS"))
+            }
+            guard let dirs = listedDirectories(inPathsFile: raw), !dirs.isEmpty else {
+                throw Violation.notAStaleEntry(raw, String(localized: "elenco di cartelle vuoto o illeggibile"))
+            }
+            for dir in dirs {
+                guard dir.hasPrefix("/"), !systemPathRoots.contains(where: { dir == $0 || dir.hasPrefix($0 + "/") }) else {
+                    throw Violation.notAStaleEntry(raw, String(localized: "elenca una cartella di sistema: \(dir)"))
+                }
+                if FileManager.default.fileExists(atPath: dir) {
+                    throw Violation.notAStaleEntry(raw, String(localized: "la cartella esiste ancora: \(dir)"))
+                }
+            }
+        } else {
+            throw Violation.outsideAllowlist(raw)
+        }
+        try validateIdentity(raw, expected: expected)
+    }
+
+    /// Serve l'amministratore quando la cartella che contiene la voce non è
+    /// scrivibile dall'utente (per rimuovere un collegamento conta la cartella).
+    static func staleEntryNeedsAdmin(_ path: String) -> Bool {
+        !FileManager.default.isWritableFile(atPath: (path as NSString).deletingLastPathComponent)
+    }
+
     /// Verifica preventiva usata dall'interfaccia per marcare gli elementi
     /// non eliminabili *prima* che l'utente li selezioni.
     /// - Parameter ignoringMissing: un percorso già assente non è un problema
@@ -576,6 +729,20 @@ enum PathGuard {
         case .removeAgedFiles(let root, _, _):
             if !ageGatedRoots.contains(realPath(root) ?? root) {
                 problems.append(Violation.outsideAllowlist(root).localizedDescription)
+            }
+        case .removeStaleEntries(let paths):
+            for p in paths {
+                do { try validateStaleEntry(p, expected: item.identities[p]) } catch { record(error) }
+            }
+        case .removeSystemComponents(let components):
+            for component in components {
+                do { try SystemLeftoverScanner.validate(component) } catch { record(error) }
+            }
+        case .forgetReceipts(let ids):
+            // Solo controllo sintattico: lo scambio con `pkgutil` avviene a
+            // ogni esecuzione, non a ogni verifica dell'interfaccia.
+            for id in ids where !PackageReceipts.isForgettable(id) {
+                problems.append(Violation.invalidReceipt(id).localizedDescription)
             }
         case .revealOnly, .simctlDeleteDevice, .simctlEraseDevice,
              .simctlDeleteRuntime, .shell, .dockerPrune:

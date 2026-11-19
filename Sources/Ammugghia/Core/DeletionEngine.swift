@@ -154,6 +154,15 @@ final class DeletionEngine {
         case .removeApp(let appPath, let related):
             return removeApp(item, appPath: appPath, related: related, mode: mode, dryRun: dryRun)
 
+        case .removeStaleEntries(let paths):
+            return removeStaleEntries(item, paths: paths, dryRun: dryRun)
+
+        case .forgetReceipts(let ids):
+            return forgetReceipts(item, ids: ids, dryRun: dryRun)
+
+        case .removeSystemComponents(let components):
+            return removeSystemComponents(item, components: components, dryRun: dryRun)
+
         case .simctlDeleteDevice(let udid):
             return runSimctl(item, ["simctl", "delete", udid], dryRun: dryRun)
 
@@ -499,6 +508,139 @@ final class DeletionEngine {
         }
         if let destination { trashedNow[appPath] = destination }
         return .done
+    }
+
+    /// Collegamenti rotti e file `paths.d` obsoleti: ognuno viene rivalidato
+    /// adesso. Un collegamento rotto non contiene dati, quindi si rimuove
+    /// direttamente; quelli in cartelle non scrivibili vanno in un solo `rm -f`
+    /// con password.
+    private func removeStaleEntries(_ item: CleanupItem, paths: [String], dryRun: Bool) -> DeletionOutcome {
+        var errors: [String] = []
+        var userPaths: [String] = []
+        var adminPaths: [String] = []
+        var alreadyGone = 0
+
+        for path in paths {
+            if activeExclusions.blocksDeletion(of: path) {
+                errors.append(String(localized: "escluso dalle tue esclusioni: \(path)"))
+                continue
+            }
+            do {
+                try PathGuard.validateStaleEntry(path, expected: item.identities[path])
+            } catch PathGuard.Violation.doesNotExist {
+                alreadyGone += 1
+                continue
+            } catch {
+                errors.append(error.localizedDescription)
+                note(String(localized: "RIFIUTATO \(path) — \(error.localizedDescription)"))
+                continue
+            }
+            if PathGuard.staleEntryNeedsAdmin(path) { adminPaths.append(path) } else { userPaths.append(path) }
+        }
+
+        var done = 0
+        for path in userPaths {
+            if dryRun {
+                note(String(localized: "SIMULAZIONE  rimuovi \(path)"))
+                done += 1
+                continue
+            }
+            do {
+                try fileManager.removeItem(atPath: path)
+                done += 1
+                note(String(localized: "OK  rimosso \(path)"))
+            } catch {
+                let msg = friendlyFileError(error, path: path)
+                errors.append(msg)
+                note(String(localized: "ERRORE \(path) — \(msg)"))
+            }
+        }
+
+        var cancelled = false
+        if !adminPaths.isEmpty {
+            let command = "/bin/rm -f " + adminPaths.map(Shell.shellQuote).joined(separator: " ")
+            if dryRun {
+                note(String(localized: "SIMULAZIONE  sudo \(command)"))
+                done += adminPaths.count
+            } else {
+                let r = Shell.runAsAdmin(command)
+                noteResult(r, "sudo \(command)")
+                if !r.ok && r.stderr.contains("-128") {
+                    cancelled = true
+                } else {
+                    // L'esito vero è sul disco.
+                    let left = adminPaths.filter { FileIdentity.of($0) != nil }
+                    done += adminPaths.count - left.count
+                    if !left.isEmpty { errors.append(r.ok ? String(localized: "ancora presente: \(left[0])") : shortError(r.stderr)) }
+                }
+            }
+        }
+
+        if cancelled && done == 0 { return skip(item, String(localized: "annullato: password non inserita")) }
+        if done == 0 && alreadyGone > 0 && errors.isEmpty { return skip(item, String(localized: "già eliminato in precedenza")) }
+        let succeeded = errors.isEmpty && done > 0
+        let message = succeeded
+            ? (dryRun ? String(localized: "\(Plural.of(done, "elemento", "elementi")) da rimuovere")
+                      : String(localized: "\(Plural.of(done, "elemento rimosso", "elementi rimossi"))"))
+            : errors.joined(separator: "; ")
+        return DeletionOutcome(title: item.title, succeeded: succeeded, skipped: false, message: message, freed: 0)
+    }
+
+    /// `pkgutil --forget`: la ricevuta si dimentica solo se, adesso, l'id è
+    /// valido, non è di Apple e il pacchetto non ha più nessun file.
+    /// Servizi, driver e kext orfani: si ricontrolla che siano ancora orfani e
+    /// il comando si costruisce adesso dai dati validati, non da un testo
+    /// salvato durante l'analisi. Un solo componente dubbio rifiuta tutto.
+    private func removeSystemComponents(_ item: CleanupItem, components: [SystemComponent],
+                                        dryRun: Bool) -> DeletionOutcome {
+        for component in components {
+            for path in component.paths {
+                if activeExclusions.blocksDeletion(of: path) {
+                    return fail(item, String(localized: "il percorso rientra nelle tue esclusioni: \(path)"))
+                }
+                do { try PathGuard.validate(path, expected: item.identities[path]) }
+                catch { return fail(item, String(localized: "controllo di sicurezza non superato — \(error.localizedDescription)")) }
+            }
+            do { try SystemLeftoverScanner.validate(component) }
+            catch { return fail(item, String(localized: "controllo di sicurezza non superato — \(error.localizedDescription)")) }
+        }
+        let command = SystemLeftoverScanner.command(for: components)
+        if dryRun {
+            note(String(localized: "SIMULAZIONE  sudo \(command)"))
+            return DeletionOutcome(title: item.title, succeeded: true, skipped: false,
+                                   message: String(localized: "Simulato (richiederebbe la password)"), freed: item.size)
+        }
+        let r = Shell.runAsAdmin(command)
+        noteResult(r, "sudo \(command)")
+        if !r.ok && r.stderr.contains("-128") { return skip(item, String(localized: "annullato: password non inserita")) }
+        return DeletionOutcome(title: item.title, succeeded: r.ok, skipped: false,
+                               message: r.ok ? String(localized: "Eseguito con privilegi di amministratore") : shortError(r.stderr),
+                               freed: r.ok ? item.size : 0)
+    }
+
+    private func forgetReceipts(_ item: CleanupItem, ids: [String], dryRun: Bool) -> DeletionOutcome {
+        var valid: [String] = []
+        for id in ids {
+            guard PackageReceipts.isForgettable(id) else {
+                return fail(item, PathGuard.Violation.invalidReceipt(id).localizedDescription)
+            }
+            if PackageReceipts.hasNoFilesLeft(id) { valid.append(id) }
+            else { note(String(localized: "SALTATO \(id) — il pacchetto ha ancora file sul disco o non è verificabile")) }
+        }
+        guard let command = PackageReceipts.forgetCommand(valid) else {
+            return skip(item, String(localized: "nessuna ricevuta da dimenticare"))
+        }
+        if dryRun {
+            note(String(localized: "SIMULAZIONE  sudo \(command)"))
+            return DeletionOutcome(title: item.title, succeeded: true, skipped: false,
+                                   message: String(localized: "Simulato (richiederebbe la password)"), freed: 0)
+        }
+        let r = Shell.runAsAdmin(command)
+        noteResult(r, "sudo \(command)")
+        if !r.ok && r.stderr.contains("-128") { return skip(item, String(localized: "annullato: password non inserita")) }
+        return DeletionOutcome(title: item.title, succeeded: r.ok, skipped: false,
+                               message: r.ok ? String(localized: "\(Plural.of(valid.count, "ricevuta dimenticata", "ricevute dimenticate"))") : shortError(r.stderr),
+                               freed: 0)
     }
 
     private func runSimctl(_ item: CleanupItem,

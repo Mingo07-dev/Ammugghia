@@ -142,6 +142,26 @@ SHA-256 dell'intero file.
 Ammugghia --duplicates   # elenca i gruppi di duplicati; legge i file, non modifica nulla
 ```
 
+## Strumenti da riga di comando
+
+I programmi installati con Homebrew e npm (più un elenco in sola lettura degli strumenti `uv`
+e delle toolchain `rustup`), con versione, aggiornamento disponibile e quali altri strumenti
+ne hanno bisogno. Puoi aggiornare o rimuovere un singolo strumento, oppure eseguire
+`brew update`, `upgrade`, `autoremove` e `cleanup`. Uno strumento da cui altri dipendono non si
+rimuove da qui. Ogni comando viene mostrato per intero prima di partire e registrato nella
+cronologia.
+
+## Collegamenti rotti e resti di sistema
+
+- **Collegamenti e percorsi rotti:** collegamenti simbolici senza destinazione nelle cartelle
+  dei comandi (Homebrew, `/usr/local`, `~/.local/bin`, `~/bin`) e file di `/etc/paths.d` che
+  aggiungono solo cartelle che non esistono più.
+- **Resti di sistema:** servizi launchd e programmi di supporto orfani, driver audio ed
+  estensioni del kernel di produttori che non ci sono più, ricevute d'installazione senza più
+  file. Nessuna voce è preselezionata.
+- **Cartelle nascoste** di strumenti per sviluppatori non più installati (`.vscode`,
+  `.cursor`, `.rustup`, ...), non usate da 14 giorni.
+
 ## Elementi d'avvio
 
 Tutto ciò che launchd avvia da solo, da `~/Library/LaunchAgents`, `/Library/LaunchAgents` e

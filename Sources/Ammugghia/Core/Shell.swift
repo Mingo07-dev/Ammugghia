@@ -15,7 +15,8 @@ enum Shell {
     @discardableResult
     static func run(_ launchPath: String,
                     _ arguments: [String],
-                    timeout: TimeInterval = 120) -> Result {
+                    timeout: TimeInterval = 120,
+                    environment: [String: String]? = nil) -> Result {
         guard FileManager.default.isExecutableFile(atPath: launchPath) else {
             return Result(status: 127, stdout: "", stderr: String(localized: "eseguibile non trovato: \(launchPath)"))
         }
@@ -23,6 +24,10 @@ enum Shell {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: launchPath)
         process.arguments = arguments
+        // Aggiunte all'ambiente ereditato: da Finder il PATH è minimo.
+        if let environment {
+            process.environment = ProcessInfo.processInfo.environment.merging(environment) { _, new in new }
+        }
 
         let outPipe = Pipe()
         let errPipe = Pipe()
