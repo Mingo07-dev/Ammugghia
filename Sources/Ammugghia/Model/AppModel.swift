@@ -184,9 +184,10 @@ final class AppModel: ObservableObject {
             await MainActor.run {
                 let lastLine = (result.stderr.isEmpty ? result.stdout : result.stderr)
                     .split(separator: "\n").last.map(String.init) ?? ""
+                let detail = String(lastLine.prefix(300))
                 let message = result.ok
                     ? String(localized: "Completato")
-                    : String(localized: "Non riuscito: \(lastLine.prefix(300)). Se serve la password o un input, esegui il comando nel Terminale.")
+                    : String(localized: "Non riuscito: \(detail). Se serve la password o un input, esegui il comando nel Terminale.")
                 let engine = self.engine
                 engine.record(String(localized: "COMANDO  \(command.display)"))
                 engine.record(result.ok ? String(localized: "OK comando — \(message)") : String(localized: "ERRORE comando — \(message)"))
